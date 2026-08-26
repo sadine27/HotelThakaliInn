@@ -36,6 +36,246 @@ body {
   border-radius: 999px;
 }
 
+/* ── home carousel ─────────────────────────────────────────────────── */
+
+.hero {
+  --dir: 1; /* 1 forward, -1 back — flips which side slides enter and leave on */
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(32px, 4vw, 72px);
+  min-height: 100vh;
+  padding: clamp(28px, 5vh, 64px) clamp(28px, 4vw, 72px);
+}
+
+/* how far a slide travels before it fades out — the tuning knob for how
+   "moved" versus "dissolved" the transition reads */
+.hero-frame,
+.hero-deck {
+  --travel: 46px;
+  --swap: 1.05s;
+  position: relative;
+}
+
+.hero-frame {
+  /* 67vh is 4/5 of the 84vh height ceiling — bounding the width instead of the
+     height keeps the portrait ratio instead of letting it flatten to a square */
+  width: min(100%, 67vh);
+  aspect-ratio: 4 / 5;
+  margin-inline: auto;
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: var(--nu-raised);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero-shot {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: transform var(--swap) var(--ease), opacity var(--swap) var(--ease);
+}
+
+.hero-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* photos run downward: parked above, leaving below (mirrored when going back) */
+.hero-shot[data-state="idle"] {
+  transform: translateY(calc(var(--travel) * var(--dir) * -1));
+  transition: none;
+}
+.hero-shot[data-state="out"] {
+  transform: translateY(calc(var(--travel) * var(--dir)));
+}
+.hero-shot[data-state="in"] {
+  transform: none;
+  opacity: 1;
+}
+
+/* placeholder until real photos land */
+.hero-ph {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  color: rgba(107, 112, 92, 0.55);
+  background: linear-gradient(150deg, #eeece5, #dcd9d1 55%, #e6e3db);
+  box-shadow: var(--nu-pressed);
+}
+
+.hero-copy {
+  max-width: 30rem;
+}
+
+.hero-eyebrow {
+  margin: 0 0 clamp(20px, 4vh, 40px);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.hero-deck {
+  height: clamp(12rem, 26vh, 15.5rem);
+  overflow: hidden;
+}
+
+.hero-text {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: transform var(--swap) var(--ease), opacity var(--swap) var(--ease);
+}
+
+/* text runs upward: parked below, leaving above (mirrored when going back) */
+.hero-text[data-state="idle"] {
+  transform: translateY(calc(var(--travel) * var(--dir)));
+  transition: none;
+}
+.hero-text[data-state="out"] {
+  transform: translateY(calc(var(--travel) * var(--dir) * -1));
+}
+.hero-text[data-state="in"] {
+  transform: none;
+  opacity: 1;
+}
+
+.hero-text h2 {
+  margin: 0 0 0.6em;
+  font-size: clamp(28px, 3vw, 44px);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--green);
+}
+
+.hero-text p {
+  margin: 0;
+  font-size: clamp(14px, 1.1vw, 17px);
+  line-height: 1.65;
+  color: var(--olive);
+}
+
+.hero-rail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: clamp(24px, 4vh, 44px);
+}
+
+.hero-arrow {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--green);
+  box-shadow: 4px 4px 10px var(--nu-dark), -4px -4px 10px var(--nu-light);
+  cursor: pointer;
+  transition: box-shadow 0.3s var(--ease), color 0.3s ease;
+}
+
+.hero-arrow:hover {
+  color: var(--ink);
+}
+
+.hero-arrow:active {
+  box-shadow: inset 3px 3px 7px var(--nu-dark), inset -3px -3px 7px var(--nu-light);
+}
+
+.hero-arrow.next svg {
+  transform: rotate(180deg);
+}
+
+.hero-arrow + .hero-tick {
+  margin-left: 12px;
+}
+
+.hero-tick {
+  width: 26px;
+  height: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(107, 112, 92, 0.3);
+  cursor: pointer;
+  transition: width 0.5s var(--ease), background 0.5s var(--ease);
+}
+
+.hero-tick[aria-current] {
+  width: 52px;
+  background: var(--green);
+}
+
+.hero-count {
+  margin-left: 14px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--olive);
+}
+
+.hero-count i {
+  margin: 0 3px;
+  font-style: normal;
+  opacity: 0.45;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    align-content: center;
+    gap: clamp(24px, 4vh, 40px);
+    padding-bottom: 108px; /* clears the dial */
+    touch-action: pan-y;
+  }
+  .hero-frame {
+    aspect-ratio: 3 / 4;
+    width: min(100%, 34vh);
+    margin-inline: 0;
+  }
+  .hero-deck {
+    height: 9.5rem;
+  }
+  /* the rail would run under the dial, and the ticks already say where we are */
+  .hero-count {
+    display: none;
+  }
+
+  /* stacked, so the split up/down reading breaks — both columns swipe
+     sideways instead, entering from the right on the way forward */
+  .hero-shot[data-state="idle"],
+  .hero-text[data-state="idle"] {
+    transform: translateX(calc(var(--travel) * var(--dir)));
+  }
+  .hero-shot[data-state="out"],
+  .hero-text[data-state="out"] {
+    transform: translateX(calc(var(--travel) * var(--dir) * -1));
+  }
+
+  .hero-arrow svg {
+    transform: rotate(-90deg);
+  }
+  .hero-arrow.next svg {
+    transform: rotate(90deg);
+  }
+}
+
 /* ── dial ──────────────────────────────────────────────────────────── */
 
 .dial-layer {
@@ -142,7 +382,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .dial-ring,
   .dial-arc,
-  .dial-labels {
+  .dial-labels,
+  .hero-shot,
+  .hero-text {
     transition-duration: 0.01ms;
   }
 }
