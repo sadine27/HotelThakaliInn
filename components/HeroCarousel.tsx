@@ -47,6 +47,7 @@ export default function HeroCarousel() {
   const [prev, setPrev] = useState(-1);
   const [dir, setDir] = useState(1);
   const [paused, setPaused] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const go = (next: number, d = next > i ? 1 : -1) => {
     setPrev(i);
@@ -56,13 +57,15 @@ export default function HeroCarousel() {
   const step = (d: 1 | -1) => go(i + d, d);
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || open) return;
     const t = setTimeout(() => step(1), DWELL);
     return () => clearTimeout(t);
   });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return setOpen(false);
+      if (open) return;
       const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
       if (d) step(d as 1 | -1);
     };
@@ -87,8 +90,19 @@ export default function HeroCarousel() {
   const state = (n: number) => (n === i ? "in" : n === prev ? "out" : "idle");
 
   return (
-    <section
+    <>
+      {/* what the page opens onto — sits behind the two halves */}
+      <div className="beyond" data-open={open || undefined}>
+        <p className="beyond-eyebrow">Inside</p>
+        <p className="beyond-note">The next chapter goes here.</p>
+        <button className="gate-btn small" onClick={() => setOpen(false)}>
+          Back
+        </button>
+      </div>
+
+      <section
       className="hero"
+      data-open={open || undefined}
       style={{ "--dir": dir } as React.CSSProperties}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -97,6 +111,7 @@ export default function HeroCarousel() {
       aria-roledescription="carousel"
       aria-label="Hotel Thakali Inn"
     >
+      <div className="leaf leaf-l">
       <div className="hero-frame">
         {SLIDES.map((s, n) => (
           <figure key={s.title} className="hero-shot" data-state={state(n)}>
@@ -108,7 +123,9 @@ export default function HeroCarousel() {
           </figure>
         ))}
       </div>
+      </div>
 
+      <div className="leaf leaf-r">
       <div className="hero-copy">
         <p className="hero-eyebrow">Hotel Thakali Inn</p>
 
@@ -145,6 +162,20 @@ export default function HeroCarousel() {
           </span>
         </div>
       </div>
+      </div>
+
+      {/* sits on the seam the page opens along */}
+      <div className="gate" aria-hidden={open || undefined}>
+        <button
+          className="gate-btn"
+          onClick={() => setOpen(true)}
+          aria-expanded={open}
+          tabIndex={open ? -1 : undefined}
+        >
+          Explore
+        </button>
+      </div>
     </section>
+    </>
   );
 }

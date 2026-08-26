@@ -14,6 +14,8 @@
   --nu-pressed: inset 7px 7px 15px var(--nu-dark), inset -7px -7px 15px var(--nu-light);
 
   --ease: cubic-bezier(0.34, 0.9, 0.28, 1);
+  /* heavy start, long settle — a sheet with weight rather than a snap */
+  --swing: cubic-bezier(0.62, 0.02, 0.2, 1);
 }
 
 * {
@@ -40,12 +42,106 @@ body {
 
 .hero {
   --dir: 1; /* 1 forward, -1 back — flips which side slides enter and leave on */
+  --pad-y: clamp(28px, 5vh, 64px);
+  --pad-x: clamp(28px, 4vw, 72px);
+  --gutter: clamp(48px, 8vw, 140px); /* the channel the button sits in */
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  align-items: center;
-  gap: clamp(32px, 4vw, 72px);
+  /* even halves — the seam between them is the one the page opens along */
+  grid-template-columns: 1fr 1fr;
   min-height: 100vh;
-  padding: clamp(28px, 5vh, 64px) clamp(28px, 4vw, 72px);
+  perspective: 1350px; /* closer eye = more pronounced swing */
+}
+
+/* the two halves of the page, hinged on the outer edges */
+.leaf {
+  position: relative;
+  display: grid;
+  align-content: center;
+  padding: var(--pad-y) var(--pad-x);
+  background: var(--bg);
+  backface-visibility: hidden;
+  transition: transform 1.9s var(--swing), box-shadow 1.4s ease;
+}
+
+/* the cut edge of the sheet — only there once the halves part, which is the
+   only time you'd see it, and it's what makes them read as thick */
+.leaf::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 22px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+/* shading across the face — darkest at the edge swinging away from the light.
+   z-index puts it over the photo, which is positioned. */
+.leaf::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.4s ease;
+}
+
+.leaf-l {
+  padding-right: var(--gutter);
+  transform-origin: left center;
+}
+.leaf-l::before {
+  right: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(43, 50, 48, 0),
+    rgba(255, 255, 255, 0.5) 22%,
+    rgba(43, 50, 48, 0.16) 48%,
+    rgba(43, 50, 48, 0.46)
+  );
+}
+.leaf-l::after {
+  background: linear-gradient(90deg, rgba(43, 50, 48, 0) 30%, rgba(43, 50, 48, 0.4));
+}
+.leaf-r {
+  padding-left: var(--gutter);
+  transform-origin: right center;
+}
+.leaf-r::before {
+  left: 0;
+  background: linear-gradient(
+    270deg,
+    rgba(43, 50, 48, 0),
+    rgba(255, 255, 255, 0.5) 22%,
+    rgba(43, 50, 48, 0.16) 48%,
+    rgba(43, 50, 48, 0.46)
+  );
+}
+.leaf-r::after {
+  background: linear-gradient(270deg, rgba(43, 50, 48, 0) 30%, rgba(43, 50, 48, 0.4));
+}
+
+/* opening: the halves wait for the button to clear.
+   closing: no delay here, so they shut first and the button fades back after. */
+.hero[data-open] .leaf {
+  transition-delay: 0.3s;
+  box-shadow: 0 30px 90px rgba(43, 50, 48, 0.42);
+}
+
+.hero[data-open] .leaf::before,
+.hero[data-open] .leaf::after {
+  opacity: 1;
+  transition-delay: 0.32s;
+}
+.hero[data-open] .leaf-l {
+  transform: rotateY(-108deg);
+}
+.hero[data-open] .leaf-r {
+  transform: rotateY(108deg);
 }
 
 /* how far a slide travels before it fades out — the tuning knob for how
@@ -58,11 +154,11 @@ body {
 }
 
 .hero-frame {
-  /* 67vh is 4/5 of the 84vh height ceiling — bounding the width instead of the
+  /* 72vh is 6/7 of the 84vh height ceiling — bounding the width instead of the
      height keeps the portrait ratio instead of letting it flatten to a square */
-  width: min(100%, 67vh);
-  aspect-ratio: 4 / 5;
-  margin-inline: auto;
+  width: min(100%, 84vh);
+  aspect-ratio: 6 / 7;
+  justify-self: end; /* hugs the seam, so the only gap is the channel itself */
   border-radius: 28px;
   background: var(--surface);
   box-shadow: var(--nu-raised);
@@ -114,8 +210,18 @@ body {
   box-shadow: var(--nu-pressed);
 }
 
+/* the facing page: same footprint and material as the photo, so the two halves
+   carry equal weight and read as one spread rather than a panel and some air */
 .hero-copy {
-  max-width: 30rem;
+  width: min(100%, 84vh);
+  aspect-ratio: 6 / 7;
+  justify-self: start; /* mirrors the photo across the channel */
+  padding: clamp(30px, 3.2vw, 54px);
+  display: grid;
+  align-content: center;
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: var(--nu-raised);
 }
 
 .hero-eyebrow {
@@ -236,21 +342,190 @@ body {
   opacity: 0.45;
 }
 
+/* ── the button on the seam ────────────────────────────────────────── */
+
+.gate {
+  position: absolute;
+  /* centred in the channel, low on the seam — level with the carousel arrows */
+  left: 50%;
+  top: 62%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.5s ease 1.6s; /* on the way back, after the page shuts */
+}
+
+/* out first — the halves start moving as it goes */
+.hero[data-open] .gate {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.gate-btn {
+  padding: 16px 36px;
+  border: 0;
+  border-radius: 14px;
+  /* the one green object on the beige ground, lit from the same corner */
+  background: linear-gradient(150deg, #4a6754, var(--green) 52%, #2a4034);
+  box-shadow: 9px 9px 20px rgba(52, 78, 65, 0.34), -8px -8px 18px var(--nu-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+  color: #f2eee4;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: box-shadow 0.35s var(--ease), transform 0.35s var(--ease);
+}
+
+.gate-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 11px 11px 24px rgba(52, 78, 65, 0.38), -8px -8px 18px var(--nu-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+}
+.gate-btn:active {
+  transform: translateY(0);
+  box-shadow: 3px 3px 8px rgba(52, 78, 65, 0.3), -3px -3px 8px var(--nu-light),
+    inset 3px 3px 9px rgba(0, 0, 0, 0.34), inset -2px -2px 8px rgba(255, 255, 255, 0.12);
+}
+
+.gate-btn.small {
+  padding: 10px 22px;
+  font-size: 11px;
+}
+
+/* ── what the page opens onto ──────────────────────────────────────── */
+
+.beyond {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  background: radial-gradient(85% 65% at 50% 42%, #f1ece0, var(--bg) 72%);
+  opacity: 0;
+  transform: scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.8s ease, transform 1.1s var(--ease);
+}
+
+.beyond[data-open] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 1.15s; /* the halves are well clear by now */
+}
+
+.beyond-eyebrow {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.beyond-note {
+  margin: 0 0 10px;
+  font-size: clamp(20px, 2.4vw, 32px);
+  font-weight: 500;
+  color: var(--green);
+}
+
 @media (max-width: 900px) {
   .hero {
+    /* stacked, so the page splits top/bottom instead */
+    --gutter: 62px; /* room for the button across the seam */
     grid-template-columns: 1fr;
-    align-content: center;
-    gap: clamp(24px, 4vh, 40px);
-    padding-bottom: 108px; /* clears the dial */
+    grid-template-rows: 1fr 1fr;
     touch-action: pan-y;
   }
+  /* keeps the two rows exactly half each instead of growing with the copy */
+  .leaf {
+    min-height: 0;
+  }
+  /* the button rides the horizontal seam here, so it stays centred */
+  .gate {
+    left: 50%;
+    top: 50%;
+  }
+  /* the cut edge lies along the seam, so it runs horizontally here */
+  .leaf::before {
+    top: auto;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 22px;
+  }
+  .leaf-l {
+    padding: var(--pad-y) var(--pad-x) var(--gutter);
+    align-content: end;
+    transform-origin: center top;
+  }
+  .leaf-l::before {
+    bottom: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(43, 50, 48, 0),
+      rgba(255, 255, 255, 0.5) 22%,
+      rgba(43, 50, 48, 0.16) 48%,
+      rgba(43, 50, 48, 0.46)
+    );
+  }
+  .leaf-l::after {
+    background: linear-gradient(180deg, rgba(43, 50, 48, 0) 30%, rgba(43, 50, 48, 0.4));
+  }
+  .leaf-r {
+    padding: var(--gutter) var(--pad-x) 84px; /* clears the dial */
+    align-content: start;
+    transform-origin: center bottom;
+  }
+  .leaf-r::before {
+    top: 0;
+    background: linear-gradient(
+      0deg,
+      rgba(43, 50, 48, 0),
+      rgba(255, 255, 255, 0.5) 22%,
+      rgba(43, 50, 48, 0.16) 48%,
+      rgba(43, 50, 48, 0.46)
+    );
+  }
+  .leaf-r::after {
+    background: linear-gradient(0deg, rgba(43, 50, 48, 0) 30%, rgba(43, 50, 48, 0.4));
+  }
+  .hero[data-open] .leaf-l {
+    transform: rotateX(104deg);
+  }
+  .hero[data-open] .leaf-r {
+    transform: rotateX(-104deg);
+  }
   .hero-frame {
+    /* height-led here: half the screen, less the padding and the seam gutter */
     aspect-ratio: 3 / 4;
-    width: min(100%, 34vh);
-    margin-inline: 0;
+    height: calc(50vh - 116px);
+    width: auto;
+    max-width: 100%;
+    justify-self: center; /* the seam runs across here, so both cards centre on it */
+  }
+  /* stacked, so the facing page wraps its text instead of matching a footprint */
+  .hero-copy {
+    width: 100%;
+    justify-self: stretch;
+    aspect-ratio: auto;
+    padding: 20px;
+    border-radius: 20px;
+  }
+  .hero-eyebrow {
+    margin-bottom: 12px;
   }
   .hero-deck {
-    height: 9.5rem;
+    height: 7rem;
+  }
+  .hero-rail {
+    margin-top: 18px;
   }
   /* the rail would run under the dial, and the ticks already say where we are */
   .hero-count {
@@ -384,7 +659,11 @@ body {
   .dial-arc,
   .dial-labels,
   .hero-shot,
-  .hero-text {
+  .hero-text,
+  .leaf,
+  .gate,
+  .beyond {
     transition-duration: 0.01ms;
+    transition-delay: 0s;
   }
 }
