@@ -17,8 +17,8 @@ const ITEMS = [
 /* Dial geometry, in viewBox units. The fan opens from 9 o'clock (180deg)
    clockwise past 12, so it sweeps up and left out of the bottom-right corner. */
 const C = 260;
-const R_ARC = 152;
-const R_LABEL = 176;
+const R_ARC = 128;
+const R_LABEL = 150;
 const SWEEP_FROM = 180;
 const SLOT = 18.5;
 /* Butt caps, not round: at this stroke width round caps swallow the gaps and
@@ -44,6 +44,7 @@ const segments = ITEMS.map((item, i) => {
 
 export default function DialNav() {
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(-1);
   const pathname = usePathname();
   const activeIndex = segments.findIndex((s) =>
     s.href === "/" ? pathname === "/" : pathname.startsWith(s.href)
@@ -54,12 +55,27 @@ export default function DialNav() {
       <div
         className="dial-anchor"
         onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
+        onMouseLeave={() => {
+          setOpen(false);
+          setHovered(-1);
+        }}
         onFocus={() => setOpen(true)}
         onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false);
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setOpen(false);
+            setHovered(-1);
+          }
         }}
       >
+        {/* Continuous hit field. The puck ends at r=38 and the spokes start at
+            r=52, so without this the pointer crosses dead space on its way to
+            an arc and mouseleave collapses the dial before you arrive. */}
+        <div
+          className="dial-field"
+          style={{ pointerEvents: open ? "auto" : "none" }}
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />
         <svg className="dial-svg" viewBox="0 0 520 520" aria-hidden="true">
           <defs>
             {/* one raised light source: white up-left, green shadow down-right */}
@@ -72,9 +88,15 @@ export default function DialNav() {
               <stop offset="0" stopColor="#c6c3b9" />
               <stop offset="1" stopColor="#f8f6f1" />
             </linearGradient>
+            {/* every state stays in the brand green family — a grey-olive
+                idle read as unfinished rather than restrained */}
             <linearGradient id="nuIdle" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#b4b9a3" />
-              <stop offset="1" stopColor="#878d74" />
+              <stop offset="0" stopColor="#9fb2a4" />
+              <stop offset="1" stopColor="#728a7a" />
+            </linearGradient>
+            <linearGradient id="nuHover" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
+              <stop offset="0" stopColor="#7d9384" />
+              <stop offset="1" stopColor="#50695a" />
             </linearGradient>
             <linearGradient id="nuActive" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
               <stop offset="0" stopColor="#4a6b58" />
@@ -91,7 +113,7 @@ export default function DialNav() {
           <circle
             cx={C}
             cy={C}
-            r={272}
+            r={236}
             fill="url(#nuVeil)"
             className="dial-labels"
             opacity={open ? 1 : 0}
@@ -99,15 +121,15 @@ export default function DialNav() {
 
           <g
             className="dial-ring"
-            style={{ transform: `scale(${open ? 1 : 0.72})` }}
-            strokeWidth={open ? 28 : 18}
+            style={{ transform: `scale(${open ? 1 : 0.74})` }}
+            strokeWidth={open ? 22 : 14}
           >
             {/* recessed track the segments sit in */}
             <path
               d={arcPath(SWEEP_FROM - 2, SWEEP_FROM + ITEMS.length * SLOT + 2, R_ARC)}
               fill="none"
               stroke="url(#nuTrack)"
-              strokeWidth={open ? 42 : 27}
+              strokeWidth={open ? 34 : 21}
               strokeLinecap="round"
               className="dial-arc"
               opacity={open ? 1 : 0.7}
@@ -119,7 +141,13 @@ export default function DialNav() {
                   className="dial-arc"
                   d={arcPath(s.from, s.to, R_ARC)}
                   fill="none"
-                  stroke={i === activeIndex ? "url(#nuActive)" : "url(#nuIdle)"}
+                  stroke={
+                    i === activeIndex
+                      ? "url(#nuActive)"
+                      : i === hovered
+                        ? "url(#nuHover)"
+                        : "url(#nuIdle)"
+                  }
                   strokeLinecap="butt"
                 />
               ))}
@@ -137,10 +165,11 @@ export default function DialNav() {
                     transform={`rotate(${s.mid + (flip ? 180 : 0)} ${p.x} ${p.y})`}
                     textAnchor={flip ? "end" : "start"}
                     dominantBaseline="middle"
-                    fill={i === activeIndex ? "#344E41" : "#6B705C"}
+                    fill={i === activeIndex || i === hovered ? "#344E41" : "#6f8579"}
                     style={{
-                      font: `${i === activeIndex ? 700 : 500} 12px var(--font-mono), ui-monospace, monospace`,
-                      letterSpacing: "0.12em",
+                      font: `${i === activeIndex ? 700 : 500} 10.5px var(--font-mono), ui-monospace, monospace`,
+                      letterSpacing: "0.14em",
+                      transition: "fill .25s ease",
                     }}
                   >
                     {s.label}
@@ -159,8 +188,11 @@ export default function DialNav() {
               className="dial-spoke"
               aria-current={i === activeIndex ? "page" : undefined}
               tabIndex={open ? 0 : -1}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(-1)}
+              onFocus={() => setHovered(i)}
               style={{
-                transform: `rotate(${s.mid}deg) translate(64px, -22px)`,
+                transform: `rotate(${s.mid}deg) translate(52px, -21px)`,
                 pointerEvents: open ? "auto" : "none",
               }}
             >
@@ -186,7 +218,7 @@ export default function DialNav() {
           aria-label={open ? "Close navigation" : "Open navigation"}
           onClick={() => setOpen((v) => !v)}
         >
-          <LogoMark size={46} />
+          <LogoMark size={38} />
         </button>
       </div>
     </div>

@@ -48,11 +48,21 @@ body {
 
 .dial-anchor {
   position: absolute;
-  right: 108px;
-  bottom: 108px;
+  right: 92px;
+  bottom: 92px;
   width: 0;
   height: 0;
   transform-origin: 0 0;
+}
+
+/* invisible disc that keeps hover unbroken between the puck and the arcs */
+.dial-field {
+  position: absolute;
+  left: -230px;
+  top: -230px;
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
 }
 
 .dial-svg {
@@ -83,19 +93,19 @@ body {
   position: absolute;
   left: 0;
   top: 0;
-  width: 168px;
-  height: 44px;
-  border-radius: 22px;
+  width: 140px;
+  height: 42px;
+  border-radius: 21px;
   transform-origin: 0 0;
   pointer-events: auto;
 }
 
 .dial-puck {
   position: absolute;
-  left: -46px;
-  top: -46px;
-  width: 92px;
-  height: 92px;
+  left: -38px;
+  top: -38px;
+  width: 76px;
+  height: 76px;
   padding: 0;
   border: 0;
   border-radius: 50%;

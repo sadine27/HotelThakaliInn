@@ -11,3 +11,14 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# Camera originals — 31 GB of Sony ARW/MP4 masters. Never commit these:
+# GitHub rejects single files over 100 MB and the clone would be unusable.
+# Keep the masters local; web-ready derivatives go in public/ or R2.
+assets/Hotel Thakali Inn Reels n photos/
+*.ARW
+*.arw
+*.MP4
+*.mp4
+*.MOV
+*.mov
