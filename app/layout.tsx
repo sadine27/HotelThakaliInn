@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, JetBrains_Mono } from "next/font/google";
+import DialNav from "@/components/DialNav";
 import "./globals.css";
 
 const sans = Manrope({
@@ -30,7 +31,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body style={{ fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
-        {children}
+        {/* The dial lives here, not per page, so every route gets the same one
+            and it keeps its open state across client-side navigation. */}
+        <main style={{ minHeight: "100vh" }}>{children}</main>
+        <DialNav />
       </body>
     </html>
   );

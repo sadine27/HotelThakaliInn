@@ -82,6 +82,9 @@ body {
 }
 
 .dial-arc {
+  /* the svg is pointer-events:none, but the arcs opt back in so hovering the
+     collapsed band opens the dial — the spokes only exist once it's open */
+  pointer-events: stroke;
   transition: stroke-width 0.55s var(--ease), stroke 0.3s ease;
 }
 

@@ -22,3 +22,7 @@ assets/Hotel Thakali Inn Reels n photos/
 *.mp4
 *.MOV
 *.mov
+
+# Local screenshot scratch from browser checks
+.playwright-mcp/
+assets/*.png
