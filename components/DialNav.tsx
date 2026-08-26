@@ -17,8 +17,8 @@ const ITEMS = [
 /* Dial geometry, in viewBox units. The fan opens from 9 o'clock (180deg)
    clockwise past 12, so it sweeps up and left out of the bottom-right corner. */
 const C = 260;
-const R_ARC = 132;
-const R_LABEL = 154;
+const R_ARC = 152;
+const R_LABEL = 176;
 const SWEEP_FROM = 180;
 const SLOT = 18.5;
 /* Butt caps, not round: at this stroke width round caps swallow the gaps and
@@ -91,7 +91,7 @@ export default function DialNav() {
           <circle
             cx={C}
             cy={C}
-            r={244}
+            r={272}
             fill="url(#nuVeil)"
             className="dial-labels"
             opacity={open ? 1 : 0}
@@ -99,15 +99,15 @@ export default function DialNav() {
 
           <g
             className="dial-ring"
-            style={{ transform: `scale(${open ? 1 : 0.62})` }}
-            strokeWidth={open ? 24 : 15}
+            style={{ transform: `scale(${open ? 1 : 0.72})` }}
+            strokeWidth={open ? 28 : 18}
           >
             {/* recessed track the segments sit in */}
             <path
               d={arcPath(SWEEP_FROM - 2, SWEEP_FROM + ITEMS.length * SLOT + 2, R_ARC)}
               fill="none"
               stroke="url(#nuTrack)"
-              strokeWidth={open ? 36 : 23}
+              strokeWidth={open ? 42 : 27}
               strokeLinecap="round"
               className="dial-arc"
               opacity={open ? 1 : 0.7}
@@ -160,7 +160,7 @@ export default function DialNav() {
               aria-current={i === activeIndex ? "page" : undefined}
               tabIndex={open ? 0 : -1}
               style={{
-                transform: `rotate(${s.mid}deg) translate(56px, -20px)`,
+                transform: `rotate(${s.mid}deg) translate(64px, -22px)`,
                 pointerEvents: open ? "auto" : "none",
               }}
             >
@@ -186,7 +186,7 @@ export default function DialNav() {
           aria-label={open ? "Close navigation" : "Open navigation"}
           onClick={() => setOpen((v) => !v)}
         >
-          <LogoMark size={36} />
+          <LogoMark size={46} />
         </button>
       </div>
     </div>

@@ -1,24 +1,17 @@
 :root {
   /* brand */
   --green: #344e41;
-  --green-lift: #4a6b58;
-  --green-deep: #2a3f35;
   --olive: #6b705c;
-  --olive-soft: #9aa08a;
 
-  /* neumorphic ground — everything is one material, lit from top-left */
+  /* neumorphic ground — one material, lit from top-left */
   --bg: #e4e2dc;
   --surface: #ebe8e1;
   --ink: #2b3230;
-  --muted: #6b705c;
 
   --nu-dark: rgba(52, 78, 65, 0.22);
   --nu-light: rgba(255, 255, 255, 0.95);
-
-  --nu-raised: 9px 9px 20px var(--nu-dark), -9px -9px 20px var(--nu-light);
-  --nu-raised-sm: 5px 5px 11px var(--nu-dark), -5px -5px 11px var(--nu-light);
-  --nu-pressed: inset 6px 6px 13px var(--nu-dark), inset -6px -6px 13px var(--nu-light);
-  --nu-well: inset 10px 10px 22px var(--nu-dark), inset -10px -10px 22px var(--nu-light);
+  --nu-raised: 10px 10px 22px var(--nu-dark), -10px -10px 22px var(--nu-light);
+  --nu-pressed: inset 7px 7px 15px var(--nu-dark), inset -7px -7px 15px var(--nu-light);
 
   --ease: cubic-bezier(0.34, 0.9, 0.28, 1);
 }
@@ -35,106 +28,6 @@ body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-}
-
-/* ── page shell ────────────────────────────────────────────────────── */
-
-.page {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 44px 40px 240px;
-}
-
-.masthead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.intro {
-  margin-top: 56px;
-  display: grid;
-  gap: 48px;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  align-items: start;
-}
-
-.facts {
-  margin: 64px 0 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-}
-
-@media (max-width: 860px) {
-  .page {
-    padding: 32px 22px 200px;
-  }
-  .intro {
-    grid-template-columns: 1fr;
-    gap: 28px;
-    margin-top: 40px;
-  }
-  .masthead .locality {
-    display: none;
-  }
-  .facts {
-    margin-top: 44px;
-  }
-}
-
-img {
-  display: block;
-  max-width: 100%;
-}
-
-/* ── neumorphic primitives ─────────────────────────────────────────── */
-
-.nu-card {
-  background: var(--surface);
-  border-radius: 22px;
-  box-shadow: var(--nu-raised);
-}
-
-.nu-well {
-  background: var(--surface);
-  border-radius: 26px;
-  box-shadow: var(--nu-well);
-}
-
-.nu-chip {
-  background: var(--surface);
-  border-radius: 999px;
-  box-shadow: var(--nu-raised-sm);
-}
-
-.nu-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 17px 30px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: var(--nu-raised);
-  color: var(--green);
-  font: 600 15px/1 var(--font-sans), system-ui, sans-serif;
-  text-decoration: none;
-  cursor: pointer;
-  transition: box-shadow 0.28s var(--ease), transform 0.28s var(--ease);
-}
-
-.nu-btn:hover {
-  box-shadow: var(--nu-raised-sm);
-  transform: translate(1px, 1px);
-}
-
-.nu-btn:active {
-  box-shadow: var(--nu-pressed);
-  transform: translate(2px, 2px);
 }
 
 :where(a, button):focus-visible {
@@ -155,8 +48,8 @@ img {
 
 .dial-anchor {
   position: absolute;
-  right: 76px;
-  bottom: 76px;
+  right: 108px;
+  bottom: 108px;
   width: 0;
   height: 0;
   transform-origin: 0 0;
@@ -190,19 +83,19 @@ img {
   position: absolute;
   left: 0;
   top: 0;
-  width: 152px;
-  height: 40px;
-  border-radius: 20px;
+  width: 168px;
+  height: 44px;
+  border-radius: 22px;
   transform-origin: 0 0;
   pointer-events: auto;
 }
 
 .dial-puck {
   position: absolute;
-  left: -37px;
-  top: -37px;
-  width: 74px;
-  height: 74px;
+  left: -46px;
+  top: -46px;
+  width: 92px;
+  height: 92px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -227,17 +120,16 @@ img {
 
 @media (max-width: 720px) {
   .dial-anchor {
-    right: 40px;
-    bottom: 40px;
-    transform: scale(0.66);
+    right: 62px;
+    bottom: 62px;
+    transform: scale(0.62);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dial-ring,
   .dial-arc,
-  .dial-labels,
-  .nu-btn {
+  .dial-labels {
     transition-duration: 0.01ms;
   }
 }
