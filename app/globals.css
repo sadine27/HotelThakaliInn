@@ -126,6 +126,9 @@ body {
   --pad-y: clamp(28px, 5vh, 64px);
   --pad-x: clamp(28px, 4vw, 44px);
   --gutter: clamp(48px, 8vw, 140px); /* the channel the button sits in */
+  /* what's left of the viewport once the leaf's own padding is taken out. The
+     spread must fit inside 100vh or the dial, which is fixed, drifts off it. */
+  --card-max-h: calc(100vh - var(--pad-y) - var(--inset) - 2px); /* 2px = the leaf's own top+bottom hairline */
   position: relative;
   z-index: 1;
   display: grid;
@@ -244,6 +247,12 @@ body {
      height keeps the portrait ratio instead of letting it flatten to a square */
   width: min(100%, calc(84vh + 48px));
   aspect-ratio: 6 / 7;
+  /* The ratio derives height from the column width, which nothing bounds — past
+     a certain width the spread grows taller than the viewport and the leaf's
+     bottom stops being the viewport's bottom. The dial is fixed to the viewport,
+     so that drift is exactly what pulls the card's corner off the pivot. Both
+     cards take the same cap, so they bend together and keep matching footprints. */
+  max-height: var(--card-max-h);
   justify-self: end; /* hugs the seam, so the only gap is the channel itself */
   border-radius: 28px;
   background: #ece4d2;
@@ -313,6 +322,7 @@ body {
 
   width: min(100%, calc(84vh + 118px));
   aspect-ratio: 6 / 7;
+  max-height: var(--card-max-h); /* see .hero-frame — this is what keeps the corner on the pivot */
   justify-self: start; /* mirrors the photo across the channel */
   /* ponytail: the pivot assumes the card is column-width, which stops being
      true past ~2:1 viewports where the 84vh cap wins and the card pulls left
