@@ -8,33 +8,33 @@ import ServicesCarousel from "@/components/ServicesCarousel";
 const SLIDES = [
   {
     title: "Five minutes from the runway",
-    line: "Sinamangal, Kathmandu — the airport is closer than the taxi queue.",
-    src: "",
+    line: "Sinamangal, Kathmandu — step off the leather sofas into a cab to the terminal.",
+    src: "/media/hero/lounge.jpg",
   },
   {
     title: "Rooms that stay quiet",
     line: "Thick walls, hot water, and a bed made for the night before a flight.",
-    src: "",
+    src: "/media/hero/rooms.jpg",
   },
   {
     title: "Breakfast, the Thakali way",
-    line: "Dal, timur-tempered achar and buckwheat, served hot from seven.",
-    src: "",
-  },
-  {
-    title: "A courtyard to wait in",
-    line: "Tea on the terrace while the Himalaya clears after the morning haze.",
-    src: "",
+    line: "Eggs, grilled paneer and fruit on the plate, tea and juice on the side, from seven.",
+    src: "/media/hero/breakfast.jpg",
   },
   {
     title: "Someone at the desk, always",
-    line: "Late check-ins, early cabs, and a number that actually answers.",
-    src: "",
+    line: "Late check-ins, early cabs, and a reception that never goes dark.",
+    src: "/media/hero/desk.jpg",
   },
 ] as const;
 
 const DWELL = 5200;
-const BACKGROUND_VIDEO_SRC = "/media/RB6998.MP4";
+/* Web derivative of the camera master (RB6998.MP4). The master is High 4:2:2
+   10-bit at 47 Mbit/s with its moov atom at the end of 134 MB — a profile most
+   browsers can't decode, in a layout that can't start until the whole file has
+   arrived. This one is 8-bit 4:2:0 High, audio stripped, +faststart. See
+   scripts/encode-ambient.sh to regenerate it. */
+const BACKGROUND_VIDEO_SRC = "/media/ambient.mp4";
 
 /* points up; the next button flips it, and on mobile the pair rotates to
    left/right along with the slide direction */
@@ -94,7 +94,7 @@ export default function HeroCarousel() {
   return (
     <>
       <div className="ambient-video" aria-hidden="true">
-        <video autoPlay muted loop playsInline preload="metadata">
+        <video autoPlay muted loop playsInline preload="auto">
           <source src={BACKGROUND_VIDEO_SRC} type="video/mp4" />
         </video>
       </div>
@@ -103,7 +103,7 @@ export default function HeroCarousel() {
       <div className="beyond" data-open={open || undefined}>
         <p className="beyond-eyebrow">Inside</p>
         <p className="beyond-note">Everything the stay is made of.</p>
-        <ServicesCarousel />
+        <ServicesCarousel open={open} />
         <button className="gate-btn small" onClick={() => setOpen(false)}>
           Back
         </button>

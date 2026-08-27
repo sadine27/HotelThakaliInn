@@ -33,7 +33,7 @@ export default function RootLayout({
       <body style={{ fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
         {/* The dial lives here, not per page, so every route gets the same one
             and it keeps its open state across client-side navigation. */}
-        <main style={{ minHeight: "100vh" }}>{children}</main>
+        <main style={{ minHeight: "100svh" }}>{children}</main>
         <DialNav />
       </body>
     </html>

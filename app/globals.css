@@ -127,14 +127,26 @@ body {
   --pad-x: clamp(28px, 4vw, 44px);
   --gutter: clamp(48px, 8vw, 140px); /* the channel the button sits in */
   /* what's left of the viewport once the leaf's own padding is taken out. The
-     spread must fit inside 100vh or the dial, which is fixed, drifts off it. */
-  --card-max-h: calc(100vh - var(--pad-y) - var(--inset) - 2px); /* 2px = the leaf's own top+bottom hairline */
+     spread must fit inside the viewport or the dial, which is fixed, drifts off
+     it. svh, not vh: on mobile vh is the *large* viewport, so with the address
+     bar showing the cards are sized for space that isn't there yet.
+     The floor is the escape hatch. 560 is what the copy card actually needs:
+     232px of it is the well's reserved band, and the rest is the eyebrow, the
+     deck and the rail. Below that the spread stops shrinking and the hero grows
+     past the viewport instead, so the page scrolls rather than silently
+     clipping the rail off the bottom of a card that has overflow:hidden.
+     It has to be a min-height on the cards as well as a max: the cards take
+     their height from an aspect-ratio against the column width, so on a narrow
+     window they come out *shorter* than their own content, and a max-height
+     can't put back what a too-short box already lost. */
+  --card-min-h: 560px;
+  --card-max-h: max(var(--card-min-h), calc(100svh - var(--pad-y) - var(--inset) - 2px)); /* 2px = the leaf's own top+bottom hairline */
   position: relative;
   z-index: 1;
   display: grid;
   /* even halves — the seam between them is the one the page opens along */
   grid-template-columns: 1fr 1fr;
-  min-height: 100vh;
+  min-height: 100svh;
   perspective: 1350px; /* closer eye = more pronounced swing */
 }
 
@@ -261,6 +273,7 @@ body {
      so that drift is exactly what pulls the card's corner off the pivot. Both
      cards take the same cap, so they bend together and keep matching footprints. */
   max-height: var(--card-max-h);
+  min-height: var(--card-min-h); /* matches .hero-copy so the two keep one footprint */
   justify-self: end; /* hugs the seam, so the only gap is the channel itself */
   border-radius: 28px;
   background: #ece4d2;
@@ -331,6 +344,7 @@ body {
   width: min(100%, calc(84vh + 118px));
   aspect-ratio: 6 / 7;
   max-height: var(--card-max-h); /* see .hero-frame — this is what keeps the corner on the pivot */
+  min-height: var(--card-min-h); /* the eyebrow, deck, rail and the well's reserved band */
   justify-self: start; /* mirrors the photo across the channel */
   /* ponytail: the pivot assumes the card is column-width, which stops being
      true past ~2:1 viewports where the 84vh cap wins and the card pulls left
@@ -342,7 +356,10 @@ body {
   position: relative;
   overflow: hidden; /* trims the rim ring to the three quarters that are card */
   display: grid;
-  align-content: center;
+  /* safe: plain centring splits any overflow across both edges, and this box
+     clips, so a card a few px too short lost the top of the eyebrow *and* the
+     bottom of the rail. Safe centring keeps the copy whole from the top down. */
+  align-content: safe center;
   border-radius: 28px;
   background: #ece4d2;
   border: 1px solid rgba(255, 250, 238, 0.64);
@@ -383,8 +400,10 @@ body {
 
 .hero-deck {
   /* lower floor than the ceiling suggests: the well takes a band off the
-     bottom, so short viewports need the deck to give before the card does */
-  height: clamp(10rem, 24vh, 15.5rem);
+     bottom, so short viewports need the deck to give before the card does.
+     8rem, not 10: at 10 the deck outlasted the card on a laptop screen and the
+     card's own overflow:hidden ate the bottom of the rail. */
+  height: clamp(8rem, 24vh, 15.5rem);
   overflow: hidden;
 }
 
@@ -548,9 +567,16 @@ body {
   inset: 0;
   z-index: 0;
   display: grid;
-  align-content: center;
+  /* `safe` matters: a plain centred grid that outgrows its box overflows equally
+     top and bottom, and the top half is unreachable — no scroll container
+     scrolls backwards. Safe centring parks it at the start once it stops
+     fitting, so overflow-y has something it can actually reach. */
+  align-content: safe center;
   justify-items: center;
-  gap: 16px;
+  gap: clamp(10px, 1.6vh, 16px);
+  padding: clamp(14px, 3vh, 40px) 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: radial-gradient(85% 65% at 50% 42%, rgba(241, 236, 224, 0.56), rgba(228, 226, 220, 0.32) 72%);
   backdrop-filter: blur(8px) saturate(1.08);
   -webkit-backdrop-filter: blur(8px) saturate(1.08);
@@ -586,51 +612,161 @@ body {
 /* ── services carousel, inside .beyond ─────────────────────────────── */
 
 .svc-carousel {
+  /* The one knob the whole deck is sized from. A hardcoded card height is what
+     pushed the Back button off the bottom of a laptop screen — everything below
+     derives from this instead.
+     The 37vw term is the sideways budget: the ring's widest projection runs about
+     1.6× the front card, and .beyond scrolls on y, which computes overflow-x to
+     `auto` — so a card that outgrows the window would raise a horizontal bar. */
+  --card-h: min(clamp(280px, 62vh, 520px), 37vw);
+  --card-w: calc(var(--card-h) * 17 / 11); /* the old 680×440 ratio, kept as a ratio */
+  --ring-n: 5;
+  --ring-step: calc(360deg / var(--ring-n));
+  /* Circumradius of a regular --ring-n-gon whose side is one card, so at spread 1
+     the cards meet edge to edge. Resist opening this up: a wider ring pushes the
+     72° neighbours both further out and further back, and perspective then squeezes
+     their near and far edges together until they collapse to slivers. At 1.5 they
+     rendered 21px wide; at 1 they read as cards. */
+  --ring-spread: 1;
+  --ring-radius: calc(var(--card-w) / 2 / tan(180deg / var(--ring-n)) * var(--ring-spread));
   display: grid;
   justify-items: center;
-  gap: 36px;
   width: min(96vw, 1500px);
 }
 
 .svc-stage {
   position: relative;
+  display: grid;
+  place-items: center;
   width: 100%;
-  height: 460px;
-  perspective: 1600px;
+  height: var(--card-h);
+  user-select: none; /* so a drag across a card doesn't select its text instead */
+  touch-action: pan-y; /* keep the page scrollable under a vertical swipe */
+  /* A long lens, not the reference's 600px. That pen has twelve facets 30° apart,
+     where a short lens is what sells the depth; with five facets 72° apart the same
+     lens foreshortens the neighbours to nothing. */
+  perspective: 2800px;
   perspective-origin: 50% 50%;
+}
+
+/* A real cylinder, not five independently posed cards: each facet is pinned to the
+   wall at --ring-radius and the whole body turns as one, so cards genuinely travel
+   behind each other. One transform job per layer — framer-motion writes `transform`
+   wholesale, so anything CSS authors here has to live on its own element.
+     .svc-tilt  cursor lean      (framer)
+     .svc-dolly ring pushed back (CSS)
+     .svc-ring  rotation         (framer)
+     .svc-face  facet placement  (CSS)
+   None of them may carry opacity, filter or overflow — each flattens its own 3D. */
+.svc-tilt,
+.svc-dolly,
+.svc-ring {
+  grid-area: 1 / 1;
+  position: relative;
+  width: var(--card-w);
+  height: 100%;
   transform-style: preserve-3d;
 }
 
-/* coverflow — each card is positioned independently (see ServicesCarousel's
-   offset math), so unlike a rotateY ring the ones either side stay angled
-   toward camera instead of going edge-on and vanishing. */
-.svc-face {
-  position: absolute;
-  width: 560px;
-  height: 360px;
-  left: 50%;
-  top: 50%;
-  margin-left: -280px;
-  margin-top: -180px;
-  backface-visibility: hidden;
+/* back by exactly the radius, so the front facet sits on the perspective plane and
+   renders at its true CSS size. This is what stopped the deck reading small. */
+.svc-dolly {
+  transform: translateZ(calc(-1 * var(--ring-radius)));
 }
 
+.svc-face {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(calc(var(--i) * var(--ring-step))) translateZ(var(--ring-radius));
+  transform-style: preserve-3d;
+}
+
+.svc-fly {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+/* the blank reverse of a card — the two rearmost facets show it */
+.svc-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 30px;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  background: var(--surface);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.75),
+    4px 6px 12px -4px rgba(43, 50, 48, 0.16),
+    14px 18px 34px -10px rgba(43, 50, 48, 0.26);
+}
+
+.svc-back::after {
+  content: "";
+  position: absolute;
+  inset: 15px;
+  border-radius: 18px;
+  box-shadow:
+    inset 3px 4px 10px rgba(24, 28, 22, 0.28),
+    inset -1px -1px 0 rgba(255, 253, 247, 0.4);
+}
+
+/* the photo used to bleed to the card's edge, which left nothing of the
+   surface visible and reduced the neumorphism to a stray white glow. The card
+   is now a raised pad of --surface with the photo sunk into a well in it. */
 .svc-card {
   position: relative;
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 22px;
-  overflow: hidden;
+  border-radius: 30px;
   background: var(--surface);
-  box-shadow: var(--nu-raised);
   color: inherit;
   text-decoration: none;
+  backface-visibility: hidden; /* .svc-back shows instead once the facet turns away */
   transition: box-shadow 0.4s var(--ease);
+  /* --nu-light is 95% pure white, which on this warm paper blows out into a
+     cheap halo at card size. Lit from above instead: a hairline edge for the
+     highlight and two warm shadows, tight over broad, for the lift. */
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.75),
+    4px 6px 12px -4px rgba(43, 50, 48, 0.16),
+    14px 18px 34px -10px rgba(43, 50, 48, 0.26);
+}
+
+.svc-card[data-active] {
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.85),
+    5px 8px 16px -5px rgba(43, 50, 48, 0.18),
+    20px 26px 48px -12px rgba(43, 50, 48, 0.32);
 }
 
 .svc-card[data-active]:hover {
-  box-shadow: 14px 14px 28px var(--nu-dark), -14px -14px 28px var(--nu-light);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.9),
+    6px 10px 20px -6px rgba(43, 50, 48, 0.2),
+    26px 34px 60px -14px rgba(43, 50, 48, 0.36);
+}
+
+.svc-well {
+  position: absolute;
+  inset: 15px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* the lip of the well, drawn over the photo so it reads as sunk in — dark on
+   the lit side, and the return highlight kept to a hairline for the same
+   reason as the card's. */
+.svc-well::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 3px 4px 10px rgba(24, 28, 22, 0.45),
+    inset -1px -1px 0 rgba(255, 253, 247, 0.4);
+  pointer-events: none;
 }
 
 .svc-media {
@@ -646,7 +782,7 @@ body {
 
 .svc-content {
   position: absolute;
-  inset: 0;
+  inset: 15px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -700,13 +836,18 @@ body {
   border-radius: 50%;
   transform: translateY(-50%);
   background: var(--surface);
-  box-shadow: 4px 4px 10px var(--nu-dark), -4px -4px 10px var(--nu-light);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.8),
+    2px 3px 6px -2px rgba(43, 50, 48, 0.18),
+    5px 7px 14px -4px rgba(43, 50, 48, 0.26);
   cursor: pointer;
   transition: box-shadow 0.3s var(--ease);
 }
 
 .svc-arrow:active {
-  box-shadow: inset 3px 3px 7px var(--nu-dark), inset -3px -3px 7px var(--nu-light);
+  box-shadow:
+    inset 2px 3px 6px rgba(24, 28, 22, 0.28),
+    inset -1px -1px 0 rgba(255, 253, 247, 0.5);
 }
 
 .svc-arrow.left {
@@ -733,34 +874,12 @@ body {
   transform: rotate(45deg) translate(-1px, -1px);
 }
 
-.svc-dots {
-  display: flex;
-  gap: 8px;
-}
-
-.svc-dot {
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(107, 112, 92, 0.3);
-  cursor: pointer;
-  transition: width 0.35s var(--ease), background 0.35s var(--ease);
-}
-
-.svc-dot[aria-current] {
-  width: 22px;
-  border-radius: 4px;
-  background: var(--green);
-}
-
 .svc-mobile {
   display: flex;
   flex-direction: column;
   gap: 14px;
   width: min(92vw, 380px);
-  max-height: 50vh;
+  max-height: 50svh;
   overflow-y: auto;
 }
 
@@ -847,9 +966,10 @@ body {
   .hero-frame {
     /* height-led here: half the screen, less the padding and the seam gutter */
     aspect-ratio: 3 / 4;
-    height: calc(50vh - 116px);
+    height: calc(50svh - 116px);
     width: auto;
     max-width: 100%;
+    min-height: 0; /* the desktop floor exists for the well, which isn't cut here */
     justify-self: center; /* the seam runs across here, so both cards centre on it */
   }
   /* stacked, so the facing page wraps its text instead of matching a footprint */
@@ -859,6 +979,7 @@ body {
     width: 100%;
     justify-self: stretch;
     aspect-ratio: auto;
+    min-height: 0; /* no well here, so no reserved band to keep room for */
     padding: 20px;
     border-radius: 20px;
     -webkit-mask: none;
@@ -871,7 +992,9 @@ body {
     margin-bottom: 12px;
   }
   .hero-deck {
-    height: 7rem;
+    /* 7rem fitted the shortest slide only — the two-line headlines pushed the
+       second line of body copy out through the deck's overflow:hidden */
+    height: 8.5rem;
   }
   .hero-rail {
     margin-top: 18px;

@@ -9,6 +9,7 @@ dist/
 .env*.local
 .dev.vars
 *.log
+*.tsbuildinfo
 .DS_Store
 Thumbs.db
 
@@ -22,6 +23,10 @@ assets/Hotel Thakali Inn Reels n photos/
 *.mp4
 *.MOV
 *.mov
+
+# ...except the web-ready derivatives, which are small enough to ship and are
+# what the site actually loads. Regenerate with scripts/encode-ambient.sh
+!public/media/ambient.mp4
 
 # Local screenshot scratch from browser checks
 .playwright-mcp/
