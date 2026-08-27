@@ -4,7 +4,7 @@
 @property --notch {
   syntax: "<length>";
   inherits: true;
-  initial-value: 112px;
+  initial-value: 1px;
 }
 
 :root {
@@ -26,11 +26,25 @@
      line, so the card's bottom-right corner IS the dial's pivot — which is what
      lets the notch be a hole made for it rather than a hole near it. */
   --inset: 92px;
-  /* Radius of the well, open and closed. Open clears the dial's furthest reach
-     (the CONTACT label tip at r≈220); closed is a collar round the collapsed
-     puck, so the card keeps its corner while nobody is using the dial. */
+  /* Radius of the well. Open clears the dial's furthest reach (the CONTACT
+     label tip at r≈220). Closed there is no well at all — the card keeps a
+     whole corner, and the hole exists only while the dial is out. 1px rather
+     than 0 so the mask gradient never has a degenerate radius. */
   --notch-open: 232px;
-  --notch: 112px;
+  --notch: 1px;
+
+  /* The dial's palette follows the hole. With no well cut, the collapsed dial
+     lies on cream and has to be dark to be seen; once the well opens it is
+     against the well's dark floor and flips. Both sets live here so the two
+     halves of the switch can't drift apart. */
+  --dial-track: rgba(52, 78, 65, 0.13);
+  --dial-idle: #829681;
+  --dial-hover: #647a68;
+  --dial-active: #344e41;
+  --dial-label: #6f8579;
+  --dial-label-on: #344e41;
+  --dial-shadow: #344e41;
+  --dial-shadow-a: 0.22;
 
   --ease: cubic-bezier(0.34, 0.9, 0.28, 1);
   /* heavy start, long settle — a sheet with weight rather than a snap */
@@ -45,6 +59,17 @@
    page, so the state has to live above both the hero and the dial. */
 :root[data-dial-open] {
   --notch: var(--notch-open);
+
+  /* against the well's floor now, so the dial becomes the lit thing */
+  --dial-track: rgba(236, 228, 210, 0.1);
+  --dial-idle: rgba(236, 228, 210, 0.34);
+  --dial-hover: rgba(236, 228, 210, 0.66);
+  --dial-active: #f2ecdd;
+  --dial-label: rgba(236, 228, 210, 0.62);
+  --dial-label-on: #f2ecdd;
+  /* deeper, so the segments lift off the well's floor */
+  --dial-shadow: #0d1410;
+  --dial-shadow-a: 0.5;
 }
 
 html {

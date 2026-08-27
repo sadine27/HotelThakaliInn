@@ -25,13 +25,14 @@ const SLOT = 18.5;
    the six segments read as one band. Softness comes from the shadow filter. */
 const GAP = 3.5;
 
-/* The dial sits in a well cut through the card, so its floor is the dark glass
-   of the leaf, not cream. Everything reads light-on-dark: the active segment is
-   the brightest thing on the page, and the rest steps down from it. */
-const TRACK = "rgba(236, 228, 210, 0.1)";
-const IDLE = "rgba(236, 228, 210, 0.34)";
-const HOVER = "rgba(236, 228, 210, 0.66)";
-const ACTIVE = "#f2ecdd";
+/* Both palettes live in globals.css and switch on [data-dial-open], because the
+   dial's ground changes underneath it: closed it lies on the cream card, open it
+   lies on the well's dark floor. Referencing them as vars means the existing
+   stroke/fill transitions cross-fade the two sets as the well opens. */
+const TRACK = "var(--dial-track)";
+const IDLE = "var(--dial-idle)";
+const HOVER = "var(--dial-hover)";
+const ACTIVE = "var(--dial-active)";
 
 const polar = (deg: number, r: number) => {
   const rad = (deg * Math.PI) / 180;
@@ -96,10 +97,15 @@ export default function DialNav() {
         />
         <svg className="dial-svg" viewBox="0 0 520 520" aria-hidden="true">
           <defs>
-            {/* on a dark floor the segments need to sit on their own shadow to
-                lift off it, so this is deeper and cooler than the cream version */}
+            {/* set through style, not attributes, so the vars resolve and the
+                shadow deepens with the palette as the well opens under it */}
             <filter id="nuMatteShadow" x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="3" dy="4" stdDeviation="7" floodColor="#0d1410" floodOpacity="0.5" />
+              <feDropShadow
+                dx="3"
+                dy="4"
+                stdDeviation="7"
+                style={{ floodColor: "var(--dial-shadow)", floodOpacity: "var(--dial-shadow-a)" }}
+              />
             </filter>
           </defs>
 
@@ -143,7 +149,7 @@ export default function DialNav() {
                     transform={`rotate(${s.mid + (flip ? 180 : 0)} ${p.x} ${p.y})`}
                     textAnchor={flip ? "end" : "start"}
                     dominantBaseline="middle"
-                    fill={i === activeIndex || i === hovered ? ACTIVE : "rgba(236, 228, 210, 0.62)"}
+                    fill={i === activeIndex || i === hovered ? "var(--dial-label-on)" : "var(--dial-label)"}
                     style={{
                       font: `${i === activeIndex ? 700 : 500} 10.5px var(--font-mono), ui-monospace, monospace`,
                       letterSpacing: "0.14em",
