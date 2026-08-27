@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ServicesCarousel from "@/components/ServicesCarousel";
 
 /* Skeleton content — swap `src` in once the photos are picked. A slide with no
    src falls back to a tinted placeholder so the motion can be judged first. */
@@ -101,7 +102,8 @@ export default function HeroCarousel() {
       {/* what the page opens onto — sits behind the two halves */}
       <div className="beyond" data-open={open || undefined}>
         <p className="beyond-eyebrow">Inside</p>
-        <p className="beyond-note">The next chapter goes here.</p>
+        <p className="beyond-note">Everything the stay is made of.</p>
+        <ServicesCarousel />
         <button className="gate-btn small" onClick={() => setOpen(false)}>
           Back
         </button>
