@@ -25,6 +25,14 @@ const SLOT = 18.5;
    the six segments read as one band. Softness comes from the shadow filter. */
 const GAP = 3.5;
 
+/* The dial sits in a well cut through the card, so its floor is the dark glass
+   of the leaf, not cream. Everything reads light-on-dark: the active segment is
+   the brightest thing on the page, and the rest steps down from it. */
+const TRACK = "rgba(236, 228, 210, 0.1)";
+const IDLE = "rgba(236, 228, 210, 0.34)";
+const HOVER = "rgba(236, 228, 210, 0.66)";
+const ACTIVE = "#f2ecdd";
+
 const polar = (deg: number, r: number) => {
   const rad = (deg * Math.PI) / 180;
   return { x: C + r * Math.cos(rad), y: C + r * Math.sin(rad) };
@@ -78,25 +86,11 @@ export default function DialNav() {
         />
         <svg className="dial-svg" viewBox="0 0 520 520" aria-hidden="true">
           <defs>
+            {/* on a dark floor the segments need to sit on their own shadow to
+                lift off it, so this is deeper and cooler than the cream version */}
             <filter id="nuMatteShadow" x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="4" dy="5" stdDeviation="6" floodColor="#344E41" floodOpacity="0.24" />
+              <feDropShadow dx="3" dy="4" stdDeviation="7" floodColor="#0d1410" floodOpacity="0.5" />
             </filter>
-            <linearGradient id="nuTrack" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#d8cfbd" />
-              <stop offset="1" stopColor="#d8cfbd" />
-            </linearGradient>
-            <linearGradient id="nuIdle" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#829681" />
-              <stop offset="1" stopColor="#829681" />
-            </linearGradient>
-            <linearGradient id="nuHover" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#647a68" />
-              <stop offset="1" stopColor="#647a68" />
-            </linearGradient>
-            <linearGradient id="nuActive" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#344e41" />
-              <stop offset="1" stopColor="#344e41" />
-            </linearGradient>
           </defs>
 
           <g
@@ -108,7 +102,7 @@ export default function DialNav() {
             <path
               d={arcPath(SWEEP_FROM - 2, SWEEP_FROM + ITEMS.length * SLOT + 2, R_ARC)}
               fill="none"
-              stroke="url(#nuTrack)"
+              stroke={TRACK}
               strokeWidth={open ? 34 : 21}
               strokeLinecap="round"
               className="dial-arc"
@@ -121,13 +115,7 @@ export default function DialNav() {
                   className="dial-arc"
                   d={arcPath(s.from, s.to, R_ARC)}
                   fill="none"
-                  stroke={
-                    i === activeIndex
-                      ? "url(#nuActive)"
-                      : i === hovered
-                        ? "url(#nuHover)"
-                        : "url(#nuIdle)"
-                  }
+                  stroke={i === activeIndex ? ACTIVE : i === hovered ? HOVER : IDLE}
                   strokeLinecap="butt"
                 />
               ))}
@@ -145,7 +133,7 @@ export default function DialNav() {
                     transform={`rotate(${s.mid + (flip ? 180 : 0)} ${p.x} ${p.y})`}
                     textAnchor={flip ? "end" : "start"}
                     dominantBaseline="middle"
-                    fill={i === activeIndex || i === hovered ? "#344E41" : "#6f8579"}
+                    fill={i === activeIndex || i === hovered ? ACTIVE : "rgba(236, 228, 210, 0.62)"}
                     style={{
                       font: `${i === activeIndex ? 700 : 500} 10.5px var(--font-mono), ui-monospace, monospace`,
                       letterSpacing: "0.14em",

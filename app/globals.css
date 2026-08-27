@@ -13,6 +13,14 @@
   --nu-raised: 10px 10px 22px var(--nu-dark), -10px -10px 22px var(--nu-light);
   --nu-pressed: inset 7px 7px 15px var(--nu-dark), inset -7px -7px 15px var(--nu-light);
 
+  /* the dial's inset from the corner. The spread bottom-aligns to this same
+     line, so the card's bottom-right corner IS the dial's pivot — which is what
+     lets the notch be a hole made for it rather than a hole near it. */
+  --inset: 92px;
+  /* radius of the well. The open dial's furthest reach is the CONTACT label tip
+     at r≈220; the rest is air, so nothing in the fan touches the cut edge. */
+  --notch: 232px;
+
   --ease: cubic-bezier(0.34, 0.9, 0.28, 1);
   /* heavy start, long settle — a sheet with weight rather than a snap */
   --swing: cubic-bezier(0.62, 0.02, 0.2, 1);
@@ -85,8 +93,10 @@ body {
 .leaf {
   position: relative;
   display: grid;
-  align-content: center;
-  padding: var(--pad-y) var(--pad-x);
+  /* both halves sit on the dial's line — a shared baseline, and the only way
+     the notch can stay registered to the dial as the viewport changes */
+  align-content: end;
+  padding: var(--pad-y) var(--pad-x) var(--inset);
   background: rgba(228, 226, 220, 0.22);
   border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(9px) saturate(1.1);
@@ -251,10 +261,20 @@ body {
 /* the facing page: same footprint and material as the photo, so the two halves
    carry equal weight and read as one spread rather than a panel and some air */
 .hero-copy {
+  /* the pivot, measured in from the card's right edge: the dial sits --inset
+     from the viewport, the card edge sits --pad-x from it. */
+  --pivot: calc(var(--inset) - var(--pad-x));
+
   width: min(100%, calc(84vh + 118px));
   aspect-ratio: 6 / 7;
   justify-self: start; /* mirrors the photo across the channel */
+  /* ponytail: the pivot assumes the card is column-width, which stops being
+     true past ~2:1 viewports where the 84vh cap wins and the card pulls left
+     off the notch. Cap the column if ultrawide ever matters. */
   padding: clamp(30px, 3.2vw, 54px);
+  padding-bottom: var(--notch); /* the band the well is cut out of */
+  position: relative;
+  overflow: hidden; /* trims the rim ring to the three quarters that are card */
   display: grid;
   align-content: center;
   border-radius: 28px;
@@ -263,6 +283,27 @@ body {
   box-shadow:
     18px 18px 38px rgba(31, 39, 31, 0.26),
     -14px -14px 30px rgba(255, 250, 238, 0.5);
+  /* the hole. Feathered over the last 0.4% only — this is a cut edge, not a
+     fade, and a soft one would read as a rendering artifact. */
+  -webkit-mask: radial-gradient(circle var(--notch) at calc(100% - var(--pivot)) 100%, transparent 99.6%, #000 100%);
+  mask: radial-gradient(circle var(--notch) at calc(100% - var(--pivot)) 100%, transparent 99.6%, #000 100%);
+}
+
+/* The cut edge. A mask takes the border and the shadow with it, so the arc gets
+   its own rim: a lit hairline, and the card's shadow thrown back up-left across
+   the cream so the sheet reads as thick where it was cut. Sits at --notch + 1px
+   so the mask (which ends at --notch) leaves it standing. */
+.hero-copy::after {
+  content: "";
+  position: absolute;
+  right: calc(var(--pivot) - var(--notch) - 1px);
+  bottom: calc(-1px - var(--notch));
+  width: calc(2 * (var(--notch) + 1px));
+  height: calc(2 * (var(--notch) + 1px));
+  border-radius: 50%;
+  border: 1px solid rgba(255, 250, 238, 0.7);
+  box-shadow: -9px -11px 24px rgba(31, 39, 31, 0.16);
+  pointer-events: none;
 }
 
 .hero-eyebrow {
@@ -275,7 +316,9 @@ body {
 }
 
 .hero-deck {
-  height: clamp(12rem, 26vh, 15.5rem);
+  /* lower floor than the ceiling suggests: the well takes a band off the
+     bottom, so short viewports need the deck to give before the card does */
+  height: clamp(10rem, 24vh, 15.5rem);
   overflow: hidden;
 }
 
@@ -551,12 +594,19 @@ body {
     justify-self: center; /* the seam runs across here, so both cards centre on it */
   }
   /* stacked, so the facing page wraps its text instead of matching a footprint */
+  /* stacked, and the dial no longer lands on the card's corner — the leaf's
+     own bottom padding already clears it, so there is nothing to cut */
   .hero-copy {
     width: 100%;
     justify-self: stretch;
     aspect-ratio: auto;
     padding: 20px;
     border-radius: 20px;
+    -webkit-mask: none;
+    mask: none;
+  }
+  .hero-copy::after {
+    display: none;
   }
   .hero-eyebrow {
     margin-bottom: 12px;
@@ -603,11 +653,32 @@ body {
 
 .dial-anchor {
   position: absolute;
-  right: 92px;
-  bottom: 92px;
+  right: var(--inset);
+  bottom: var(--inset);
   width: 0;
   height: 0;
   transform-origin: 0 0;
+}
+
+/* The floor of the well. Without it the dial reads against whatever frame the
+   ambient video happens to be on, and a light-on-dark dial goes illegible the
+   moment a bright one comes round. Stops 1px short of --notch so the card's cut
+   edge stays the topmost thing. Pressed, not raised: this is a recess. */
+.dial-anchor::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--notch));
+  top: calc(-1 * var(--notch));
+  width: calc(2 * var(--notch) - 2px);
+  height: calc(2 * var(--notch) - 2px);
+  border-radius: 50%;
+  /* the card supplies a cut edge only where there is card; past it the well
+     runs onto bare glass, so it carries its own hairline the whole way round */
+  border: 1px solid rgba(236, 228, 210, 0.16);
+  background: rgba(16, 24, 19, 0.55);
+  box-shadow:
+    inset 9px 10px 26px rgba(0, 0, 0, 0.42),
+    inset -8px -9px 22px rgba(236, 228, 210, 0.09);
 }
 
 /* invisible disc that keeps hover unbroken between the puck and the arcs */
@@ -696,6 +767,22 @@ body {
     right: 62px;
     bottom: 62px;
     transform: scale(0.62);
+  }
+  /* Stacked, the card can't bottom-align to the dial, so there is nothing to
+     cut a well into — the fan simply lies over the card. Same idea, softer
+     tool: the ground fades in rather than being a cut disc, which is the only
+     version that doesn't read as a blot pasted on the cream. Wider than the
+     desktop well so the fade starts past the label tips. */
+  .dial-anchor::before {
+    --notch: 300px;
+    border: 0;
+    box-shadow: none;
+    background: radial-gradient(
+      circle,
+      rgba(16, 24, 19, 0.74) 44%,
+      rgba(16, 24, 19, 0.56) 62%,
+      rgba(16, 24, 19, 0) 84%
+    );
   }
 }
 
