@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LogoMark from "./LogoMark";
 
 const ITEMS = [
@@ -54,6 +54,16 @@ export default function DialNav() {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(-1);
   const pathname = usePathname();
+
+  /* The well is cut by the page, not by this component, so the page has to know
+     when the dial wants room. A collapsed puck sitting in a full-size well is a
+     dark blot on the card — the hole has to open with the fan. */
+  useEffect(() => {
+    const el = document.documentElement;
+    if (open) el.dataset.dialOpen = "";
+    else delete el.dataset.dialOpen;
+  }, [open]);
+
   const activeIndex = segments.findIndex((s) =>
     s.href === "/" ? pathname === "/" : pathname.startsWith(s.href)
   );

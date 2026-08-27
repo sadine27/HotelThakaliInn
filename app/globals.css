@@ -1,3 +1,12 @@
+/* Registered so it can interpolate — a bare custom property would snap. One
+   property drives both the hole in the card and the floor under the dial, so
+   they open as one thing instead of two that have to be kept in step. */
+@property --notch {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 112px;
+}
+
 :root {
   /* brand */
   --green: #344e41;
@@ -17,9 +26,11 @@
      line, so the card's bottom-right corner IS the dial's pivot — which is what
      lets the notch be a hole made for it rather than a hole near it. */
   --inset: 92px;
-  /* radius of the well. The open dial's furthest reach is the CONTACT label tip
-     at r≈220; the rest is air, so nothing in the fan touches the cut edge. */
-  --notch: 232px;
+  /* Radius of the well, open and closed. Open clears the dial's furthest reach
+     (the CONTACT label tip at r≈220); closed is a collar round the collapsed
+     puck, so the card keeps its corner while nobody is using the dial. */
+  --notch-open: 232px;
+  --notch: 112px;
 
   --ease: cubic-bezier(0.34, 0.9, 0.28, 1);
   /* heavy start, long settle — a sheet with weight rather than a snap */
@@ -28,6 +39,16 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* DialNav stamps this on <html> when the fan is out. The well is cut by the
+   page, so the state has to live above both the hero and the dial. */
+:root[data-dial-open] {
+  --notch: var(--notch-open);
+}
+
+html {
+  transition: --notch 0.5s var(--ease);
 }
 
 html,
@@ -272,7 +293,9 @@ body {
      true past ~2:1 viewports where the 84vh cap wins and the card pulls left
      off the notch. Cap the column if ultrawide ever matters. */
   padding: clamp(30px, 3.2vw, 54px);
-  padding-bottom: var(--notch); /* the band the well is cut out of */
+  /* always the open size — the hole animates, the layout must not, or the copy
+     would jump every time the pointer crossed the dial */
+  padding-bottom: var(--notch-open);
   position: relative;
   overflow: hidden; /* trims the rim ring to the three quarters that are card */
   display: grid;
@@ -774,7 +797,12 @@ body {
      version that doesn't read as a blot pasted on the cream. Wider than the
      desktop well so the fade starts past the label tips. */
   .dial-anchor::before {
-    --notch: 300px;
+    /* 1.3x so the fade starts past the label tips rather than through them —
+       sized off --notch rather than pinned, so it still opens with the dial */
+    left: calc(-1.3 * var(--notch));
+    top: calc(-1.3 * var(--notch));
+    width: calc(2.6 * var(--notch));
+    height: calc(2.6 * var(--notch));
     border: 0;
     box-shadow: none;
     background: radial-gradient(
@@ -787,6 +815,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html,
   .dial-ring,
   .dial-arc,
   .dial-labels,
