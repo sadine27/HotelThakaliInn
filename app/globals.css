@@ -70,7 +70,7 @@ body {
 .hero {
   --dir: 1; /* 1 forward, -1 back — flips which side slides enter and leave on */
   --pad-y: clamp(28px, 5vh, 64px);
-  --pad-x: clamp(28px, 4vw, 72px);
+  --pad-x: clamp(28px, 4vw, 44px);
   --gutter: clamp(48px, 8vw, 140px); /* the channel the button sits in */
   position: relative;
   z-index: 1;
@@ -186,7 +186,7 @@ body {
 .hero-frame {
   /* 72vh is 6/7 of the 84vh height ceiling — bounding the width instead of the
      height keeps the portrait ratio instead of letting it flatten to a square */
-  width: min(100%, 84vh);
+  width: min(100%, calc(84vh + 48px));
   aspect-ratio: 6 / 7;
   justify-self: end; /* hugs the seam, so the only gap is the channel itself */
   border-radius: 28px;
@@ -251,7 +251,7 @@ body {
 /* the facing page: same footprint and material as the photo, so the two halves
    carry equal weight and read as one spread rather than a panel and some air */
 .hero-copy {
-  width: min(100%, calc(84vh + 70px));
+  width: min(100%, calc(84vh + 118px));
   aspect-ratio: 6 / 7;
   justify-self: start; /* mirrors the photo across the channel */
   padding: clamp(30px, 3.2vw, 54px);
