@@ -429,10 +429,11 @@ body {
 
 .hero-text h2 {
   margin: 0 0 0.6em;
+  font-family: var(--font-serif), serif;
   font-size: clamp(28px, 3vw, 44px);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.08;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: var(--green);
 }
 
@@ -509,6 +510,58 @@ body {
   margin: 0 3px;
   font-style: normal;
   opacity: 0.45;
+}
+
+.hero-cta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: clamp(16px, 3vh, 28px);
+  max-width: fit-content;
+}
+
+.hero-cta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: 0 8px 24px rgba(52, 78, 65, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  color: var(--green);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow 0.3s var(--ease), color 0.3s ease, transform 0.3s var(--ease), background 0.3s ease;
+}
+
+.hero-cta:hover {
+  color: var(--ink);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 10px 28px rgba(52, 78, 65, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.hero-cta:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(52, 78, 65, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.hero-cta-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.hero-cta-icon svg {
+  display: block;
 }
 
 /* ── the button on the seam ────────────────────────────────────────── */
@@ -604,8 +657,9 @@ body {
 
 .beyond-note {
   margin: 0 0 10px;
+  font-family: var(--font-serif), serif;
   font-size: clamp(20px, 2.4vw, 32px);
-  font-weight: 500;
+  font-weight: 400;
   color: var(--green);
 }
 
@@ -755,6 +809,16 @@ body {
   overflow: hidden;
 }
 
+.room-card[data-active] {
+  cursor: pointer;
+}
+
+/* Neighbouring facets sit in the same 3D context and can still win hit-testing
+   even while rotated out of view, so only the front card should be clickable. */
+.room-card:not([data-active]) {
+  pointer-events: none;
+}
+
 /* the lip of the well, drawn over the photo so it reads as sunk in — dark on
    the lit side, and the return highlight kept to a hairline for the same
    reason as the card's. */
@@ -804,8 +868,9 @@ body {
 
 .svc-content h3 {
   margin: 0 0 8px;
-  font-size: 26px;
-  font-weight: 600;
+  font-family: var(--font-serif), serif;
+  font-size: 27px;
+  font-weight: 500;
   color: #f2eee4;
 }
 
@@ -825,7 +890,8 @@ body {
   color: #f2eee4;
 }
 
-.svc-arrow {
+.svc-arrow,
+.room-arrow {
   position: absolute;
   top: 50%;
   z-index: 4;
@@ -844,7 +910,8 @@ body {
   transition: box-shadow 0.3s var(--ease);
 }
 
-.svc-arrow:active {
+.svc-arrow:active,
+.room-arrow:active {
   box-shadow:
     inset 2px 3px 6px rgba(24, 28, 22, 0.28),
     inset -1px -1px 0 rgba(255, 253, 247, 0.5);
@@ -857,7 +924,8 @@ body {
   right: -4px;
 }
 
-.svc-arrow::before {
+.svc-arrow::before,
+.room-arrow::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -886,6 +954,358 @@ body {
 .svc-mobile .svc-card {
   height: 320px;
   flex-shrink: 0;
+}
+
+/* ── rooms: the services ring turned onto its side, and opened out ─── */
+
+/* Same construction as .svc-*, rotated 90°: the n-gon's side is the card's
+   HEIGHT rather than its width, because the facets tile up the screen instead
+   of across it. The layer split, the dolly pushback and --ring-spread all carry
+   over, and the card chrome (.svc-card/.svc-well/.svc-scrim/.svc-content) is
+   reused outright — it is a raised pad with a sunk well, geometry-agnostic.
+
+   The one real departure: this is a fan, not a closed ring. At three cards a
+   360/n step is 120°, which turns both neighbours edge-on and collapses them to
+   slivers, so the step is fixed and the cards ride a shallow arc. The arc still
+   loops — off either end the stage crossfades and the fan snaps to the far end,
+   which is the only continuity a three-card arc can offer. */
+
+.room-page {
+  --ring-step: 58deg;
+  --ring-spread: 1;
+  /* The 30vw term is the sideways budget: card-w derives from card-h, and the
+     column is only ~58vw wide. The 42svh term is the vertical one — a pentagon's
+     silhouette runs ~1.38x the front card, so the ring needs headroom above and
+     below the stage or it grows the page a scrollbar. */
+  --card-h: min(clamp(200px, 46svh, 420px), 30vw);
+  --card-w: calc(var(--card-h) * 3 / 2);
+  /* The services ring's apothem formula with the step as the free variable
+     instead of 360/n — at a 72deg step this reduces to exactly that expression.
+     Half the step is the half-angle each facet subtends, so this is the distance
+     that puts neighbouring cards edge to edge without intersecting. */
+  --ring-radius: calc(var(--card-h) / 2 / tan(calc(var(--ring-step) / 2)) * var(--ring-spread));
+  position: relative;
+  z-index: 1;
+  display: grid;
+  /* the ask: half to two-thirds of the width, fluid between those bounds */
+  grid-template-columns: clamp(50%, 58vw, 65%) 1fr;
+  min-height: 100svh;
+  /* body is #1f271f so the home page's video reads through; this route has no
+     video behind it and needs its own ground */
+  background: var(--bg);
+  /* backstop only. The stage is centred in a full-height column, so the ring's
+     spill has room — but a short viewport must not raise a scrollbar.
+     Safe here: .room-page sits above .room-stage's perspective, so clipping it
+     doesn't flatten the 3D context the way it would on a preserve-3d layer. */
+  overflow: hidden;
+  /* Arriving from the dial. `both` so the first frame is already at zero rather
+     than flashing in at full opacity. The page-wide dissolve is the ground the
+     two columns rise out of — on its own it reads as a light switch. */
+  animation: room-enter 720ms var(--ease) both;
+}
+
+@keyframes room-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+/* A beat apart, so the eye is led left-to-right instead of handed the whole
+   page at once. Opacity here is safe for the same reason it is on .room-stage:
+   neither element is preserve-3d, so the fan is dimmed, never flattened. */
+.room-carousel,
+.room-panel {
+  animation: room-rise 760ms var(--ease) both;
+}
+.room-panel {
+  animation-delay: 120ms;
+}
+
+@keyframes room-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.room-carousel {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0 clamp(20px, 4vw, 56px);
+}
+
+.room-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--card-w);
+  height: var(--card-h);
+  user-select: none;
+  /* pan-x, not pan-y: with pan-y the browser claims the vertical gesture and
+     the pointerup below never sees a usable dy */
+  touch-action: pan-x;
+  perspective: 2800px;
+  perspective-origin: 50% 50%;
+  /* The wrap's dip. Safe on this element and nowhere below it: .room-stage holds
+     the perspective but is not itself preserve-3d, so fading it dims the whole
+     3D subtree instead of flattening it.
+     Asymmetric on purpose — leaving is decisive, arriving is unhurried, and the
+     longer return is what stops the seam reading as a cut. Paired with
+     WRAP_OUT / WRAP_IN in RoomsCarousel.tsx; change these together. */
+  transition: opacity 460ms var(--ease);
+}
+.room-stage[data-fade] {
+  opacity: 0;
+  transition: opacity 300ms var(--swing);
+}
+
+/* one transform job per layer — framer-motion writes `transform` wholesale, so
+   anything CSS authors has to live on its own element.
+     .room-tilt  cursor lean     (framer)
+     .room-dolly arc pushed back (CSS)
+     .room-fan   rotation        (framer)
+     .room-face  facet placement (CSS)
+   None of them may carry opacity, filter or overflow — each flattens its own 3D. */
+.room-tilt,
+.room-dolly,
+.room-fan {
+  grid-area: 1 / 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.room-dolly {
+  transform: translateZ(calc(-1 * var(--ring-radius)));
+}
+
+/* The -1 is load-bearing. Positive rotateX tips the top edge away from the
+   camera, so without it an increasing --i runs the column the wrong way and
+   ArrowDown would fetch the card above. Paired with the ring's own
+   animate={{ rotateX: turn * step }} — flip both or neither. */
+.room-face {
+  position: absolute;
+  inset: 0;
+  transform: rotateX(calc(var(--i) * var(--ring-step) * -1)) translateZ(var(--ring-radius));
+  transform-style: preserve-3d;
+}
+
+/* No .room-back here, unlike the services ring. At either end of the fan the far
+   card does sit past 90deg (2 x 58 = 116) and turns away — but .svc-card already
+   carries backface-visibility: hidden, so it drops out of view rather than
+   showing a mirrored front. There is nothing for a back plate to cover, and the
+   fan reading as two cards at its ends and three in the middle is honest: it is
+   a stack that loops by fading, not a cylinder. */
+
+/* the reused .svc-card is an <a> on the services ring and an <article> here */
+.room-card {
+  cursor: grab;
+}
+.room-card:active {
+  cursor: grabbing;
+}
+
+/* A facet 72° off the front is foreshortened to a sliver of its own height, and
+   the name crushed into that sliver reads as a smear rather than a label.
+   visibility, not opacity: any opacity below 1 forces transform-style:flat on
+   the subtree and switches off the backface-visibility the cards rely on. */
+.room-card:not([data-active]) .svc-content {
+  visibility: hidden;
+}
+
+/* Pinned to the ring's silhouette rather than the column's edges, so the arrows
+   sit just clear of the topmost and bottommost facets at any card size.
+   --ring-radius is half the silhouette, and generalises across --ring-n. */
+.room-arrow {
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.room-arrow.up {
+  top: max(16px, calc(50% - var(--ring-radius) - 46px));
+}
+.room-arrow.down {
+  bottom: max(16px, calc(50% - var(--ring-radius) - 46px));
+}
+.room-arrow.up::before {
+  transform: rotate(-45deg) translate(0, 2px);
+}
+.room-arrow.down::before {
+  transform: rotate(135deg) translate(0, 2px);
+}
+
+/* Neither arrow ever disables: the fan wraps by crossfading, so both directions
+   always lead somewhere. */
+
+/* ── the panel, synced to the front facet ──────────────────────────── */
+
+.room-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 18px;
+  /* --inset is the dial's own corner reserve; the Book link must clear it */
+  padding: clamp(32px, 6vh, 72px) clamp(28px, 4vw, 56px) var(--inset) 0;
+}
+
+.room-eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.room-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* reserves the longest entry's footprint so the Book link doesn't hop as the
+     blurb changes length */
+  min-height: 244px;
+}
+
+.room-detail h1 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(30px, 3.4vw, 46px);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--green);
+}
+
+.room-blurb {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(43, 50, 48, 0.72);
+}
+
+.room-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-meta li {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--surface);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.8),
+    2px 3px 6px -2px rgba(43, 50, 48, 0.18);
+}
+
+/* how many of this type the hotel has — static, like the capacity on the card.
+   Deliberately no rate anywhere on this page: they vary. */
+.room-count {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--olive);
+}
+
+.room-book {
+  padding: 14px 26px;
+  border-radius: 999px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--green);
+  background: var(--surface);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.85),
+    4px 6px 12px -4px rgba(43, 50, 48, 0.18),
+    10px 14px 26px -10px rgba(43, 50, 48, 0.26);
+  transition: box-shadow 0.3s var(--ease);
+}
+
+.room-book:hover {
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.9),
+    6px 9px 18px -5px rgba(43, 50, 48, 0.2),
+    16px 22px 40px -12px rgba(43, 50, 48, 0.32);
+}
+
+.room-book:active {
+  box-shadow:
+    inset 2px 3px 6px rgba(24, 28, 22, 0.28),
+    inset -1px -1px 0 rgba(255, 253, 247, 0.5);
+}
+
+.room-index {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--olive);
+}
+
+/* What every room has, so the chips above can carry only the differences.
+   Sits outside the keyed block — it is the one thing that doesn't change as the
+   fan turns, and it shouldn't re-animate as though it had. */
+.room-shared {
+  margin: 4px 0 0;
+  max-width: 40ch;
+  font-size: 12px;
+  line-height: 1.8;
+  color: rgba(43, 50, 48, 0.52);
+  border-top: 1px solid rgba(52, 78, 65, 0.14);
+  padding-top: 14px;
+}
+
+.room-shared span {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+@media (max-width: 900px) {
+  .room-page {
+    /* Stacked: the column keeps its 3D, the panel scrolls in underneath.
+       The 52vw term is card-w's budget working backwards — card-w is 1.5x this,
+       and the column has 20px of padding a side to clear as well.
+       The fan's envelope is +/- --ring-radius about the stage centre and the
+       arrows have to clear it, so the row is taller and the card smaller than
+       the width budget alone would ask for: at 55svh the up arrow landed on the
+       top card. Rotation doesn't change this — the fan is a rigid body turning
+       about that centre, so the envelope is the same at every turn. */
+    --card-h: min(clamp(150px, 26svh, 260px), 52vw);
+    grid-template-columns: 1fr;
+    grid-template-rows: 62svh auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .room-carousel {
+    padding: 0 20px;
+  }
+
+  .room-panel {
+    padding: 8px 24px var(--inset);
+  }
+
+  .room-detail {
+    min-height: 0;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1173,6 +1593,345 @@ body {
   }
 }
 
+/* ── Know more: the carousel column grown across the whole page ────── */
+
+/* The entire expansion is one interpolated property. grid-template-columns
+   animates track for track — clamp(...) -> 100% is a length-percentage pair, 1fr
+   -> 0fr a flex pair — so closing is the identical transition run backwards and
+   there is no second animation to keep in step with the first. */
+.room-page {
+  transition: grid-template-columns 640ms var(--ease);
+}
+
+.room-page[data-open] {
+  grid-template-columns: 100% 0fr;
+  /* A squeezed grid item does not stop being tall: at 0fr the panel's copy wraps
+     one word per line and the implicit auto row grows past the viewport, raising
+     a page scrollbar. Pinning the row is a no-op while closed — min-height was
+     already holding it at exactly this — and stops the collapse from doing that. */
+  grid-template-rows: 100svh;
+}
+
+/* Grid items refuse to shrink below their content's intrinsic width. Without
+   these the panel bottoms out at its longest line instead of reaching 0fr. */
+.room-carousel,
+.room-panel {
+  min-width: 0;
+}
+/* min-width: 0 frees the CONTENT to shrink; the padding is still floor. This
+   panel carries 56px of it on the right at desktop, which is exactly where the
+   track bottomed out before this — so the padding has to travel too, on the same
+   clock as the column, or the collapse stops 56px short of gone. */
+.room-panel {
+  overflow: hidden;
+  transition: padding-right 640ms var(--ease);
+}
+.room-page[data-open] .room-panel {
+  padding-right: 0;
+}
+
+/* No duration of its own: the fan uses the same 460ms in both directions, so the
+   fade out and the fade back are mirror images. It clears at 460ms while the
+   column is still travelling to 640ms, which is what leaves the detail an empty
+   stage to rise onto. Safe for the reason every fade on this page is safe —
+   .room-stage holds the perspective but is not itself preserve-3d, so this dims
+   the 3D subtree instead of flattening it. */
+.room-page[data-open] .room-stage {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.room-arrow {
+  transition: box-shadow 0.3s var(--ease), opacity 300ms var(--ease);
+}
+.room-page[data-open] .room-arrow {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.room-view {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  /* always a stacking context, so ::before below stays behind the content
+     whether or not the opacity transition is mid-flight */
+  isolation: isolate;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  /* --inset is the dial's corner reserve; the booking link must clear it */
+  padding: clamp(24px, 5vh, 56px) clamp(20px, 4vw, 64px) var(--inset);
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+  transition: opacity 320ms var(--ease), transform 320ms var(--ease);
+}
+
+.room-page[data-open] .room-view {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  overflow-y: auto;
+  /* waits for the fan to be gone; on the way out the delay drops off, which is
+     what makes the close read as the open reversed */
+  transition-delay: 260ms;
+}
+
+/* The room's own photo, blurred past recognition. Two jobs: it gives the glass
+   below something real to refract — backdrop-filter over a solid colour is a
+   visual no-op — and it keeps the page from being a flat cream field.
+   Kept faint and desaturated on purpose: at any real strength the photo's own
+   colour cast floods the page and the mono labels lose their contrast against
+   it. The cream ground is restored underneath so the tint lies ON the palette
+   rather than replacing it. */
+.room-view {
+  background: var(--bg);
+}
+
+.room-view::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  z-index: -1;
+  background-image: var(--shot);
+  background-size: cover;
+  background-position: center;
+  filter: blur(56px) saturate(0.72);
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.room-view-head {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0 32px;
+}
+
+.room-view-head h2 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(32px, 4vw, 54px);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--green);
+}
+
+.room-view-head .room-blurb {
+  max-width: 46ch;
+}
+
+.room-view-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: clamp(24px, 3vw, 48px);
+  align-items: start;
+}
+
+/* A reserved hole, not a broken image: --nu-pressed is the same recess the wells
+   elsewhere on the site are cut with, so it reads as somewhere something goes. */
+.room-tour {
+  aspect-ratio: 3 / 2;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--nu-pressed);
+  display: grid;
+  place-items: center;
+}
+
+.room-tour span {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.room-facts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.room-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  width: 100%;
+}
+
+.room-specs > div {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(52, 78, 65, 0.14);
+}
+
+.room-specs dt {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--olive);
+  padding-top: 3px;
+}
+
+.room-specs dd {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.room-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.room-group > span {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.room-group p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 13px;
+  line-height: 1.8;
+  color: rgba(43, 50, 48, 0.62);
+}
+
+.room-know {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(43, 50, 48, 0.72);
+}
+
+.room-know li::before {
+  content: "— ";
+  color: var(--olive);
+}
+
+.room-size {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  color: var(--olive);
+}
+
+/* ── the two green glass buttons ───────────────────────────────────── */
+
+.room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* .hero-cta's recipe, tinted to the signature green. The blur only does real
+   work where there is something behind it — over the flat --bg of the closed
+   page what actually reads as glass is the translucency, the lit border and the
+   inner highlight. Inside .room-view it has the blurred photo to work on. */
+.room-more,
+.room-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(242, 236, 224, 0.3);
+  background: rgba(52, 78, 65, 0.72);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    0 8px 24px rgba(52, 78, 65, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #f2ece0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+/* no blur available means the tint is doing all the work, so it has to be opaque
+   enough to carry the light text on its own */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .room-more,
+  .room-back {
+    background: rgba(52, 78, 65, 0.92);
+  }
+}
+
+.room-more:hover,
+.room-back:hover {
+  background: rgba(52, 78, 65, 0.84);
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 30px rgba(52, 78, 65, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.room-more:active,
+.room-back:active {
+  transform: translateY(0);
+  box-shadow:
+    0 4px 12px rgba(52, 78, 65, 0.2),
+    inset 0 2px 5px rgba(14, 20, 16, 0.32);
+}
+
+.room-back {
+  padding: 12px 22px;
+}
+
+@media (max-width: 900px) {
+  /* One column here, so there is no second track to squeeze sideways — the
+     PANEL's row collapses instead and the carousel's row takes the screen. Same
+     element grows, same property-transition trick, same free reverse. */
+  .room-page {
+    transition: grid-template-rows 640ms var(--ease);
+  }
+  .room-page[data-open] {
+    grid-template-columns: 1fr;
+    grid-template-rows: 100svh 0fr;
+  }
+  /* Same trap as the desktop column, on the other axis: here the floor is the
+     panel's 8px top and --inset bottom padding, which held the row 100px open. */
+  .room-panel {
+    transition: padding 640ms var(--ease);
+  }
+  .room-page[data-open] .room-panel {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .room-view {
+    padding: clamp(20px, 4vh, 32px) 20px var(--inset);
+  }
+  .room-view-body {
+    grid-template-columns: 1fr;
+  }
+  .room-view-head {
+    margin: 16px 0 24px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html,
   .dial-ring,
@@ -1185,5 +1944,25 @@ body {
   .beyond {
     transition-duration: 0.01ms;
     transition-delay: 0s;
+  }
+
+  /* the route's enter and the fan's wrap dip — all cut, not shortened */
+  .room-page,
+  .room-carousel,
+  .room-panel {
+    animation: none;
+  }
+  .room-stage {
+    transition: none;
+  }
+  /* the Know more expansion: the column jumps to full width, the detail is just
+     there. Cut, like the other two, never shortened. */
+  .room-page,
+  .room-panel,
+  .room-view,
+  .room-arrow,
+  .room-more,
+  .room-back {
+    transition: none;
   }
 }

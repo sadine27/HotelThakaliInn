@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, JetBrains_Mono } from "next/font/google";
+import { Manrope, JetBrains_Mono, Fraunces } from "next/font/google";
 import DialNav from "@/components/DialNav";
 import "./globals.css";
 
@@ -17,10 +17,17 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+const serif = Fraunces({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Hotel Thakali Inn | Sinamangal, Kathmandu",
   description:
-    "Clean, quiet rooms and a hot Thakali breakfast five minutes from Tribhuvan International Airport, Kathmandu.",
+    "Quiet rooms and a hot Thakali breakfast, five minutes from Tribhuvan International Airport, Kathmandu.",
 };
 
 export default function RootLayout({
@@ -29,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable}`}>
       <body style={{ fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
         {/* The dial lives here, not per page, so every route gets the same one
             and it keeps its open state across client-side navigation. */}

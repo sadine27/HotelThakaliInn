@@ -6,8 +6,8 @@ import Image from "next/image";
 import { motion, useMotionValue, useReducedMotion, useSpring, type Variants } from "framer-motion";
 
 const CARDS = [
-  { title: "Rooms", tag: "Stay", description: "Thick walls, hot water, a bed made for the night before a flight.", href: "/rooms", image: "/media/services/rooms.jpg" },
-  { title: "Breakfast", tag: "Thakali", description: "Dal, timur-tempered achar and buckwheat, served hot from seven.", href: "/breakfast", image: "/media/services/breakfast.jpg" },
+  { title: "Rooms", tag: "Stay", description: "Warm wood, pressed linen, a window that actually opens — quiet enough for the night before a flight.", href: "/rooms", image: "/media/services/rooms.jpg" },
+  { title: "Breakfast", tag: "Buffet", description: "Eggs, toast, sausage and fresh fruit, laid out hot from seven — with milk tea alongside.", href: "/breakfast", image: "/media/services/breakfast.jpg" },
   { title: "Amenities", tag: "", description: "Everything the stay needs, nothing it doesn't.", href: "/amenities", image: "/media/services/amenities.jpg" },
   { title: "Gallery", tag: "", description: "The rooms, the courtyard, the desk — as they actually look.", href: "/gallery", image: "/media/services/gallery.jpg" },
   { title: "Contact", tag: "Always", description: "Late check-ins, early cabs, a number that actually answers.", href: "/contact", image: "/media/services/contact.jpg" },
