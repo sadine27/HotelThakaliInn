@@ -33,6 +33,7 @@ const SLIDES = [
 ] as const;
 
 const DWELL = 5200;
+const BACKGROUND_VIDEO_SRC = "/media/RB6998.MP4";
 
 /* points up; the next button flips it, and on mobile the pair rotates to
    left/right along with the slide direction */
@@ -91,6 +92,12 @@ export default function HeroCarousel() {
 
   return (
     <>
+      <div className="ambient-video" aria-hidden="true">
+        <video autoPlay muted loop playsInline preload="metadata">
+          <source src={BACKGROUND_VIDEO_SRC} type="video/mp4" />
+        </video>
+      </div>
+
       {/* what the page opens onto — sits behind the two halves */}
       <div className="beyond" data-open={open || undefined}>
         <p className="beyond-eyebrow">Inside</p>

@@ -78,46 +78,26 @@ export default function DialNav() {
         />
         <svg className="dial-svg" viewBox="0 0 520 520" aria-hidden="true">
           <defs>
-            {/* one raised light source: white up-left, green shadow down-right */}
-            <filter id="nuRaise" x="-40%" y="-40%" width="180%" height="180%">
-              <feDropShadow dx="5" dy="5" stdDeviation="6" floodColor="#344E41" floodOpacity="0.3" />
-              <feDropShadow dx="-5" dy="-5" stdDeviation="6" floodColor="#ffffff" floodOpacity="0.95" />
+            <filter id="nuMatteShadow" x="-40%" y="-40%" width="180%" height="180%">
+              <feDropShadow dx="4" dy="5" stdDeviation="6" floodColor="#344E41" floodOpacity="0.24" />
             </filter>
-            {/* groove: dark edge up-left, light edge down-right — reads recessed */}
             <linearGradient id="nuTrack" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#c6c3b9" />
-              <stop offset="1" stopColor="#f8f6f1" />
+              <stop offset="0" stopColor="#d8cfbd" />
+              <stop offset="1" stopColor="#d8cfbd" />
             </linearGradient>
-            {/* every state stays in the brand green family — a grey-olive
-                idle read as unfinished rather than restrained */}
             <linearGradient id="nuIdle" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#9fb2a4" />
-              <stop offset="1" stopColor="#728a7a" />
+              <stop offset="0" stopColor="#829681" />
+              <stop offset="1" stopColor="#829681" />
             </linearGradient>
             <linearGradient id="nuHover" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#7d9384" />
-              <stop offset="1" stopColor="#50695a" />
+              <stop offset="0" stopColor="#647a68" />
+              <stop offset="1" stopColor="#647a68" />
             </linearGradient>
             <linearGradient id="nuActive" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="400" y2="400">
-              <stop offset="0" stopColor="#4a6b58" />
-              <stop offset="1" stopColor="#28382f" />
+              <stop offset="0" stopColor="#344e41" />
+              <stop offset="1" stopColor="#344e41" />
             </linearGradient>
-            {/* veils page content under the open dial so labels stay legible */}
-            <radialGradient id="nuVeil">
-              <stop offset="0.55" stopColor="#e4e2dc" stopOpacity="0.97" />
-              <stop offset="0.8" stopColor="#e4e2dc" stopOpacity="0.82" />
-              <stop offset="1" stopColor="#e4e2dc" stopOpacity="0" />
-            </radialGradient>
           </defs>
-
-          <circle
-            cx={C}
-            cy={C}
-            r={236}
-            fill="url(#nuVeil)"
-            className="dial-labels"
-            opacity={open ? 1 : 0}
-          />
 
           <g
             className="dial-ring"
@@ -134,7 +114,7 @@ export default function DialNav() {
               className="dial-arc"
               opacity={open ? 1 : 0.7}
             />
-            <g filter="url(#nuRaise)">
+            <g filter="url(#nuMatteShadow)">
               {segments.map((s, i) => (
                 <path
                   key={s.href}
