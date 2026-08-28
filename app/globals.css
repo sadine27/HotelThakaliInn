@@ -1966,3 +1966,543 @@ body {
     transition: none;
   }
 }
+
+/* ==========================================================================
+   GALLERY — six stripes, edge to edge, over a longer list
+
+   Six full-height columns fill the viewport. All are flex:1 until one is
+   pointed at; that one goes to flex-grow:5 and takes about half the screen
+   while the other five squeeze to a tenth each.
+
+   There are twelve panels and six columns, so the component slides a window
+   over the list instead of building a wider track. Nothing here knows that:
+   six columns is still six columns, the flex arithmetic is untouched, and a
+   window shift only changes what a column CONTAINS.
+
+   The order never changes. That is the whole reason this replaced a grid that
+   re-packed itself on hover: there, opening a panel slid a DIFFERENT panel
+   under a stationary cursor, which fired that panel's hover, which re-packed
+   the grid again — a next/previous flicker with no exit. Here a column can only
+   grow AROUND the pointer that opened it, because its neighbours give up the
+   width. Nothing can arrive under a cursor that has not moved.
+
+   The other old bug — the picture distorting in Chrome mid-transition — came
+   from framer-motion scaling the <video> element every frame to fake the move.
+   Nothing scales anything now; the browser interpolates flex-grow and the video
+   just re-covers its box.
+
+   Type is Manrope 800 in caps, the site's own sans at its heaviest, so the
+   brutalist setting costs no extra font. Dimming is done with the brand green
+   rather than black, which is what keeps a page of dark footage reading as part
+   of this site.
+   ========================================================================== */
+
+.gal-page {
+  --gal-pad: clamp(20px, 2.4vw, 44px);
+  /* --inset is only where the dial is ANCHORED. Measured against the real
+     thing, the COLLAPSED dial's ring reaches 225px in from the right edge and
+     243px up from the bottom; the fan reaches 312px, but that state cannot
+     coexist with an open stripe (see the [data-dial-open] rule below). The last
+     stripe is the only one that writes into that corner, so it is the only one
+     that reserves — and this derives from --inset, so it follows the dial. */
+  --gal-dial: calc(var(--inset) + 150px);
+  /* the brief's curve: heavy out of the gate, long settle, no snap */
+  --gal-slide: 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+
+  position: relative;
+  z-index: 1;
+  /* 100% rather than 100vw: 100vw counts the scrollbar gutter and would put a
+     horizontal bar under any page that has a vertical one */
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  /* also the seam colour — the stage's 2px gaps let this through as hairlines
+     between the stripes */
+  background: var(--green);
+  /* shared with /rooms deliberately: arriving from the dial should look the
+     same whichever segment you came off */
+  animation: room-enter 720ms var(--ease) both;
+}
+
+/* The dial has no card to cut a well in here, so it would otherwise sit on
+   whatever the last clip happens to be showing. This gives it a floor. */
+.gal-page::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--inset) + 260px);
+  height: calc(var(--inset) + 260px);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at calc(100% - var(--inset)) calc(100% - var(--inset)),
+    rgba(13, 20, 16, 0.78),
+    rgba(13, 20, 16, 0) 68%
+  );
+}
+
+.gal-stage {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+}
+
+.gal-col {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  /* flex-grow, not the `flex` shorthand — the shorthand does not interpolate.
+     This animates layout rather than transform, which is normally the thing to
+     avoid; six siblings in a fixed-size container with no document flowing
+     behind them is the case where it is cheap, and it is what the accordion
+     is. */
+  transition: flex-grow var(--gal-slide);
+}
+
+.gal-col[data-open] {
+  flex-grow: 5;
+}
+
+.gal-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* strict bounds plus cover: the browser re-crops the frame as the column
+     resizes instead of stretching it to whatever the in-between width is */
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* An arrow press or a timer tick changes every stripe at once, so the swap has
+   to be covered or the whole wall cuts on one frame.
+
+   Fading the NEW frame up does not cover it. Whatever it starts from, the wall
+   is dimmer at t=0 than it was at t=-1, and that dip is the blink — slowing it
+   down only makes a slow blink. So the outgoing stripe is held on top as a
+   still instead and taken out over its replacement: two full-strength layers
+   the whole way, coverage never below 1, no moment darker than either end.
+
+   It is a real copy of the column, tint and veil and label included, and those
+   are the page's own class names inside here on purpose — the state rules that
+   dim a passed-over stripe are descendant selectors, so they still reach in and
+   the outgoing layer dims exactly as the live one does. A bare frame would sit
+   noticeably brighter for the length of the cross.
+
+   Duration and the per-column delay come from the component, which also owns
+   when this unmounts; one timing in two files goes stale. Linear because a
+   cross wants even travel — anything eased spends its time at one end. */
+.gal-out {
+  position: absolute;
+  inset: 0;
+  /* over the frame and the vertical label, under .gal-copy, which comes later
+     at the same level and rises on its own */
+  z-index: 3;
+  /* the stripe's own button is underneath this and stays live through it */
+  pointer-events: none;
+  animation-name: gal-out;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+@keyframes gal-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Green rather than black, and three depths: an even wall, a stripe that has
+   been passed over for another, and the open one at full colour. */
+.gal-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--green);
+  opacity: 0.34;
+  transition: opacity var(--gal-slide);
+}
+
+.gal-stage:has([data-open]) .gal-col:not([data-open]) .gal-tint {
+  opacity: 0.66;
+}
+
+.gal-col[data-open] .gal-tint {
+  opacity: 0;
+}
+
+/* Constant, unlike the tint: the top band carries the vertical label over
+   whatever the ceiling of that shot is (bright in four of the six), the bottom
+   band carries the copy. Cream lands around 13:1 and 11:1 on the composites. */
+.gal-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(20, 27, 22, 0.82), rgba(20, 27, 22, 0) 26%),
+    linear-gradient(to top, rgba(20, 27, 22, 0.88), rgba(20, 27, 22, 0) 50%);
+}
+
+/* The control is the whole stripe and nothing else. Fixed to its parent's box,
+   so it cannot resize out from under the pointer that is hovering it. */
+.gal-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* --green disappears against the footage, and an outward ring would be clipped
+   by the column's overflow — so cream, and inset */
+.gal-hit:focus-visible {
+  outline: 2px solid #f2eee4;
+  outline-offset: -6px;
+}
+
+/* Below the header's line rather than at the very top, so the two never share
+   a row on the first stripe. */
+.gal-label {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--gal-pad) + 62px);
+  left: 50%;
+  transform: translateX(-50%);
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+  pointer-events: none;
+  font-weight: 800;
+  font-size: clamp(17px, 1.9vw, 30px);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #f2eee4;
+  transition: opacity 0.4s var(--ease);
+}
+
+/* the copy below says the same word, much louder */
+.gal-col[data-open] .gal-label {
+  opacity: 0;
+}
+
+/* Delayed, not just faded: for the first quarter-second the column is still
+   growing, and a title reflowing through three wrap points on its way to the
+   final width is the kind of churn the old build was full of. `both` holds it
+   invisible until the stripe has almost arrived. */
+.gal-copy {
+  position: absolute;
+  z-index: 3;
+  left: var(--gal-pad);
+  right: var(--gal-pad);
+  bottom: var(--gal-pad);
+  /* the hit button underneath stays live through it */
+  pointer-events: none;
+  color: #f2eee4;
+  animation: gal-rise 420ms var(--ease) 260ms both;
+}
+
+/* the only stripe whose corner the dial occupies */
+.gal-col:last-child .gal-copy {
+  right: var(--gal-dial);
+}
+
+/* Reaching the dial with a pointer means leaving the stage, which collapses the
+   wall, so the open fan and a caption normally never share the screen. Keyboard
+   focus can put them together though — shift-tab off the dial lands on the last
+   stripe and opens it. The caption steps back rather than being swept over,
+   which is what the header a few rules down already does. */
+:root[data-dial-open] .gal-copy {
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+}
+
+@keyframes gal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.gal-meta {
+  margin: 0 0 12px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(242, 238, 228, 0.72);
+}
+
+.gal-meta i {
+  font-style: normal;
+  color: #f2eee4;
+}
+
+/* 4vw rather than the brief's 8vw because the word lives INSIDE the stripe:
+   at 8vw "THE WAITING ROOM" runs past the column edge and overflow:hidden — the
+   same rule that keeps the video in its box — would cut the room's name in
+   half. At 4vw the longest title fits one line on a wide screen and wraps to
+   two on a narrow one, which is the version where nothing is lost. */
+.gal-title {
+  margin: 0 0 14px;
+  font-weight: 800;
+  font-size: clamp(26px, 4vw, 76px);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: #f2eee4;
+}
+
+.gal-blurb {
+  margin: 0;
+  max-width: 44ch;
+  font-size: clamp(14px, 1.05vw, 16px);
+  line-height: 1.65;
+  color: rgba(242, 238, 228, 0.9);
+}
+
+/* The route still needs a heading, but a second large word would fight the
+   stripes for the same job. So it is a rule, not a title. pointer-events:none
+   because it lies across the first stripe and must not take its hover. */
+.gal-head {
+  position: absolute;
+  z-index: 4;
+  top: var(--gal-pad);
+  left: var(--gal-pad);
+  pointer-events: none;
+  transition: opacity 0.45s var(--ease);
+}
+
+.gal-head[data-dim] {
+  opacity: 0;
+}
+
+.gal-head h1 {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #f2eee4;
+}
+
+.gal-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: rgba(242, 238, 228, 0.66);
+}
+
+/* Above everything: .gal-hit is 2, the copy and the dial's floor are 3, the
+   header is 4. A control the footage can cover is not a control.
+
+   Square, heavy-stroked and cream, because the page is set in Manrope 800 caps
+   and a soft rounded arrow would be the one apologetic thing on it. The scrim
+   is what makes the glyph legible over footage rather than over a known
+   colour: cream on this lands near 5.4:1 even against the brightest frame in
+   the set (the sign, shot up into a white sky), well past the 3:1 a non-text
+   control owes. */
+.gal-nav {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #f2eee4;
+  background: rgba(13, 20, 16, 0.66);
+  box-shadow: inset 0 0 0 1px rgba(242, 238, 228, 0.14);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.25s var(--ease);
+}
+
+.gal-nav:hover {
+  background: rgba(13, 20, 16, 0.84);
+}
+
+/* Matches .gal-hit: an outward ring would be clipped by .gal-page's own
+   overflow:hidden, and --green disappears against dark footage. */
+.gal-nav:focus-visible {
+  outline: 2px solid #f2eee4;
+  outline-offset: -6px;
+}
+
+/* 56x88 rather than a 44px square: the arrows sit ON the artwork, and a taller
+   target is easier to hit on the way past without being wider than a collapsed
+   stripe (~10vw, about 190px on a 1920 screen). */
+.gal-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56px;
+  height: 88px;
+}
+
+.gal-nav[data-dir="prev"] {
+  left: 0;
+}
+
+.gal-nav[data-dir="next"] {
+  right: 0;
+}
+
+.gal-nav svg {
+  width: 24px;
+  height: 24px;
+  transition: transform 0.25s var(--ease);
+}
+
+/* The nudge is on the glyph, never the button: moving the box would shift the
+   hit area out from under the pointer that is hovering it, which is the exact
+   class of bug this page was rebuilt to remove. */
+.gal-nav[data-dir="prev"]:hover svg {
+  transform: translateX(-3px);
+}
+
+.gal-nav[data-dir="next"]:hover svg {
+  transform: translateX(3px);
+}
+
+/* Announcements only, and only for window moves a person asked for. */
+.gal-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Same accordion turned on its side, rather than a second layout: there is no
+   hover here and six columns would be 65px each, but six ROWS at ~94px are a
+   comfortable tap target and still fill the screen with no scroll. */
+@media (max-width: 900px) {
+  .gal-stage {
+    flex-direction: column;
+  }
+
+  .gal-col {
+    min-width: auto;
+    min-height: 0;
+  }
+
+  .gal-col[data-open] {
+    flex-grow: 4;
+  }
+
+  /* horizontal again — a row is 94px tall and vertical type would not fit */
+  .gal-label {
+    top: auto;
+    bottom: 14px;
+    left: 18px;
+    transform: none;
+    writing-mode: horizontal-tb;
+    font-size: clamp(20px, 7vw, 34px);
+  }
+
+  .gal-copy {
+    left: 18px;
+    right: 18px;
+    bottom: 16px;
+  }
+
+  /* lifted above the dial rather than squeezed beside it: 242px of side
+     reserve on a 390px screen leaves nothing to set the title in */
+  .gal-col:last-child .gal-copy {
+    right: 18px;
+    bottom: calc(var(--inset) + 16px);
+  }
+
+  .gal-meta {
+    margin-bottom: 8px;
+  }
+
+  .gal-title {
+    font-size: clamp(24px, 7.5vw, 40px);
+    margin-bottom: 10px;
+  }
+
+  .gal-blurb {
+    font-size: 13px;
+  }
+
+  /* wrong instruction on a touch screen, and it would collide with the first
+     row's label */
+  .gal-hint {
+    display: none;
+  }
+
+  /* The stage is stacked here, so the left and right edges are the wrong place
+     for previous and next. Both controls become one 44px cluster in the
+     top-right — the only corner left, with the header top-left, the row labels
+     bottom-left and the dial bottom-right. Reading order across the cluster is
+     previous, next. */
+  .gal-nav {
+    top: var(--gal-pad);
+    transform: none;
+    width: 44px;
+    height: 44px;
+  }
+
+  /* 52 and 104, not 48 and 96: 44px buttons at a 48px pitch leave a 4px gap,
+     and adjacent touch targets want 8. */
+  /* left:auto has to be repeated at this specificity: the edge anchors above
+     are [data-dir] rules, so a plain .gal-nav here loses to them and prev
+     would keep left:0 and never join the cluster. */
+  .gal-nav[data-dir="next"] {
+    left: auto;
+    right: calc(var(--gal-pad) + 52px);
+  }
+
+  .gal-nav[data-dir="prev"] {
+    left: auto;
+    right: calc(var(--gal-pad) + 104px);
+  }
+
+  /* Up and down, since the accordion runs vertically here. Stated for :hover
+     too so the desktop nudge cannot drop the rotation on a hybrid device. */
+  .gal-nav svg,
+  .gal-nav:hover svg {
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* cut, not shortened, like the rest of the site. Playback is handled in the
+     component, where the same query is read as useReducedMotion(): a pointer
+     passing over a stripe will not start it, but a deliberate click will. */
+  .gal-page {
+    animation: none;
+  }
+
+  .gal-col,
+  .gal-tint,
+  .gal-label,
+  .gal-head,
+  .gal-nav,
+  .gal-nav svg {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
+
+  .gal-copy {
+    animation-duration: 0.01ms;
+    animation-delay: 0s;
+  }
+}

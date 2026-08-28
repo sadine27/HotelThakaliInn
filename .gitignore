@@ -27,6 +27,8 @@ assets/Hotel Thakali Inn Reels n photos/
 # ...except the web-ready derivatives, which are small enough to ship and are
 # what the site actually loads. Regenerate with scripts/encode-ambient.sh
 !public/media/ambient.mp4
+# ...and the gallery clips, exported by scripts/export-gallery-clips.mjs
+!public/media/gallery/*.mp4
 
 # Local screenshot scratch from browser checks
 .playwright-mcp/
