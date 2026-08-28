@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import ServicesCarousel from "@/components/ServicesCarousel";
+import { BOOKING_URL, MAPS_URL } from "@/lib/site";
 
 /* Skeleton content — swap `src` in once the photos are picked. A slide with no
    src falls back to a tinted placeholder so the motion can be judged first. */
@@ -174,7 +175,7 @@ export default function HeroCarousel() {
         <div className="hero-cta-row">
           <a
             className="hero-cta"
-            href="https://www.booking.com/hotel/np/thakali-inn.html"
+            href={BOOKING_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -193,7 +194,7 @@ export default function HeroCarousel() {
           </a>
           <a
             className="hero-cta"
-            href="https://www.google.com/maps/place/Hotel+Thakali+Inn/@27.6954876,85.2756856,12z"
+            href={MAPS_URL}
             target="_blank"
             rel="noopener noreferrer"
           >

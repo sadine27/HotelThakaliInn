@@ -107,11 +107,20 @@ const VISIBLE = 6;
 const DWELL = 5000;
 /* How long the outgoing stripe takes to cross out, and how far apart the six
    columns start doing it. Six at once is an event that happens to the whole
-   wall; 80ms apart is something that travels across it. Both live here rather
+   wall; 90ms apart is something that travels across it. Both live here rather
    than in the stylesheet because this file also has to know when the last
    column has finished so it can unmount the layer. */
-const SWAP = 900;
-const STAGGER = 80;
+const SWAP = 1150;
+const STAGGER = 90;
+
+type Panel = (typeof PANELS)[number];
+
+function windowFrom(start: number): Panel[] {
+  return Array.from(
+    { length: VISIBLE },
+    (_, i) => PANELS[(start + i) % PANELS.length]
+  );
+}
 
 export default function GalleryWall() {
   /* `start` is an index into PANELS: which panel sits in the leftmost slot.
@@ -133,7 +142,7 @@ export default function GalleryWall() {
   const [out, setOut] = useState<{
     turn: number;
     dir: number;
-    win: (typeof PANELS)[number][];
+    win: Panel[];
   } | null>(null);
   const reduced = useReducedMotion();
   const videos = useRef<(HTMLVideoElement | null)[]>([]);
@@ -145,23 +154,63 @@ export default function GalleryWall() {
   /* Whether the last window move came from a person. The timer must not narrate
      itself to a screen reader every five seconds; an arrow press should. */
   const manual = useRef(false);
-  const prevStart = useRef(0);
+  const startRef = useRef(0);
   const turn = useRef(0);
+  const outTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* With six or fewer panels the window covers everything, so a carousel would
      be a no-op: no arrows, no timer, and this is exactly the accordion it was
      before. */
   const rotates = PANELS.length > VISIBLE;
 
-  const step = useCallback((d: number) => {
-    manual.current = true;
-    setStart((s) => (s + d + PANELS.length) % PANELS.length);
-  }, []);
+  const moveWindow = useCallback(
+    (d: number, byUser = false) => {
+      if (!rotates) return;
 
-  const win = Array.from(
-    { length: VISIBLE },
-    (_, i) => PANELS[(start + i) % PANELS.length]
+      const from = startRef.current;
+      const next = (from + d + PANELS.length) % PANELS.length;
+      if (from === next) return;
+
+      if (byUser) manual.current = true;
+      startRef.current = next;
+
+      if (outTimer.current) {
+        clearTimeout(outTimer.current);
+      }
+
+      if (reduced) {
+        setOut(null);
+      } else {
+        const nextTurn = turn.current + 1;
+        turn.current = nextTurn;
+        setOut({
+          turn: nextTurn,
+          /* which way the window went, so the stagger and drift run with it. */
+          dir: (next - from + PANELS.length) % PANELS.length === 1 ? 1 : -1,
+          win: windowFrom(from),
+        });
+        outTimer.current = setTimeout(
+          () => {
+            setOut((current) => (current?.turn === nextTurn ? null : current));
+            outTimer.current = null;
+          },
+          SWAP + (VISIBLE - 1) * STAGGER + 90
+        );
+      }
+
+      setStart(next);
+    },
+    [reduced, rotates]
   );
+
+  const step = useCallback(
+    (d: number) => {
+      moveWindow(d, true);
+    },
+    [moveWindow]
+  );
+
+  const win = windowFrom(start);
 
   /* Idle attract loop. It stops the moment a stripe opens — and because `active`
      is a dependency, keyboard focus stops it too, since focus opens a stripe.
@@ -173,12 +222,9 @@ export default function GalleryWall() {
      and continuously on a touch screen, where there is no hover at all. */
   useEffect(() => {
     if (!rotates || reduced || active !== null) return;
-    const id = setInterval(
-      () => setStart((s) => (s + 1) % PANELS.length),
-      DWELL
-    );
+    const id = setInterval(() => moveWindow(1), DWELL);
     return () => clearInterval(id);
-  }, [rotates, reduced, active]);
+  }, [rotates, reduced, active, moveWindow]);
 
   /* One playing clip at a time. Twelve decoders at once is what turns a page
      like this into a fan-speed demo, and preload="none" means the ones that
@@ -198,29 +244,20 @@ export default function GalleryWall() {
     });
   }, [active, start, reduced]);
 
-  /* Snapshot the window that is leaving. Under reduced motion nothing is
-     rendered at all — the wall simply is what it is now, which is the same cut
-     the rest of the site makes rather than a shortened animation. */
+  /* moveWindow captures the leaving window before `start` changes. Reduced
+     motion clears any overlay so the wall cuts cleanly to the next set. */
   useEffect(() => {
-    const from = prevStart.current;
-    if (from === start) return;
-    prevStart.current = start;
-    if (reduced) return;
+    if (!reduced) return;
+    if (outTimer.current) clearTimeout(outTimer.current);
+    outTimer.current = null;
+    setOut(null);
+  }, [reduced]);
 
-    turn.current += 1;
-    setOut({
-      turn: turn.current,
-      /* which way the window went, so the stagger runs with it. A step is
-         always one, so anything that is not +1 is the wrap or a step back. */
-      dir: (start - from + PANELS.length) % PANELS.length === 1 ? 1 : -1,
-      win: Array.from(
-        { length: VISIBLE },
-        (_, i) => PANELS[(from + i) % PANELS.length]
-      ),
-    });
-    const id = setTimeout(() => setOut(null), SWAP + (VISIBLE - 1) * STAGGER + 60);
-    return () => clearTimeout(id);
-  }, [start, reduced]);
+  useEffect(() => {
+    return () => {
+      if (outTimer.current) clearTimeout(outTimer.current);
+    };
+  }, []);
 
   /* Announce only what a person caused. Reading the panel numbers rather than
      the titles keeps it short; the titles are on the stripes themselves. */
@@ -361,6 +398,7 @@ export default function GalleryWall() {
               <div
                 key={`out-${out.turn}`}
                 className="gal-out"
+                data-dir={out.dir > 0 ? "next" : "prev"}
                 aria-hidden="true"
                 style={{
                   animationDuration: `${SWAP}ms`,

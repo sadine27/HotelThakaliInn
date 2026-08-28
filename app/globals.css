@@ -11,6 +11,10 @@
   /* brand */
   --green: #344e41;
   --olive: #6b705c;
+  /* The one thing the brand palette can't say. A failed form has to read as
+     wrong, and every other colour here is a shade of "fine" — so this is a fired
+     clay that sits on the cream ground without shouting, used for errors only. */
+  --alert: #8c4a3a;
 
   /* neumorphic ground — one material, lit from top-left */
   --bg: #e4e2dc;
@@ -970,6 +974,15 @@ body {
    loops — off either end the stage crossfades and the fan snaps to the far end,
    which is the only continuity a three-card arc can offer. */
 
+/* Painted by app/rooms/layout.tsx, outside the Suspense boundary, so it is in
+   the prerendered HTML. .room-page carries the same colour but cannot do this
+   job: it is inside the boundary (absent until hydration) and it fades in from
+   opacity 0, so body's #1f271f shows through it either way. */
+.room-ground {
+  background: var(--bg);
+  min-height: 100svh;
+}
+
 .room-page {
   --ring-step: 58deg;
   --ring-spread: 1;
@@ -1684,12 +1697,74 @@ body {
    it. The cream ground is restored underneath so the tint lies ON the palette
    rather than replacing it. */
 .room-view {
-  background: var(--bg);
+  background:
+    radial-gradient(60% 50% at 15% 20%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(55% 60% at 85% 15%, rgba(107, 112, 92, 0.3), transparent 65%),
+    radial-gradient(65% 55% at 78% 85%, rgba(52, 78, 65, 0.2), transparent 65%),
+    radial-gradient(50% 50% at 22% 85%, rgba(236, 228, 210, 0.95), transparent 60%),
+    var(--bg);
+  background-size: 160% 160%, 180% 180%, 170% 170%, 150% 150%, 100% 100%;
+  background-repeat: no-repeat;
+  animation: room-liquid 26s var(--ease) infinite alternate;
+}
+
+/* the moving ground the glass panels below refract — four blobs drifting
+   independently so the motion reads as fluid rather than a single pan */
+@keyframes room-liquid {
+  0% {
+    background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0 0;
+  }
+  50% {
+    background-position: 30% 45%, 65% 35%, 55% 70%, 35% 55%, 0 0;
+  }
+  100% {
+    background-position: 60% 10%, 35% 65%, 15% 90%, 75% 20%, 0 0;
+  }
+}
+
+/* The shader ground. z-index -2 rather than the -1 the photo already uses, so
+   the paint order inside .room-view's isolation stays: gradients (the fallback)
+   → this canvas → the blurred room photo tinting it → content. Nothing in the
+   content had to be restacked for it. */
+.liquid-bg {
+  /* fixed, not absolute: .room-view is itself the scroll container when open
+     (overflow-y:auto, ~980px of content in a 720px box), and an absolute child
+     scrolls away with the content — leaving bare gradient below it. The ground
+     has to stay put while the panels move over it.
+     ponytail: correct because .room-page is min-height:100svh and the document
+     itself never scrolls on this route. If that ever changes, this needs a
+     non-scrolling wrapper inside .room-view instead. */
+  position: fixed;
+  inset: 0;
+  /* explicit, not left to inset:0 — a canvas is a replaced element, so auto
+     size means its intrinsic 300x150, not the stretched box. */
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  pointer-events: none;
+  /* hidden until the first frame lands — see the stamp in LiquidBackground */
+  opacity: 0;
+  transition: opacity 500ms var(--ease);
+}
+
+/* Stamped by LiquidBackground on its FIRST DRAWN FRAME, not on a live context —
+   that is what fades the canvas in, so it must not fire while the buffer is
+   still empty. The drift underneath an opaque canvas is invisible, so stop
+   paying to paint it — the gradients and the keyframe both stay, both for the
+   no-WebGL path and as the visible ground until this flips. */
+.room-view[data-liquid] {
+  animation: none;
+}
+
+.room-view[data-liquid] .liquid-bg {
+  opacity: 1;
 }
 
 .room-view::before {
   content: "";
-  position: absolute;
+  /* pinned for the same reason as .liquid-bg above — this is the tint that
+     lies on the ground, so it has to travel with it, not with the content. */
+  position: fixed;
   inset: -12%;
   z-index: -1;
   background-image: var(--shot);
@@ -1732,10 +1807,27 @@ body {
 .room-tour {
   aspect-ratio: 3 / 2;
   border-radius: 20px;
-  background: var(--surface);
-  box-shadow: var(--nu-pressed);
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 12px 34px rgba(52, 78, 65, 0.14),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
   display: grid;
   place-items: center;
+}
+
+.room-facts {
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 8px 30px rgba(52, 78, 65, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
 .room-tour span {
@@ -1949,8 +2041,14 @@ body {
   /* the route's enter and the fan's wrap dip — all cut, not shortened */
   .room-page,
   .room-carousel,
-  .room-panel {
+  .room-panel,
+  .room-view {
     animation: none;
+  }
+  /* The canvas is not mounted under reduced motion anyway; this covers the OS
+     setting being flipped in a session that is already open. */
+  .liquid-bg {
+    display: none;
   }
   .room-stage {
     transition: none;
@@ -2006,8 +2104,8 @@ body {
      stripe is the only one that writes into that corner, so it is the only one
      that reserves — and this derives from --inset, so it follows the dial. */
   --gal-dial: calc(var(--inset) + 150px);
-  /* the brief's curve: heavy out of the gate, long settle, no snap */
-  --gal-slide: 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  /* heavy out of the gate, then a longer calm settle */
+  --gal-slide: 0.82s cubic-bezier(0.19, 1, 0.22, 1);
 
   position: relative;
   z-index: 1;
@@ -2060,6 +2158,7 @@ body {
      behind them is the case where it is cheap, and it is what the accordion
      is. */
   transition: flex-grow var(--gal-slide);
+  will-change: flex-grow;
 }
 
 .gal-col[data-open] {
@@ -2077,6 +2176,8 @@ body {
   max-height: 100%;
   object-fit: cover;
   display: block;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 /* An arrow press or a timer tick changes every stripe at once, so the swap has
@@ -2095,9 +2196,12 @@ body {
    noticeably brighter for the length of the cross.
 
    Duration and the per-column delay come from the component, which also owns
-   when this unmounts; one timing in two files goes stale. Linear because a
-   cross wants even travel — anything eased spends its time at one end. */
+   when this unmounts; one timing in two files goes stale. The easing keeps the
+   old stripe at near-full strength first, then lets it drift away. */
 .gal-out {
+  --gal-out-x: 0;
+  --gal-out-y: 0;
+
   position: absolute;
   inset: 0;
   /* over the frame and the vertical label, under .gal-copy, which comes later
@@ -2105,14 +2209,33 @@ body {
   z-index: 3;
   /* the stripe's own button is underneath this and stays live through it */
   pointer-events: none;
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1.012);
   animation-name: gal-out;
-  animation-timing-function: linear;
+  animation-timing-function: cubic-bezier(0.38, 0, 0.2, 1);
   animation-fill-mode: both;
+  will-change: opacity, transform;
+}
+
+.gal-out[data-dir="next"] {
+  --gal-out-x: -24px;
+}
+
+.gal-out[data-dir="prev"] {
+  --gal-out-x: 24px;
 }
 
 @keyframes gal-out {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1.012);
+  }
+  42% {
+    opacity: 0.96;
+  }
   to {
     opacity: 0;
+    transform: translate3d(var(--gal-out-x), var(--gal-out-y), 0) scale(1.028);
   }
 }
 
@@ -2406,6 +2529,16 @@ body {
     flex-grow: 4;
   }
 
+  .gal-out[data-dir="next"] {
+    --gal-out-x: 0;
+    --gal-out-y: -18px;
+  }
+
+  .gal-out[data-dir="prev"] {
+    --gal-out-x: 0;
+    --gal-out-y: 18px;
+  }
+
   /* horizontal again — a row is 94px tall and vertical type would not fit */
   .gal-label {
     top: auto;
@@ -2504,5 +2637,495 @@ body {
   .gal-copy {
     animation-duration: 0.01ms;
     animation-delay: 0s;
+  }
+
+  .gal-out {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   /contact
+   One screen, like every other route. Two columns: the ways to reach us on the
+   left, the map and the form on the right. Nothing here is new vocabulary — the
+   cards are .room-facts' glass, the send button is .room-more, the channel rows
+   are .room-book, and the labels are .room-eyebrow. Only the arrival strip is
+   its own thing, because nothing else on the site does that job.
+   --------------------------------------------------------------------------- */
+
+.con-page {
+  /* Painted, not faded. body is #1f271f, so a page root that animates from
+     opacity 0 flashes dark on arrival — the ground is here and static, and only
+     the two columns rise. Same reason /rooms needs its own layout.tsx wrapper;
+     this page has no Suspense boundary, so it can hold its own ground instead. */
+  background: var(--bg);
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 64px);
+  align-content: center;
+  /* The extra bottom is the dial's corner reserve, plus room for the fan's reach
+     over the form's last row. */
+  padding: clamp(32px, 6vh, 72px) var(--inset) calc(var(--inset) + 40px)
+    clamp(28px, 5vw, 72px);
+  overflow: hidden;
+}
+
+/* A beat apart, left then right — the same stagger the rooms page arrives with,
+   so coming off the dial looks the same whichever segment you took. */
+.con-side,
+.con-main {
+  animation: room-rise 760ms var(--ease) both;
+  min-width: 0;
+}
+.con-main {
+  animation-delay: 120ms;
+}
+
+.con-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.con-eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.con-side h1 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(30px, 3.4vw, 46px);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--green);
+}
+
+.con-address {
+  margin: -8px 0 0;
+  font-size: 15px;
+  color: rgba(43, 50, 48, 0.72);
+}
+
+.con-blurb {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(43, 50, 48, 0.62);
+}
+
+/* .room-book's neumorphic recipe, widened into a row so each one can carry what
+   it is as well as where it goes. Two up, because four full-width bars would
+   push the arrival strip off a short screen. */
+.con-channels {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.con-channel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  text-decoration: none;
+  color: var(--green);
+  background: var(--surface);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.85),
+    4px 6px 12px -4px rgba(43, 50, 48, 0.18),
+    10px 14px 26px -10px rgba(43, 50, 48, 0.26);
+  transition: box-shadow 0.3s var(--ease);
+}
+
+.con-channel:hover {
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 253, 247, 0.9),
+    6px 9px 18px -5px rgba(43, 50, 48, 0.2),
+    16px 22px 40px -12px rgba(43, 50, 48, 0.32);
+}
+
+.con-channel:active {
+  box-shadow:
+    inset 2px 3px 6px rgba(24, 28, 22, 0.28),
+    inset -1px -1px 0 rgba(255, 253, 247, 0.5);
+}
+
+.con-channel-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--olive);
+}
+
+.con-channel-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.con-channel-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.con-channel-value {
+  font-size: 13px;
+  color: var(--green);
+  /* the email is longer than its column at some widths and must not push the
+     grid wider than the page */
+  overflow-wrap: anywhere;
+}
+
+.con-socials {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.con-socials a {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--olive);
+  transition: color 0.3s ease;
+}
+
+.con-socials a:hover {
+  color: var(--green);
+}
+
+/* The one loud thing on the page. Set as a spec sheet rather than prose because
+   that is what it is — the distances are the answer to "how do I get to you from
+   the airport at midnight", which is the only question this page really gets. */
+.con-arrival {
+  margin: auto 0 0;
+  /* Full column width, so its rules line up with the edges of the channel grid
+     above rather than stopping short of them. */
+  width: 100%;
+}
+
+.con-arrival > div {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(52, 78, 65, 0.14);
+}
+
+.con-arrival > div:first-child {
+  border-top: 1px solid rgba(52, 78, 65, 0.14);
+}
+
+.con-arrival dt {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.con-arrival dd {
+  margin: 0 0 0 auto;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-align: right;
+  color: var(--green);
+}
+
+.con-main {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 16px;
+}
+
+/* .room-facts' glass, shared by both cards in this column so the map and the
+   form read as one surface split in two rather than two unrelated panels. */
+.con-map,
+.con-write {
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 8px 30px rgba(52, 78, 65, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.con-map {
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.con-map iframe {
+  flex: 1;
+  width: 100%;
+  /* The column is sized by its content, so 1fr has nothing to divide — the map's
+     height is this figure, and it is a floor rather than a fixed size so a tall
+     window gives the map the slack instead of the page's margins. */
+  min-height: clamp(220px, 34vh, 340px);
+  border: 0;
+  display: block;
+  /* Google's map is louder than anything else on a cream page. Damped down to
+     sit in the palette, and handed back in full the moment you reach for it. */
+  filter: grayscale(0.35) sepia(0.12);
+  transition: filter 0.7s var(--ease);
+}
+
+.con-map:hover iframe,
+.con-map:focus-within iframe {
+  filter: none;
+}
+
+.con-map figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.con-code,
+.con-directions {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--olive);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.con-code:hover,
+.con-directions:hover {
+  color: var(--green);
+}
+
+.con-write {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  /* The dial's well, not a margin. This is the bottom-right card, so when the fan
+     opens its floor is cut exactly here — and a textarea you cannot finish typing
+     into because the nav is over it is worse than a narrower card. Measured off
+     --notch-open rather than guessed, so widening the dial's reach moves this too.
+     /rooms keeps its panel clear of the same quadrant; this is that, made explicit. */
+  margin-right: var(--notch-open);
+}
+
+.con-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.con-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.con-form label > span {
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.con-form input,
+.con-form textarea {
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(52, 78, 65, 0.14);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--green);
+  resize: none;
+  transition: border-color 0.3s ease;
+}
+
+/* The global focus ring only covers a and button, and a field you cannot see the
+   focus on is a field you cannot fill in by keyboard. */
+.con-form input:focus-visible,
+.con-form textarea:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
+.con-field-wide,
+.con-actions {
+  grid-column: 1 / -1;
+}
+
+.con-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+/* Off-screen rather than display:none — a bot that skips hidden fields would
+   also skip this one, and then the trap catches nothing. */
+.con-trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* .room-more's green glass, unchanged. */
+.con-send {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(242, 236, 224, 0.3);
+  background: rgba(52, 78, 65, 0.72);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    0 8px 24px rgba(52, 78, 65, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #f2ece0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .con-send {
+    background: rgba(52, 78, 65, 0.92);
+  }
+}
+
+.con-send:hover:not(:disabled) {
+  background: rgba(52, 78, 65, 0.84);
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 30px rgba(52, 78, 65, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.con-send:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 4px 12px rgba(52, 78, 65, 0.2),
+    inset 0 2px 5px rgba(14, 20, 16, 0.32);
+}
+
+/* Muted, not faded — this codebase changes a disabled control's colour rather
+   than its opacity, so it stays legible while the request is in flight. */
+.con-send:disabled {
+  cursor: default;
+  background: rgba(107, 112, 92, 0.5);
+  color: rgba(242, 236, 224, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.con-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--alert);
+}
+
+.con-sent {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(43, 50, 48, 0.72);
+}
+
+@media (max-width: 900px) {
+  /* One column, and the screen stops being a screen — this is the one route that
+     scrolls, because a map, four channels and a form cannot honestly share a
+     phone's height. The dial's reserve moves to the bottom of the flow. */
+  .con-page {
+    grid-template-columns: 1fr;
+    align-content: start;
+    min-height: 0;
+    overflow: visible;
+    padding: clamp(28px, 5vh, 56px) clamp(20px, 5vw, 40px) calc(var(--inset) + 40px);
+  }
+  .con-main {
+    grid-template-rows: auto auto;
+  }
+  /* One column and a scroll, so the form is no longer the bottom-right corner —
+     the page's own bottom padding is the reserve again and the notch would just
+     be a chunk missing from the card. */
+  .con-write {
+    margin-right: 0;
+  }
+  .con-map iframe {
+    min-height: 260px;
+  }
+  .con-arrival {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  .con-channels,
+  .con-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* cut, not shortened — the same as the rest of this file */
+  .con-side,
+  .con-main {
+    animation: none;
+  }
+  .con-channel,
+  .con-send,
+  .con-code,
+  .con-directions,
+  .con-map iframe,
+  .con-form input,
+  .con-form textarea {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
   }
 }

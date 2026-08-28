@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import LiquidBackground from "./LiquidBackground";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { BOOKING_URL } from "@/lib/site";
 
 /* Room types, capacities and counts come from the property's Booking.com listing
    (ids 1618318901/02/03 — recorded in the plan, deliberately not rendered).
@@ -77,8 +79,6 @@ const GOOD_TO_KNOW = [
    per-room sizes derived from it would be invented, and guests compare this page
    against Booking. Replace with measured figures — the spec grid has a row ready. */
 const SIZE = "Rooms start at about 42 m² (450 sq ft), bathroom included.";
-
-const BOOKING_URL = "https://www.booking.com/hotel/np/thakali-inn.html";
 
 const DRAG = 44; /* the threshold the hero and the services ring both use */
 const SWAY = 4; /* deg of rotateY the cursor can lean the column */
@@ -327,6 +327,13 @@ export default function RoomsCarousel() {
           inert={!open}
           aria-hidden={!open || undefined}
         >
+          {/* The liquid ground. Only while the detail is open — unmounting is what
+              stops the frame loop. NOT also gated on `reduced` here: that reads
+              differently on the server and on the client, so the canvas would
+              hydrate into a mismatch. The component makes that call itself, in
+              an effect, where only the client ever runs it. */}
+          {open ? <LiquidBackground /> : null}
+
           <button className="room-back" onClick={close}>
             <span aria-hidden="true">←</span> Back
           </button>
