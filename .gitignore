@@ -34,3 +34,8 @@ assets/Hotel Thakali Inn Reels n photos/
 .playwright-mcp/
 assets/*.png
 .vinext/
+
+# DeepSeek orchestration scratch — briefs and raw model responses
+.ds/
+# Screenshot scratch from the visual review loop
+/*.png

@@ -8,25 +8,40 @@
 }
 
 :root {
-  /* brand */
-  --green: #344e41;
-  --olive: #6b705c;
+  /* brand. The old --green (#344e41) was ink on a cream page; on the dark
+     ground it disappears into its own shadow. This is the same brand green
+     with the lights on — a lit sage that reads as green against #0d1210 and
+     still carries the plant memory of the original. It works as foreground
+     text, as a border, and as a button face with dark text on it. */
+  --green: #9fbcac;
+  --green-ink: #1c2a22;
+  --olive: #8fa396;
+  /* On a dark ground the old --green read as another shadow, so headings and
+     accents use the lit sage above. Brass is the material memory of the city's
+     temple roofs: a warm metal that does for CTAs what the old white glow did
+     for buttons, but honestly. */
+  --sage: #b7cdc3;
+  --brass: #c9985a;
+=======
   /* The one thing the brand palette can't say. A failed form has to read as
      wrong, and every other colour here is a shade of "fine" — so this is a fired
-     clay that sits on the cream ground without shouting, used for errors only. */
-  --alert: #8c4a3a;
+     clay, brightened so it still reads as an error on the dark ground. */
+  --alert: #d9715a;
 
-  /* neumorphic ground — one material, lit from top-left */
-  --bg: #e4e2dc;
-  --surface: #ebe8e1;
-  /* the warmer cream the hero's cards are cut from — see @property --card */
-  --card: #ece4d2;
-  --ink: #2b3230;
+  /* dark cinematic ground — the brand green with the lights off. Not neutral
+     grey, not pure black: the green undertone stays in everything. */
+  --bg: #0d1210;
+  --surface: #131a16;
+  /* the hero's cards sit on the ambient video — they are a step lighter than
+     the page so they read as panels over the film, not holes in it. */
+  --card: #17201b;
+  --ink: #ece4d2;
 
-  --nu-dark: rgba(52, 78, 65, 0.22);
-  --nu-light: rgba(255, 255, 255, 0.95);
-  --nu-raised: 10px 10px 22px var(--nu-dark), -10px -10px 22px var(--nu-light);
-  --nu-pressed: inset 7px 7px 15px var(--nu-dark), inset -7px -7px 15px var(--nu-light);
+  /* Elevation without a light halo: a hairline top rim does the job the old
+     white glow did, and a deep dark shadow says "lifted". */
+  --nu-dark: rgba(0, 0, 0, 0.5);
+  --nu-raised: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 32px rgba(0, 0, 0, 0.5);
+  --nu-pressed: inset 0 3px 12px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 
   /* the dial's inset from the corner. The spread bottom-aligns to this same
      line, so the card's bottom-right corner IS the dial's pivot — which is what
@@ -39,18 +54,18 @@
   --notch-open: 232px;
   --notch: 1px;
 
-  /* The dial's palette follows the hole. With no well cut, the collapsed dial
-     lies on cream and has to be dark to be seen; once the well opens it is
-     against the well's dark floor and flips. Both sets live here so the two
-     halves of the switch can't drift apart. */
-  --dial-track: rgba(52, 78, 65, 0.13);
-  --dial-idle: #829681;
-  --dial-hover: #647a68;
-  --dial-active: #344e41;
-  --dial-label: #6f8579;
-  --dial-label-on: #344e41;
-  --dial-shadow: #344e41;
-  --dial-shadow-a: 0.22;
+  /* The dial's palette follows the hole. On the dark ground the collapsed dial
+     lies against the page and has to be the lit thing to be found; once the well
+     opens it is against the well's darker floor and turns up a step. Both sets
+     live here so the two halves of the switch can't drift apart. */
+  --dial-track: rgba(236, 228, 210, 0.16);
+  --dial-idle: rgba(236, 228, 210, 0.5);
+  --dial-hover: rgba(236, 228, 210, 0.78);
+  --dial-active: #f2ecdd;
+  --dial-label: rgba(236, 228, 210, 0.62);
+  --dial-label-on: #f2ecdd;
+  --dial-shadow: #000000;
+  --dial-shadow-a: 0.4;
 
   --ease: cubic-bezier(0.34, 0.9, 0.28, 1);
   /* heavy start, long settle — a sheet with weight rather than a snap */
@@ -66,16 +81,19 @@
 :root[data-dial-open] {
   --notch: var(--notch-open);
 
-  /* against the well's floor now, so the dial becomes the lit thing */
-  --dial-track: rgba(236, 228, 210, 0.1);
-  --dial-idle: rgba(236, 228, 210, 0.34);
-  --dial-hover: rgba(236, 228, 210, 0.66);
+  /* against the well's floor now, so the dial turns up another step — same
+     cream family as the closed state, just brighter, because the floor is
+     darker than the page. No inversion: the dial is the lit thing in both
+     states, and only the amount of light changes. */
+  --dial-track: rgba(236, 228, 210, 0.2);
+  --dial-idle: rgba(236, 228, 210, 0.62);
+  --dial-hover: rgba(236, 228, 210, 0.88);
   --dial-active: #f2ecdd;
-  --dial-label: rgba(236, 228, 210, 0.62);
+  --dial-label: rgba(236, 228, 210, 0.72);
   --dial-label-on: #f2ecdd;
   /* deeper, so the segments lift off the well's floor */
-  --dial-shadow: #0d1410;
-  --dial-shadow-a: 0.5;
+  --dial-shadow: #000000;
+  --dial-shadow-a: 0.55;
 }
 
 /* ── Kathmandu time ─────────────────────────────────────────────────────────
@@ -96,12 +114,12 @@
 @property --bg {
   syntax: "<color>";
   inherits: true;
-  initial-value: #e4e2dc;
+  initial-value: #0d1210;
 }
 @property --surface {
   syntax: "<color>";
   inherits: true;
-  initial-value: #ebe8e1;
+  initial-value: #131a16;
 }
 /* The hero's two cards and the beyond-panel's close button are a warmer cream
    than --surface — they sit on the ambient video rather than on the page, and
@@ -111,46 +129,44 @@
 @property --card {
   syntax: "<color>";
   inherits: true;
-  initial-value: #ece4d2;
+  initial-value: #17201b;
 }
 
 /* `day` is the palette the site was drawn in, so it is the :root default above
    and needs no block — which also makes it the correct fallback when the live
    route is unreachable and no attribute is ever stamped. */
 
-/* Low sun, long warm light. Shadows soften because nothing is overhead yet. */
+/* Low sun, long warm light. The video comes up out of its overnight soak, and
+   the ground shifts a step warmer while staying dark. */
 :root[data-daypart="dawn"] {
-  --bg: #ead8ca;
-  --surface: #f1e3d8;
-  --nu-dark: rgba(110, 70, 48, 0.2);
-  --card: #f2e0cb;
-  --nu-light: rgba(255, 251, 242, 0.97);
-  --ambient-bright: 0.55;
+  --bg: #121510;
+  --surface: #191d16;
+  --nu-dark: rgba(0, 0, 0, 0.44);
+  --card: #1f261d;
+  --ambient-bright: 0.72;
 }
 
-/* The amber hour: ground pulls toward the olive, contact shadows deepen. */
+/* The amber hour: ground pulls toward the brass, contact shadows deepen, and
+   the video is the warmest light in the room. */
 :root[data-daypart="dusk"] {
-  --bg: #e2cfa9;
-  --surface: #eadcbf;
-  --nu-dark: rgba(88, 60, 28, 0.3);
-  --card: #ecd7ad;
-  --nu-light: rgba(255, 252, 242, 0.9);
-  --ambient-bright: 0.4;
+  --bg: #191510;
+  --surface: #201b14;
+  --nu-dark: rgba(0, 0, 0, 0.5);
+  --card: #282116;
+  --ambient-bright: 0.9;
 }
 
-/* Genuinely night: the video falls almost to black under an indigo sky layer
-   (see .ambient-fx at the end of the file), the cream cools toward the blue of
-   streetlight instead of going grey, and the stars come out. The page still
-   stays light enough for the dark ink — this is a lit room at night, not an
-   unlit one. */
+/* Genuinely night: the video is the most cinematic state — the film takes over
+   and the page is a dark room around it. The cream ink cools toward the blue of
+   streetlight, and the stars come out (see .ambient-fx). The video is bright —
+   it is the light source, not a distraction. */
 :root[data-daypart="night"] {
-  --bg: #c2ccd6;
-  --surface: #ccd6df;
-  --ink: #20282e;
-  --nu-dark: rgba(16, 32, 48, 0.32);
-  --card: #c5d0d9;
-  --nu-light: rgba(255, 255, 255, 0.92);
-  --ambient-bright: 0.16;
+  --bg: #0a1216;
+  --surface: #101920;
+  --ink: #dce6ec;
+  --nu-dark: rgba(0, 0, 0, 0.55);
+  --card: #152028;
+  --ambient-bright: 1.05;
 }
 
 html {
@@ -168,7 +184,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #1f271f;
+  background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -180,7 +196,7 @@ body {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: #1f271f;
+  background: var(--bg);
 }
 
 .ambient-video video {
@@ -189,13 +205,15 @@ body {
   display: block;
   object-fit: cover;
   /* Follows the daypart too, and it is the loudest part of the effect: at
-     Kathmandu midnight the whole backdrop genuinely goes dark behind the card,
-     rather than the site merely saying it is night. The --sky-* factors are the
+     Kathmandu midnight the video becomes the most cinematic light in the room —
+     the night is the show, not the dimmest state. The --sky-* factors are the
      weather axis from the appended sky section: they MULTIPLY the daypart's
-     values, so the hour and the sky compose instead of competing. */
-  filter: blur(2.5px)
-    brightness(calc(var(--ambient-bright, 0.78) * var(--sky-dim, 1)))
-    saturate(calc(1.08 * var(--sky-sat, 1)));
+     values, so the hour and the sky compose instead of competing. The clamp
+     floor keeps any combination of daypart and weather from crushing the
+     video into black. */
+  filter: blur(8px)
+    brightness(max(0.5, calc(var(--ambient-bright, 0.85) * var(--sky-dim, 1))))
+    saturate(calc(1.12 * var(--sky-sat, 1)));
   transition: filter 1.4s var(--ease);
   transform: scale(1.025);
 }
@@ -205,12 +223,12 @@ body {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, rgba(18, 26, 21, 0.38), rgba(242, 236, 224, 0.08) 42%, rgba(20, 25, 21, 0.34)),
-    rgba(28, 34, 28, 0.12);
+    linear-gradient(120deg, rgba(8, 11, 9, 0.6), rgba(201, 152, 90, 0.08) 42%, rgba(8, 11, 9, 0.55)),
+    rgba(8, 11, 9, 0.25);
 }
 
 :where(a, button):focus-visible {
-  outline: 2px solid var(--green);
+  outline: 2px solid var(--sage);
   outline-offset: 4px;
   border-radius: 999px;
 }
@@ -254,8 +272,8 @@ body {
      the notch can stay registered to the dial as the viewport changes */
   align-content: end;
   padding: var(--pad-y) var(--pad-x) var(--inset);
-  background: rgba(228, 226, 220, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(13, 18, 16, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(9px) saturate(1.1);
   -webkit-backdrop-filter: blur(9px) saturate(1.1);
   backface-visibility: hidden;
@@ -295,10 +313,10 @@ body {
   right: 0;
   background: linear-gradient(
     90deg,
-    rgba(43, 50, 48, 0),
-    rgba(255, 255, 255, 0.5) 22%,
-    rgba(43, 50, 48, 0.16) 48%,
-    rgba(43, 50, 48, 0.46)
+    rgba(0, 0, 0, 0),
+    rgba(236, 228, 210, 0.14) 22%,
+    rgba(0, 0, 0, 0.2) 48%,
+    rgba(0, 0, 0, 0.5)
   );
 }
 .leaf-l::after {
@@ -312,10 +330,10 @@ body {
   left: 0;
   background: linear-gradient(
     270deg,
-    rgba(43, 50, 48, 0),
-    rgba(255, 255, 255, 0.5) 22%,
-    rgba(43, 50, 48, 0.16) 48%,
-    rgba(43, 50, 48, 0.46)
+    rgba(0, 0, 0, 0),
+    rgba(236, 228, 210, 0.14) 22%,
+    rgba(0, 0, 0, 0.2) 48%,
+    rgba(0, 0, 0, 0.5)
   );
 }
 .leaf-r::after {
@@ -375,8 +393,10 @@ body {
   background: var(--card);
   border: 1px solid rgba(255, 250, 238, 0.62);
   box-shadow:
-    18px 18px 38px rgba(31, 39, 31, 0.28),
-    -14px -14px 30px rgba(255, 250, 238, 0.46);
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    18px 18px 38px rgba(0, 0, 0, 0.5),
+    -10px -10px 28px rgba(0, 0, 0, 0.32);
+=======
   overflow: hidden;
   isolation: isolate;
 }
@@ -460,8 +480,10 @@ body {
   background: var(--card);
   border: 1px solid rgba(255, 250, 238, 0.64);
   box-shadow:
-    18px 18px 38px rgba(31, 39, 31, 0.26),
-    -14px -14px 30px rgba(255, 250, 238, 0.5);
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    18px 18px 38px rgba(0, 0, 0, 0.48),
+    -10px -10px 28px rgba(0, 0, 0, 0.3);
+=======
   /* the hole. Feathered over the last 0.4% only — this is a cut edge, not a
      fade, and a soft one would read as a rendering artifact. */
   -webkit-mask: radial-gradient(circle var(--notch) at calc(100% - var(--pivot)) 100%, transparent 99.6%, #000 100%);
@@ -481,7 +503,8 @@ body {
   height: calc(2 * (var(--notch) + 1px));
   border-radius: 50%;
   border: 1px solid rgba(255, 250, 238, 0.7);
-  box-shadow: -9px -11px 24px rgba(31, 39, 31, 0.16);
+  box-shadow: -9px -11px 24px rgba(0, 0, 0, 0.4);
+=======
   pointer-events: none;
 }
 
@@ -521,7 +544,19 @@ body {
   /* Fades in on arrival rather than popping — it lands a moment after paint,
      and a hard appearance in the corner of the hero reads as a glitch. */
   animation: live-in 0.6s var(--ease) both;
+  /* Dark-ground chip, not frosted glass. A translucent panel over the video with
+     a hairline rim and a deep shadow — deliberate, not fog. */
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(13, 18, 16, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(9px) saturate(1.1);
+  -webkit-backdrop-filter: blur(9px) saturate(1.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.42);
 }
+=======
 
 @keyframes live-in {
   from {
@@ -584,13 +619,22 @@ body {
 .live-note {
   max-width: 34ch;
   margin: 16px 0 0;
-  padding-left: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-left: 2px solid var(--green);
   font-size: 13px;
   line-height: 1.5;
   color: var(--olive);
+  background: rgba(13, 18, 16, 0.68);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.42);
   animation: live-in 0.6s var(--ease) both;
 }
+=======
 
 .sr-only {
   position: absolute;
@@ -667,7 +711,8 @@ body {
   border-radius: 50%;
   background: var(--surface);
   color: var(--green);
-  box-shadow: 4px 4px 10px var(--nu-dark), -4px -4px 10px var(--nu-light);
+  box-shadow: var(--nu-raised);
+=======
   cursor: pointer;
   transition: box-shadow 0.3s var(--ease), color 0.3s ease;
 }
@@ -677,7 +722,8 @@ body {
 }
 
 .hero-arrow:active {
-  box-shadow: inset 3px 3px 7px var(--nu-dark), inset -3px -3px 7px var(--nu-light);
+  box-shadow: var(--nu-pressed);
+=======
 }
 
 .hero-arrow.next svg {
@@ -955,21 +1001,18 @@ body {
   transform: rotateY(180deg);
   backface-visibility: hidden;
   background: var(--surface);
-  box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.75),
-    4px 6px 12px -4px rgba(43, 50, 48, 0.16),
-    14px 18px 34px -10px rgba(43, 50, 48, 0.26);
+  box-shadow: var(--nu-raised);
 }
+=======
 
 .svc-back::after {
   content: "";
   position: absolute;
   inset: 15px;
   border-radius: 18px;
-  box-shadow:
-    inset 3px 4px 10px rgba(24, 28, 22, 0.28),
-    inset -1px -1px 0 rgba(255, 253, 247, 0.4);
+  box-shadow: inset 3px 4px 10px rgba(0, 0, 0, 0.32);
 }
+=======
 
 /* the photo used to bleed to the card's edge, which left nothing of the
    surface visible and reduced the neumorphism to a stray white glow. The card
@@ -985,28 +1028,25 @@ body {
   text-decoration: none;
   backface-visibility: hidden; /* .svc-back shows instead once the facet turns away */
   transition: box-shadow 0.4s var(--ease);
-  /* --nu-light is 95% pure white, which on this warm paper blows out into a
-     cheap halo at card size. Lit from above instead: a hairline edge for the
-     highlight and two warm shadows, tight over broad, for the lift. */
-  box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.75),
-    4px 6px 12px -4px rgba(43, 50, 48, 0.16),
-    14px 18px 34px -10px rgba(43, 50, 48, 0.26);
+  box-shadow: var(--nu-raised);
 }
+=======
 
 .svc-card[data-active] {
   box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.85),
-    5px 8px 16px -5px rgba(43, 50, 48, 0.18),
-    20px 26px 48px -12px rgba(43, 50, 48, 0.32);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    5px 8px 16px -5px rgba(0, 0, 0, 0.55),
+    20px 26px 48px -12px rgba(0, 0, 0, 0.6);
 }
+=======
 
 .svc-card[data-active]:hover {
   box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.9),
-    6px 10px 20px -6px rgba(43, 50, 48, 0.2),
-    26px 34px 60px -14px rgba(43, 50, 48, 0.36);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    6px 10px 20px -6px rgba(0, 0, 0, 0.58),
+    26px 34px 60px -14px rgba(0, 0, 0, 0.64);
 }
+=======
 
 .svc-well {
   position: absolute;
@@ -1034,10 +1074,11 @@ body {
   inset: 0;
   border-radius: inherit;
   box-shadow:
-    inset 3px 4px 10px rgba(24, 28, 22, 0.45),
-    inset -1px -1px 0 rgba(255, 253, 247, 0.4);
+    inset 3px 4px 10px rgba(0, 0, 0, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
   pointer-events: none;
 }
+=======
 
 .svc-media {
   object-fit: cover;
@@ -1108,20 +1149,17 @@ body {
   border-radius: 50%;
   transform: translateY(-50%);
   background: var(--surface);
-  box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.8),
-    2px 3px 6px -2px rgba(43, 50, 48, 0.18),
-    5px 7px 14px -4px rgba(43, 50, 48, 0.26);
+  box-shadow: var(--nu-raised);
   cursor: pointer;
   transition: box-shadow 0.3s var(--ease);
 }
+=======
 
 .svc-arrow:active,
 .room-arrow:active {
-  box-shadow:
-    inset 2px 3px 6px rgba(24, 28, 22, 0.28),
-    inset -1px -1px 0 rgba(255, 253, 247, 0.5);
+  box-shadow: var(--nu-pressed);
 }
+=======
 
 .svc-arrow.left {
   left: -4px;
@@ -1418,10 +1456,9 @@ body {
   text-transform: uppercase;
   color: var(--green);
   background: var(--surface);
-  box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.8),
-    2px 3px 6px -2px rgba(43, 50, 48, 0.18);
+  box-shadow: var(--nu-raised);
 }
+=======
 
 /* how many of this type the hotel has — static, like the capacity on the card.
    Deliberately no rate anywhere on this page: they vary. */
@@ -1443,25 +1480,23 @@ body {
   text-decoration: none;
   color: var(--green);
   background: var(--surface);
-  box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.85),
-    4px 6px 12px -4px rgba(43, 50, 48, 0.18),
-    10px 14px 26px -10px rgba(43, 50, 48, 0.26);
+  box-shadow: var(--nu-raised);
   transition: box-shadow 0.3s var(--ease);
 }
+=======
 
 .room-book:hover {
   box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.9),
-    6px 9px 18px -5px rgba(43, 50, 48, 0.2),
-    16px 22px 40px -12px rgba(43, 50, 48, 0.32);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    6px 9px 18px -5px rgba(0, 0, 0, 0.56),
+    16px 22px 40px -12px rgba(0, 0, 0, 0.62);
 }
+=======
 
 .room-book:active {
-  box-shadow:
-    inset 2px 3px 6px rgba(24, 28, 22, 0.28),
-    inset -1px -1px 0 rgba(255, 253, 247, 0.5);
+  box-shadow: var(--nu-pressed);
 }
+=======
 
 .room-index {
   font-family: var(--font-mono), monospace;
@@ -2965,25 +3000,23 @@ body {
   text-decoration: none;
   color: var(--green);
   background: var(--surface);
-  box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.85),
-    4px 6px 12px -4px rgba(43, 50, 48, 0.18),
-    10px 14px 26px -10px rgba(43, 50, 48, 0.26);
+  box-shadow: var(--nu-raised);
   transition: box-shadow 0.3s var(--ease);
 }
+=======
 
 .con-channel:hover {
   box-shadow:
-    inset 1px 1px 0 rgba(255, 253, 247, 0.9),
-    6px 9px 18px -5px rgba(43, 50, 48, 0.2),
-    16px 22px 40px -12px rgba(43, 50, 48, 0.32);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    6px 9px 18px -5px rgba(0, 0, 0, 0.56),
+    16px 22px 40px -12px rgba(0, 0, 0, 0.62);
 }
+=======
 
 .con-channel:active {
-  box-shadow:
-    inset 2px 3px 6px rgba(24, 28, 22, 0.28),
-    inset -1px -1px 0 rgba(255, 253, 247, 0.5);
+  box-shadow: var(--nu-pressed);
 }
+=======
 
 .con-channel-icon {
   display: grid;
