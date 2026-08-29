@@ -5,6 +5,10 @@
 import { env } from "cloudflare:workers";
 import { settings } from "@/lib/content";
 
+/* Route handlers are never prerendered, but the constraint is absolute: any
+   file touching a binding declares it as a literal. */
+export const dynamic = "force-dynamic";
+
 /* Must be on hotelthakaliinn.com — Email Sending will only accept a `from` on a
    domain onboarded to this account — and must match the `allowed_sender_addresses`
    pin in wrangler.jsonc. */

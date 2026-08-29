@@ -57,7 +57,10 @@ export async function hasSession() {
   /* Checked here as well as by Max-Age, because Max-Age is the browser's promise
      and this is ours. The expiry is inside the signed payload, so editing it
      invalidates the signature. */
-  if (Number(exp) * 1000 < Date.now()) return false;
+  const expMs = Number(exp) * 1000;
+  /* Number.isFinite first: a non-numeric expiry yields NaN, and NaN comparisons
+     are all false — which would let a malformed token skip the expiry gate. */
+  if (!Number.isFinite(expMs) || expMs < Date.now()) return false;
   try {
     /* crypto.subtle.verify, never a hex ===. Comparing signatures with string
        equality leaks how many leading bytes were right, one byte per attempt. */

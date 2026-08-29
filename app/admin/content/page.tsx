@@ -29,6 +29,21 @@ const MAGIC: [string, string, number[]][] = [
    that rejects rather than the transport. */
 const MAX = 2 * 1024 * 1024;
 
+/* Deletes a replaced or removed upload, but only when no other row points at
+   it: the image field is free text, and staff can paste another row's /img/
+   key into it. Seeded /media/ paths are never touched. Without this, every
+   photo replacement leaks ~200-400 KB into the free-tier bucket forever. */
+async function dropOrphan(image: string | undefined) {
+  if (!image?.startsWith("/img/")) return;
+  const { results } = await env.DB.prepare(
+    "SELECT 1 FROM content WHERE image = ?1 LIMIT 1",
+  )
+    .bind(image)
+    .all();
+  if (results.length) return;
+  await env.MEDIA.delete(image.slice(5));
+}
+
 /* Column names are generic because one table serves six sections. On this screen
    they need to read as the thing being edited. */
 const TITLES: Record<Section, string> = {
@@ -114,17 +129,34 @@ export default async function Content({
     /* RIFF is also AVI and WAV. Only the WEBP fourcc makes it an image. */
     if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") return;
 
+    /* The row is fetched before anything is written. The upload form only exists
+       on saved rows, so a miss means the row was deleted from another tab — and
+       an unwritten blob is the only blob that costs nothing. */
+    const row = await env.DB.prepare(
+      "SELECT image FROM content WHERE section = ?1 AND slug = ?2",
+    )
+      .bind(sec, slug)
+      .first<{ image: string }>();
+    if (!row) return;
+
     /* The uploaded filename is never used — not as the key, not as metadata. It
        is attacker-controlled text and a UUID answers every question it would,
        including "is this a new photo or the old one cached forever". */
     const key = `${crypto.randomUUID()}.${ext}`;
     await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: type } });
 
-    await env.DB.prepare(
+    const { meta } = await env.DB.prepare(
       "UPDATE content SET image = ?3, updated_at = datetime('now') WHERE section = ?1 AND slug = ?2",
     )
       .bind(sec, slug, `/img/${key}`)
       .run();
+    /* The row vanished between the SELECT and the UPDATE: take the new blob
+       back out, or it sits in the bucket forever with no row pointing at it. */
+    if (!meta.changes) {
+      await env.MEDIA.delete(key);
+      return;
+    }
+    await dropOrphan(row.image);
   }
 
   async function removeItem(formData: FormData) {
@@ -133,9 +165,12 @@ export default async function Content({
     const sec = String(formData.get("section") ?? "");
     const slug = String(formData.get("slug") ?? "");
     if (!isSection(sec) || !slug) return;
-    await env.DB.prepare("DELETE FROM content WHERE section = ?1 AND slug = ?2")
+    const row = await env.DB.prepare(
+      "DELETE FROM content WHERE section = ?1 AND slug = ?2 RETURNING image",
+    )
       .bind(sec, slug)
-      .run();
+      .first<{ image: string }>();
+    await dropOrphan(row?.image);
   }
 
   return (

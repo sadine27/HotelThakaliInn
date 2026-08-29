@@ -10,6 +10,10 @@
 import { settings } from "@/lib/content";
 import { TZ, type Live } from "@/lib/live";
 
+/* Route handlers are never prerendered, but the constraint is absolute: any
+   file touching a binding declares it as a literal. */
+export const dynamic = "force-dynamic";
+
 /* 15 min at the edge. Kathmandu's temperature does not move faster than that,
    and it means Open-Meteo sees a handful of requests a day no matter how many
    guests are on the site. `cacheEverything` because their response has no
