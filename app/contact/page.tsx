@@ -1,7 +1,7 @@
 import ContactPanel from "@/components/ContactPanel";
 import HotelSchema from "@/components/HotelSchema";
 import { list, settings } from "@/lib/content";
-import { directionsUrl, mapEmbedUrl, phoneHref } from "@/lib/site";
+import { directionsUrl, mapEmbedUrl, phoneHref, waHref } from "@/lib/site";
 
 export const metadata = {
   title: "Contact | Hotel Thakali Inn",
@@ -36,6 +36,9 @@ export default async function Contact() {
           /* Derived here rather than stored, so a corrected phone number or a moved
            pin can only be edited in one place. */
           phoneHref: phoneHref(phone),
+          /* Empty when staff clear the phone row, and the WhatsApp channel then
+             does not render at all — see channels() in ContactPanel. */
+          waHref: phone ? waHref(phone) : "",
           mapEmbedUrl: mapEmbedUrl(config.lat ?? "", config.lng ?? ""),
           directionsUrl: directionsUrl(plusCode),
           socials,

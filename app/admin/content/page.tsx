@@ -44,6 +44,25 @@ async function dropOrphan(image: string | undefined) {
   await env.MEDIA.delete(image.slice(5));
 }
 
+/* Every uploaded photo that no row points at any more.
+ *
+ * `dropOrphan` keeps the bucket clean going forward, but it did not always
+ * exist, and it cannot see a row deleted straight out of D1 by hand. This is the
+ * sweep: R2 holds the truth about what was uploaded, `content.image` holds the
+ * truth about what is used, and anything in the first set and not the second is
+ * paying rent for nothing. Only /img/ keys are considered — the seeded /media/
+ * paths are files in the repo, not uploads, and are not ours to delete. */
+async function findUnused() {
+  const [objects, used] = await Promise.all([
+    env.MEDIA.list({ limit: 1000 }),
+    env.DB.prepare("SELECT image FROM content WHERE image LIKE '/img/%'").all<{ image: string }>(),
+  ]);
+  const referenced = new Set(used.results.map((r) => r.image.slice(5)));
+  return objects.objects
+    .filter((o) => !referenced.has(o.key))
+    .map((o) => ({ key: o.key, size: o.size, uploaded: o.uploaded }));
+}
+
 /* Column names are generic because one table serves six sections. On this screen
    they need to read as the thing being edited. */
 const TITLES: Record<Section, string> = {
@@ -67,6 +86,8 @@ export default async function Content({
   /* true = include unpublished. Without it the "Show on the site" checkbox is a
      one-way door: unticking a row drops it out of this list too. */
   const rows = await section(name, true);
+  /* Not per-section: an unused photo belongs to no section by definition. */
+  const unused = await findUnused().catch(() => []);
 
   async function saveItem(formData: FormData) {
     "use server";
@@ -157,6 +178,19 @@ export default async function Content({
       return;
     }
     await dropOrphan(row.image);
+  }
+
+  async function deleteUnused(formData: FormData) {
+    "use server";
+    await requireSession();
+    const key = String(formData.get("key") ?? "");
+    /* The list is recomputed rather than trusted: the button was rendered from
+       a snapshot, and in the seconds since, someone in another tab may have
+       pointed a row at exactly this file. Deleting it then would blank a photo
+       on the live site. */
+    const stillUnused = await findUnused();
+    if (!stillUnused.some((o) => o.key === key)) return;
+    await env.MEDIA.delete(key);
   }
 
   async function removeItem(formData: FormData) {
@@ -280,6 +314,39 @@ export default async function Content({
         )}
         </div>
       ))}
+
+      {unused.length > 0 && (
+        <div className="adm-unused">
+          <h2>Photos nothing is using</h2>
+          <p>
+            {unused.length} uploaded {unused.length === 1 ? "photo is" : "photos are"} not shown
+            anywhere on the site — replaced by a newer one, or left behind by a row that was
+            deleted. They cost storage and nothing else. Deleting one cannot change any page,
+            because no page points at it.
+          </p>
+          <ul>
+            {unused.map((o) => (
+              <li key={o.key}>
+                {/* The photo itself, not just its name: staff recognise a room,
+                    not a UUID, and "is this the one I meant to keep" is the only
+                    question this panel has to answer. */}
+                <a href={`/img/${o.key}`} target="_blank" rel="noopener noreferrer">
+                  <img src={`/img/${o.key}`} alt="" loading="lazy" />
+                </a>
+                <span className="adm-unused-meta">
+                  {Math.round(o.size / 1024)} KB
+                  <br />
+                  {o.uploaded.toISOString().slice(0, 10)}
+                </span>
+                <form action={deleteUnused}>
+                  <input type="hidden" name="key" value={o.key} />
+                  <button type="submit">Delete</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {rows.length > 0 && (
         <div className="adm-danger">

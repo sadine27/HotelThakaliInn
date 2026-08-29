@@ -3442,7 +3442,10 @@ html[data-dial-open] .dial-seg {
 
 .con-main {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  /* Three rows now: the route strip sizes to its content, the map takes what is
+     left, the form sizes to its content. The strip's `auto` is what keeps it
+     from being stretched into a banner. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 16px;
 }
 
@@ -5243,10 +5246,11 @@ html[data-dial-open] .dial-seg {
 }
 
 .adm-list li {
-  /* Name, then whatever room is left for the bar, then the number in a fixed
-     column so the digits line up down the list. */
+  /* Three fixed columns, not three that size to their contents: with `auto` the
+     names set their own widths and every bar starts at a different place, which
+     makes five comparable numbers look like five unrelated ones. */
   display: grid;
-  grid-template-columns: minmax(0, auto) 1fr 3ch;
+  grid-template-columns: minmax(0, 8.5rem) 1fr 3ch;
   align-items: center;
   gap: 10px;
   font-size: 13px;
@@ -5301,5 +5305,259 @@ html[data-dial-open] .dial-seg {
 
   .adm-lists {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── admin: photos nothing is using ──────────────────────────────────────────
+   Deliberately NOT drawn in the danger red below it. Deleting one of these
+   cannot change a page — that is the whole point of the panel — so dressing it
+   as a hazard would teach staff to fear the one safe delete on the screen. */
+
+.adm-unused {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(232, 229, 218, 0.1);
+}
+
+.adm-unused h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.adm-unused > p {
+  margin: 0 0 16px;
+  max-width: 62ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--olive);
+}
+
+.adm-unused ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.adm-unused li {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 8px;
+  border: 1px solid rgba(232, 229, 218, 0.08);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.adm-unused img {
+  display: block;
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.adm-unused-meta {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(169, 173, 161, 0.72);
+}
+
+.adm-unused button {
+  background: transparent;
+  border: 1px solid rgba(232, 229, 218, 0.16);
+  color: var(--olive);
+  font-weight: 500;
+}
+
+.adm-unused button:hover {
+  color: var(--alert);
+  border-color: var(--alert);
+  background: transparent;
+}
+
+/* ── contact: the desk is awake ──────────────────────────────────────────────
+   The page's job is to prove that somebody is there and that they are close.
+   Two additions carry it: a clock reading the real hour in Kathmandu, and the
+   distance to the runway drawn as two dots and a dash. */
+
+.con-now {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.con-now-clock {
+  font-family: var(--font-mono), monospace;
+  /* Tabular, or the whole line shifts sideways every time a minute ticks. */
+  font-variant-numeric: tabular-nums;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.con-now-where {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.con-now-desk {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--brass);
+}
+
+/* The one row wearing brass. Everything else on the page keeps the neutral
+   surface, so this reads as the recommendation rather than as decoration. */
+.con-channel--primary {
+  border: 1px solid rgba(201, 152, 90, 0.32);
+}
+
+.con-channel--primary .con-channel-icon,
+.con-channel--primary .con-channel-value {
+  color: var(--brass);
+}
+
+.con-channel--primary:hover {
+  border-color: rgba(201, 152, 90, 0.6);
+}
+
+.con-route {
+  display: grid;
+  grid-template-columns: auto minmax(64px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 18, 16, 0.55);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+}
+
+.con-route-stop {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.con-route-stop--end {
+  text-align: right;
+  justify-items: end;
+}
+
+.con-route-dot {
+  width: 7px;
+  height: 7px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--brass);
+  /* A faint halo, so the dot reads as a pin dropped on the line rather than as
+     a full stop that wandered up out of the paragraph. */
+  box-shadow: 0 0 0 4px rgba(201, 152, 90, 0.12);
+}
+
+.con-route-stop strong {
+  font-family: var(--font-serif), serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.con-route-stop span:not(.con-route-dot) {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--olive);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.con-route-leg {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.con-route-leg-line {
+  width: 100%;
+  height: 1px;
+  /* Drawn rather than bordered: a repeating gradient gives a dash that keeps
+     its rhythm at any width, where a dashed border re-spaces itself. */
+  background-image: linear-gradient(
+    to right,
+    rgba(201, 152, 90, 0.5) 0 5px,
+    transparent 5px 11px
+  );
+  background-size: 11px 1px;
+}
+
+.con-route-leg-text {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--olive);
+  white-space: nowrap;
+}
+
+/* On a phone the strip stands up. Side by side, the leg's label is wider than
+   the column left for it and runs under "Our door" — and a route drawn top to
+   bottom is what a set of directions looks like anyway. */
+@media (max-width: 720px) {
+  .con-route {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    gap: 8px;
+    padding: 16px 18px;
+  }
+
+  .con-route-stop--end {
+    text-align: left;
+    justify-items: start;
+  }
+
+  .con-route-stop strong {
+    font-size: 15px;
+  }
+
+  .con-route-leg {
+    /* Aligned with the dots above and below it rather than centred in the card,
+       so the three form one line down the left edge. */
+    grid-template-columns: auto auto;
+    grid-auto-flow: column;
+    align-items: center;
+    justify-items: start;
+    gap: 12px;
+    padding-left: 3px;
+  }
+
+  .con-route-leg-line {
+    width: 1px;
+    height: 22px;
+    background-image: linear-gradient(
+      to bottom,
+      rgba(201, 152, 90, 0.5) 0 5px,
+      transparent 5px 11px
+    );
+    background-size: 1px 11px;
   }
 }
