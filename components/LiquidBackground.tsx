@@ -31,11 +31,11 @@ const FRAG = `
   uniform vec2 u_resolution;
   uniform float u_time;
 
-  const vec3 colorA    = vec3(0.894, 0.886, 0.863); // #e4e2dc  --bg
-  const vec3 colorB    = vec3(0.925, 0.894, 0.824); // #ece4d2  cream
-  const vec3 colorC    = vec3(0.420, 0.439, 0.361); // #6b705c  --olive
-  const vec3 tint      = vec3(0.204, 0.306, 0.255); // #344e41  --green
-  const vec3 highlight = vec3(0.949, 0.922, 0.851); // #f2ebd9  warm crest, not white
+  const vec3 colorA    = vec3(0.051, 0.071, 0.063); // #0d1210  --bg
+  const vec3 colorB    = vec3(0.090, 0.125, 0.106); // #17201b  --card
+  const vec3 colorC    = vec3(0.220, 0.267, 0.235); // #38443c  --olive, dark ground
+  const vec3 tint      = vec3(0.624, 0.737, 0.675); // #9fbcac  --green
+  const vec3 highlight = vec3(0.788, 0.596, 0.353); // #c9985a  --brass crest, never white
 
   void main() {
     vec2 st = gl_FragCoord.xy / u_resolution.xy;
@@ -62,8 +62,9 @@ const FRAG = `
     vec3 c = mix(colorA, colorB, edge);
     c = mix(c, colorC, smoothstep(0.10, 0.40, pattern) * 0.30);
     c = mix(c, tint, smoothstep(0.00, 0.22, 1.0 - pattern) * 0.12);
-    /* mix, not +=: adding onto a 0.92 base clips the crests to white. Mixing
-       tops out at the highlight colour itself, so the brightest pixel stays cream. */
+    /* mix, not +=: adding would clip the crests to white, which is the one
+       thing this design does not allow. Mixing tops out at the highlight
+       colour itself, so the brightest pixel a crest can reach is brass. */
     c = mix(c, highlight, gloss);
 
     /* One knob for how loud the whole field is. The ground is meant to sit
