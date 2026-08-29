@@ -1429,7 +1429,7 @@ body {
   max-width: 32ch;
   font-size: 15px;
   line-height: 1.65;
-  color: rgba(43, 50, 48, 0.72);
+  color: var(--olive);
 }
 
 .room-meta {
@@ -1503,8 +1503,8 @@ body {
   max-width: 40ch;
   font-size: 12px;
   line-height: 1.8;
-  color: rgba(43, 50, 48, 0.52);
-  border-top: 1px solid rgba(52, 78, 65, 0.14);
+  color: var(--olive);
+  border-top: 1px solid rgba(159, 188, 172, 0.22);
   padding-top: 14px;
 }
 
@@ -2043,13 +2043,13 @@ body {
 .room-tour {
   aspect-ratio: 3 / 2;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(13, 18, 16, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   box-shadow:
-    0 12px 34px rgba(52, 78, 65, 0.14),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    0 12px 34px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   display: grid;
   place-items: center;
 }
@@ -2057,13 +2057,13 @@ body {
 .room-facts {
   padding: 24px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.34);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(13, 18, 16, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   box-shadow:
-    0 8px 30px rgba(52, 78, 65, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    0 8px 30px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .room-tour span {
@@ -2094,7 +2094,7 @@ body {
   grid-template-columns: 88px 1fr;
   gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(52, 78, 65, 0.14);
+  border-bottom: 1px solid rgba(159, 188, 172, 0.18);
 }
 
 .room-specs dt {
@@ -2133,7 +2133,7 @@ body {
   max-width: 46ch;
   font-size: 13px;
   line-height: 1.8;
-  color: rgba(43, 50, 48, 0.62);
+  color: var(--olive);
 }
 
 .room-know {
@@ -2145,7 +2145,7 @@ body {
   list-style: none;
   font-size: 13px;
   line-height: 1.7;
-  color: rgba(43, 50, 48, 0.72);
+  color: var(--olive);
 }
 
 .room-know li::before {
@@ -2954,7 +2954,7 @@ body {
 .con-address {
   margin: -8px 0 0;
   font-size: 15px;
-  color: rgba(43, 50, 48, 0.72);
+  color: var(--olive);
 }
 
 .con-blurb {
@@ -2962,7 +2962,7 @@ body {
   max-width: 34ch;
   font-size: 15px;
   line-height: 1.65;
-  color: rgba(43, 50, 48, 0.62);
+  color: var(--olive);
 }
 
 /* .room-book's neumorphic recipe, widened into a row so each one can carry what
@@ -3069,11 +3069,11 @@ body {
   align-items: baseline;
   gap: 16px;
   padding: 11px 0;
-  border-bottom: 1px solid rgba(52, 78, 65, 0.14);
+  border-bottom: 1px solid rgba(159, 188, 172, 0.18);
 }
 
 .con-arrival > div:first-child {
-  border-top: 1px solid rgba(52, 78, 65, 0.14);
+  border-top: 1px solid rgba(159, 188, 172, 0.18);
 }
 
 .con-arrival dt {
@@ -3104,13 +3104,13 @@ body {
 .con-map,
 .con-write {
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.34);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(13, 18, 16, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   box-shadow:
-    0 8px 30px rgba(52, 78, 65, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    0 8px 30px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .con-map {
@@ -3211,9 +3211,9 @@ body {
   width: 100%;
   padding: 10px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(52, 78, 65, 0.14);
-  background: rgba(255, 255, 255, 0.5);
-  color: var(--green);
+  border: 1px solid rgba(159, 188, 172, 0.22);
+  background: rgba(13, 18, 16, 0.45);
+  color: var(--ink);
   resize: none;
   transition: border-color 0.3s ease;
 }
@@ -3314,7 +3314,7 @@ body {
   max-width: 44ch;
   font-size: 14px;
   line-height: 1.7;
-  color: rgba(43, 50, 48, 0.72);
+  color: var(--olive);
 }
 
 @media (max-width: 900px) {
@@ -3423,7 +3423,7 @@ body {
 .adm select {
   width: 100%;
   padding: 11px 13px;
-  border: 1px solid rgba(52, 78, 65, 0.18);
+  border: 1px solid rgba(159, 188, 172, 0.22);
   border-radius: 8px;
   background: var(--surface);
   color: var(--ink);
@@ -3626,7 +3626,7 @@ body {
    the one control that undoes the reason you came. */
 .adm-signout button {
   background: transparent;
-  border: 1px solid rgba(52, 78, 65, 0.22);
+  border: 1px solid rgba(159, 188, 172, 0.22);
   color: var(--olive);
   font-weight: 500;
 }
@@ -4206,28 +4206,9 @@ body {
   animation: live-pulse 1.6s var(--ease) infinite;
 }
 
-/* The weather elements as frosted glass — the same recipe as the room panels:
-   translucency, a hairline rim and an inner highlight. Over the card's cream
-   the frost has nothing to refract and the chip simply reads as raised glass,
-   which is the point: one material for the present tense, everywhere. */
-.live {
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.32);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(9px) saturate(1.1);
-  -webkit-backdrop-filter: blur(9px) saturate(1.1);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7);
-}
-
-.live-note {
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.36);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7);
-}
+/* The present-tense chips keep their dark-ground recipe — a translucent dark
+   panel with a hairline rim over the video, deliberate not foggy. The
+   duplicates that used to live here are gone; the originals carry everything. */
 
 @media (prefers-reduced-motion: reduce) {
   /* The weather colours stay — they are information. Only the faster tick goes. */
