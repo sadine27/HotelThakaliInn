@@ -3615,3 +3615,105 @@ body {
 .adm-page > button[type="submit"] {
   margin-top: 8px;
 }
+
+/* ── Admin: the content editor ── */
+
+.adm-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.adm-tabs a {
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--olive);
+  text-decoration: none;
+}
+
+.adm-tabs a[aria-current="page"] {
+  background: var(--green);
+  color: #f2ecdd;
+}
+
+.adm-item {
+  margin-bottom: 14px;
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--nu-raised);
+}
+
+.adm-item .adm-field:last-of-type {
+  margin-bottom: 12px;
+}
+
+.adm-item input[readonly] {
+  color: var(--olive);
+  background: transparent;
+}
+
+.adm-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.adm-check input {
+  width: auto;
+  margin: 0;
+}
+
+/* Set apart, and last. Delete has no undo and no confirm step — putting it in
+   its own block at the bottom is what stops it sitting a few pixels from Save. */
+.adm-danger {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(140, 74, 58, 0.3);
+}
+
+.adm-danger h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--alert);
+}
+
+.adm-danger > p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--olive);
+}
+
+.adm-remove {
+  display: inline-block;
+  margin: 0 6px 6px 0;
+}
+
+.adm-remove button {
+  padding: 7px 13px;
+  background: transparent;
+  border: 1px solid rgba(140, 74, 58, 0.45);
+  color: var(--alert);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.adm-remove button:hover {
+  background: var(--alert);
+  color: #f2ecdd;
+}

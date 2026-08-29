@@ -16,16 +16,28 @@ export type Item<E = Record<string, never>> = {
   image: string;
   video: string;
   extra: E;
+  /* Only ever anything but 1 when section() was called with includeHidden — the
+     admin editor needs it to draw the "Show on the site" checkbox. Public pages
+     never see a 0 here, because the query already filtered those out. */
+  published: number;
 };
 
 /* `extra` is JSON in the column and is parsed here, so no caller has to remember
-   which of the ten fields is secretly a string. */
-export async function section<E = Record<string, never>>(name: string): Promise<Item<E>[]> {
+   which of the ten fields is secretly a string.
+
+   `includeHidden` is for the admin editor only. Without it the "Show on the
+   site" checkbox is a one-way door: unticking a row drops it from this query,
+   so it vanishes from the editor too and there is no way to tick it back. Every
+   public page calls this with one argument and is unaffected. */
+export async function section<E = Record<string, never>>(
+  name: string,
+  includeHidden = false,
+): Promise<Item<E>[]> {
   const { results } = await env.DB.prepare(
-    "SELECT slug, title, tag, body, href, image, video, extra FROM content WHERE section = ?1 AND published = 1 ORDER BY position",
+    "SELECT slug, title, tag, body, href, image, video, extra, published FROM content WHERE section = ?1 AND (published = 1 OR ?2 = 1) ORDER BY position",
   )
-    .bind(name)
-    .all<Omit<Item, "extra"> & { extra: string }>();
+    .bind(name, includeHidden ? 1 : 0)
+    .all<Omit<Item, "extra"> & { extra: string; published: number }>();
   return results.map((r) => ({ ...r, extra: JSON.parse(r.extra) as E }));
 }
 
