@@ -3469,3 +3469,131 @@ body {
 .adm-login button {
   margin-top: 8px;
 }
+
+/* ── Admin: one column, and the hub ── */
+
+.adm-page {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.adm-back {
+  display: inline-block;
+  margin-bottom: 18px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--olive);
+  text-decoration: none;
+}
+
+.adm-back:hover {
+  color: var(--green);
+}
+
+.adm-hub {
+  display: grid;
+  gap: 10px;
+}
+
+.adm-hub a {
+  display: grid;
+  gap: 3px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: var(--nu-raised);
+}
+
+.adm-hub a:hover {
+  color: var(--green);
+}
+
+.adm-hub strong {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.adm-hub span {
+  font-size: 13px;
+  color: var(--olive);
+}
+
+.adm-signout {
+  margin-top: 28px;
+}
+
+/* Not the primary action on the page it lives on — the hub is for getting into
+   the work, and a green button next to three grey cards would pull the eye to
+   the one control that undoes the reason you came. */
+.adm-signout button {
+  background: transparent;
+  border: 1px solid rgba(52, 78, 65, 0.22);
+  color: var(--olive);
+  font-weight: 500;
+}
+
+.adm-signout button:hover {
+  background: transparent;
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.adm-empty {
+  padding: 24px 0;
+  color: var(--olive);
+  font-size: 15px;
+}
+
+/* ── Admin: enquiries ── */
+
+.adm-messages {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-messages li {
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--nu-raised);
+}
+
+.adm-meta {
+  margin: 0 0 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--olive);
+}
+
+.adm-from {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.adm-from a {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.adm-from span {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  color: var(--olive);
+}
+
+.adm-body {
+  /* Guests use line breaks. Collapsing them turns a readable enquiry into a
+     wall, and this is the one place the message is actually read. */
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-size: 15px;
+}
