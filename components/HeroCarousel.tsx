@@ -92,6 +92,8 @@ export default function HeroCarousel({
         <video autoPlay muted loop playsInline preload="auto">
           <source src={BACKGROUND_VIDEO_SRC} type="video/mp4" />
         </video>
+        {/* night sky + weather motion layer — see "the sky you can see" in globals.css */}
+        <div className="ambient-fx" />
       </div>
 
       {/* what the page opens onto — sits behind the two halves */}

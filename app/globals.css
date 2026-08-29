@@ -120,34 +120,37 @@
 
 /* Low sun, long warm light. Shadows soften because nothing is overhead yet. */
 :root[data-daypart="dawn"] {
-  --bg: #ece2d4;
-  --surface: #f4ebde;
-  --nu-dark: rgba(96, 68, 44, 0.16);
-  --card: #f4e7d2;
+  --bg: #ead8ca;
+  --surface: #f1e3d8;
+  --nu-dark: rgba(110, 70, 48, 0.2);
+  --card: #f2e0cb;
   --nu-light: rgba(255, 251, 242, 0.97);
-  --ambient-bright: 0.7;
+  --ambient-bright: 0.55;
 }
 
 /* The amber hour: ground pulls toward the olive, contact shadows deepen. */
 :root[data-daypart="dusk"] {
-  --bg: #e5dcc7;
-  --surface: #eee5d2;
-  --nu-dark: rgba(82, 60, 36, 0.24);
-  --card: #ecdcba;
+  --bg: #e2cfa9;
+  --surface: #eadcbf;
+  --nu-dark: rgba(88, 60, 28, 0.3);
+  --card: #ecd7ad;
   --nu-light: rgba(255, 252, 242, 0.9);
-  --ambient-bright: 0.58;
+  --ambient-bright: 0.4;
 }
 
-/* Cooler and quieter. The cream stays a cream — this is a lit room at night,
-   not an unlit one — but the light is a lamp rather than a window. */
+/* Genuinely night: the video falls almost to black under an indigo sky layer
+   (see .ambient-fx at the end of the file), the cream cools toward the blue of
+   streetlight instead of going grey, and the stars come out. The page still
+   stays light enough for the dark ink — this is a lit room at night, not an
+   unlit one. */
 :root[data-daypart="night"] {
-  --bg: #d6dadb;
-  --surface: #e0e4e4;
-  --ink: #242b2c;
-  --nu-dark: rgba(22, 42, 52, 0.26);
-  --card: #dde3e1;
-  --nu-light: rgba(255, 255, 255, 0.9);
-  --ambient-bright: 0.38;
+  --bg: #c2ccd6;
+  --surface: #ccd6df;
+  --ink: #20282e;
+  --nu-dark: rgba(16, 32, 48, 0.32);
+  --card: #c5d0d9;
+  --nu-light: rgba(255, 255, 255, 0.92);
+  --ambient-bright: 0.16;
 }
 
 html {
@@ -3996,40 +3999,41 @@ body {
 
    `clear` has no block: it is the weather the site was drawn in, and the
    correct fallback when the live route is unreachable and no attribute is
-   ever stamped. Every delta is small on purpose — the daypart already spent
-   the site's boldness, and the sky only grades what is behind the cards. */
+   ever stamped. The sky does the work you can see — the dim/sat/wash values
+   are the grade, and the .ambient-fx layer at the end of the file is the
+   weather itself: falling rain, drifting mist, snow. */
 
 :root[data-sky="cloudy"] {
-  --sky-dim: 0.9;
-  --sky-sat: 0.92;
+  --sky-dim: 0.85;
+  --sky-sat: 0.85;
 }
 
 /* Fog lifts the image — dimmed contrast under a pale wash reads as the valley
    filling in, and the blur the video already sits behind deepens it. */
 :root[data-sky="fog"] {
   --sky-dim: 0.98;
-  --sky-sat: 0.5;
-  --sky-wash: rgba(203, 209, 207, 0.2);
+  --sky-sat: 0.45;
+  --sky-wash: rgba(203, 209, 207, 0.32);
 }
 
 /* Monsoon. Cooler, darker, desaturated — the room reads as the refuge it is. */
 :root[data-sky="rain"] {
-  --sky-dim: 0.72;
-  --sky-sat: 0.7;
-  --sky-wash: rgba(62, 79, 89, 0.15);
+  --sky-dim: 0.62;
+  --sky-sat: 0.62;
+  --sky-wash: rgba(30, 45, 70, 0.28);
 }
 
 :root[data-sky="snow"] {
   --sky-dim: 0.9;
   --sky-sat: 0.78;
-  --sky-wash: rgba(231, 237, 240, 0.24);
+  --sky-wash: rgba(231, 237, 240, 0.3);
 }
 
 /* The heaviest hand — a storm is the one sky an airport guest needs to notice. */
 :root[data-sky="storm"] {
-  --sky-dim: 0.55;
-  --sky-sat: 0.65;
-  --sky-wash: rgba(22, 30, 38, 0.3);
+  --sky-dim: 0.4;
+  --sky-sat: 0.6;
+  --sky-wash: rgba(15, 22, 35, 0.42);
 }
 
 /* The wash rides its own pseudo-element so it can transition as a plain colour:
@@ -4098,5 +4102,166 @@ body {
   :root[data-sky="rain"] .live-dot,
   :root[data-sky="storm"] .live-dot {
     animation: none;
+  }
+}
+
+/* ── The sky you can see ────────────────────────────────────────────────────
+   The sections above grade the light; this layer is the weather itself. One
+   empty div in the hero (components/HeroCarousel.tsx) carries two
+   pseudo-elements — no JS, no canvas, no dependency:
+
+   ::before  the night sky — a deep indigo gradient over a tiled starfield,
+             fading in with [data-daypart="night"], stars twinkling.
+   ::after   the weather — rain streaks, snow, drifting fog or a slow cloud
+             shadow, gated on [data-sky]. Every loop is a background-position
+             shift of exactly one tile, which is what makes it repeat forever
+             without a jump.
+
+   All of it is pointer-events: none and sits under the hero content, so the
+   weather reads as something happening outside the glass, behind it. */
+.ambient-fx {
+  position: absolute;
+  inset: 0;
+  /* above the sky wash and the scrim, still inside the video's own stacking
+     context — the hero content always stays on top */
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ambient-fx::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease);
+  background-image:
+    radial-gradient(1.5px 1.5px at 22% 24%, rgba(255, 255, 255, 0.9) 45%, transparent 60%),
+    radial-gradient(1px 1px at 78% 12%, rgba(255, 255, 255, 0.7) 45%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 48% 64%, rgba(255, 255, 255, 0.8) 45%, transparent 60%),
+    radial-gradient(1px 1px at 90% 40%, rgba(255, 255, 255, 0.65) 45%, transparent 60%),
+    linear-gradient(180deg, rgba(9, 15, 36, 0.6), rgba(24, 34, 62, 0.34) 55%, rgba(9, 15, 36, 0.5));
+  background-size: 260px 300px, 420px 360px, 340px 280px, 520px 400px, auto;
+  background-position: 0 0, 90px 40px, 0 0, 160px 80px, 0 0;
+}
+
+:root[data-daypart="night"] .ambient-fx::before {
+  opacity: 1;
+  animation: fx-twinkle 7s ease-in-out infinite alternate;
+}
+
+@keyframes fx-twinkle {
+  to {
+    opacity: 0.78;
+  }
+}
+
+.ambient-fx::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease);
+}
+
+/* Rain: two stripe fields falling straight down — the layer itself is tilted,
+   which is what a slant of rain actually is, wind on a vertical fall. Each
+   stripe is one stop of a repeating gradient and the loop moves by exactly the
+   field's period, so it falls forever without a seam. */
+:root[data-sky="rain"] .ambient-fx::after,
+:root[data-sky="storm"] .ambient-fx::after {
+  opacity: 0.85;
+  transform: rotate(5deg) scale(1.08);
+  background-image:
+    repeating-linear-gradient(to bottom, transparent 0 33px, rgba(206, 224, 238, 0.5) 33px 34px),
+    repeating-linear-gradient(to bottom, transparent 0 71px, rgba(190, 214, 232, 0.32) 71px 72px);
+  background-size: 100% 34px, 100% 72px;
+  animation: fx-rain 0.5s linear infinite;
+}
+
+:root[data-sky="storm"] .ambient-fx::after {
+  opacity: 0.95;
+  animation-duration: 0.32s;
+}
+
+@keyframes fx-rain {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 0 34px, 0 72px;
+  }
+}
+
+/* Snow: three tiled flake fields drifting down and across by one full tile per
+   loop — slow enough to read as weight, not speed. */
+:root[data-sky="snow"] .ambient-fx::after {
+  opacity: 1;
+  background-image:
+    radial-gradient(3px 3px at 25% 15%, rgba(255, 255, 255, 0.95) 50%, transparent 60%),
+    radial-gradient(2px 2px at 70% 40%, rgba(255, 255, 255, 0.8) 50%, transparent 60%),
+    radial-gradient(2.5px 2.5px at 45% 80%, rgba(255, 255, 255, 0.9) 50%, transparent 60%);
+  background-size: 190px 190px;
+  animation: fx-snow 9s linear infinite;
+}
+
+@keyframes fx-snow {
+  from {
+    background-position: 0 0, 60px 90px, 120px 150px;
+  }
+  to {
+    background-position: 190px 190px, 250px 280px, 310px 340px;
+  }
+}
+
+/* Fog: two huge soft banks rolling in opposite directions, alternating so the
+   mist breathes instead of streaming past forever. */
+:root[data-sky="fog"] .ambient-fx::after {
+  opacity: 1;
+  background-image:
+    radial-gradient(480px 240px at 20% 55%, rgba(216, 226, 228, 0.6), transparent 70%),
+    radial-gradient(560px 260px at 80% 30%, rgba(226, 233, 234, 0.5), transparent 70%);
+  background-size: 900px 500px;
+  animation: fx-fog 26s linear infinite alternate;
+}
+
+@keyframes fx-fog {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 900px 0, -900px 0;
+  }
+}
+
+/* Cloudy: one slow soft shadow crossing — the sky of the ordinary day. */
+:root[data-sky="cloudy"] .ambient-fx::after {
+  opacity: 1;
+  background-image: radial-gradient(520px 190px at 50% 50%, rgba(38, 52, 64, 0.3), transparent 70%);
+  background-size: 1000px 320px;
+  animation: fx-cloud 22s linear infinite alternate;
+}
+
+@keyframes fx-cloud {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 1000px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The grades and washes stay — they are information. Motion goes, and the
+     weather layers go with it: a frozen frame of rain is a bug, not a rest. */
+  :root[data-daypart="night"] .ambient-fx::before {
+    animation: none;
+  }
+  :root[data-sky="rain"] .ambient-fx::after,
+  :root[data-sky="storm"] .ambient-fx::after,
+  :root[data-sky="snow"] .ambient-fx::after,
+  :root[data-sky="fog"] .ambient-fx::after,
+  :root[data-sky="cloudy"] .ambient-fx::after {
+    animation: none;
+    opacity: 0;
   }
 }
