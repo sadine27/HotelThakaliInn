@@ -3546,6 +3546,77 @@ body {
   color: var(--olive);
 }
 
+.adm-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.adm-tile {
+  display: block;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  background: var(--surface, #fff);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, opacity 0.2s;
+}
+
+.adm-tile:hover {
+  border-color: var(--brass, #b08d57);
+}
+
+.adm-tile-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.adm-tile-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.adm-tile-desc {
+  font-size: 0.9rem;
+  color: var(--olive);
+  margin-bottom: 0.75rem;
+}
+
+.adm-tile-secondary {
+  font-size: 0.85rem;
+  color: var(--olive);
+}
+
+.adm-tile-secondary strong {
+  color: inherit;
+}
+
+.adm-tile--accent {
+  border-left: 4px solid var(--brass, #b08d57);
+}
+
+.adm-tile--zero {
+  opacity: 0.65;
+}
+
+.adm-next-arrival {
+  grid-column: 1 / -1;
+  font-size: 1rem;
+  color: var(--ink);
+  padding: 0.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .adm-tiles {
+    grid-template-columns: 1fr;
+  }
+}
+
 .adm-signout {
   margin-top: 28px;
 }
