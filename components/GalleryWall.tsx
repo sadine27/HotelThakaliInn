@@ -8,94 +8,22 @@ import { useReducedMotion } from "framer-motion";
    one came from, which window of it, and why. They are silent, 9.9s ping-pong
    loops, so nothing here needs sound, controls, or a loop seam to hide.
 
-   Order is the order a guest meets the building: off the road, past the desk,
-   through the lobby, up to a room and around it, then back down to breakfast. */
-const PANELS = [
-  {
-    slug: "signage",
-    title: "Off the Road",
-    tag: "Sinamangal",
-    blurb:
-      "The sign is the landmark — hotel and restaurant on one board, hung off the first floor over the pavement. Look up for it; the doorway underneath is easy to walk straight past.",
-  },
-  {
-    slug: "arrival",
-    title: "Reception",
-    tag: "Front desk",
-    blurb:
-      "The desk is staffed through the night, which is the only thing that matters when the flight lands at two in the morning. The airport is 950 m up the road.",
-  },
-  {
-    slug: "lobby",
-    title: "The Waiting Room",
-    tag: "Ground floor",
-    blurb:
-      "Red floor, low chairs, and somewhere to sit with the bags while a room is turned over. Most people meet their driver here.",
-  },
-  {
-    slug: "corridor",
-    title: "The Corridor",
-    tag: "Doors off it",
-    blurb:
-      "Rooms open off a short passage rather than a long hotel spine, so there is never far to carry anything. A door left ajar is how most of them are found.",
-  },
-  {
-    slug: "rooms",
-    title: "The Rooms",
-    tag: "Eighteen of them",
-    blurb:
-      "Three types across two floors — a double, a king, and two family rooms. Wood underfoot, curtains that actually black out, and walls built for a road that never quite sleeps.",
-  },
-  {
-    slug: "bedside",
-    title: "The Bedside",
-    tag: "Lamp and line",
-    blurb:
-      "A reading lamp on a swing arm, a phone through to the desk, and a framed print of the mountains most guests are on their way to.",
-  },
-  {
-    slug: "window",
-    title: "The Window",
-    tag: "Two chairs",
-    blurb:
-      "Curtains to the floor, two low chairs and a table between them. This is the corner of the room people actually sit in.",
-  },
-  {
-    slug: "minibar",
-    title: "The Minibar",
-    tag: "Under the television",
-    blurb:
-      "Water, soft drinks, a beer and a shelf of snacks, inside the cabinet below the television. Nothing in it needs a phone call first.",
-  },
-  {
-    slug: "bathrooms",
-    title: "The Bathrooms",
-    tag: "One per room",
-    blurb:
-      "Private to every room. A wide mirror, a long vanity, and enough counter left over to put a wash bag down on.",
-  },
-  {
-    slug: "dining",
-    title: "The Dining Hall",
-    tag: "Seven to ten",
-    blurb:
-      "Tables laid from early morning. It fills at seven, empties by ten, and is one of the quietest rooms in the building in between.",
-  },
-  {
-    slug: "buffet",
-    title: "The Buffet",
-    tag: "Hot counter",
-    blurb:
-      "Chafing dishes along the back wall, tables pulled up in front of them. Eggs, sausage, fruit and toast are laid out here and you help yourself.",
-  },
-  {
-    slug: "breakfast",
-    title: "Breakfast",
-    tag: "Thakali, plated",
-    blurb:
-      "Dal, rice, greens, and the pickle that makes the plate. The Thakali set is the one thing cooked to order, which is why it takes a minute.",
-  },
-] as const;
+   The panels arrive from D1 through app/gallery/page.tsx, in the order a guest
+   meets the building: off the road, past the desk, through the lobby, up to a
+   room and around it, then back down to breakfast. That order is the `position`
+   column, so staff can change it.
+
+   `poster` and `src` are carried on the row rather than built from the slug.
+   They used to be derived; the moment a slug is editable, deriving them means a
+   rename silently orphans the clip. */
+export type Panel = {
+  slug: string;
+  title: string;
+  tag: string;
+  blurb: string;
+  image: string;
+  video: string;
+};
 
 /* Six is what the accordion's flex math is built around: one stripe at
    flex-grow 5 beside five at 1 is about half the screen against a tenth each.
@@ -113,17 +41,15 @@ const DWELL = 5000;
 const SWAP = 1150;
 const STAGGER = 90;
 
-type Panel = (typeof PANELS)[number];
-
-function windowFrom(start: number): Panel[] {
+function windowFrom(panels: Panel[], start: number): Panel[] {
   return Array.from(
     { length: VISIBLE },
-    (_, i) => PANELS[(start + i) % PANELS.length]
+    (_, i) => panels[(start + i) % panels.length]
   );
 }
 
-export default function GalleryWall() {
-  /* `start` is an index into PANELS: which panel sits in the leftmost slot.
+export default function GalleryWall({ panels }: { panels: Panel[] }) {
+  /* `start` is an index into `panels`: which panel sits in the leftmost slot.
      `active` is a SLOT index, 0..VISIBLE-1 — NOT a panel index, and that
      distinction is the whole safety argument for this component.
 
@@ -161,14 +87,14 @@ export default function GalleryWall() {
   /* With six or fewer panels the window covers everything, so a carousel would
      be a no-op: no arrows, no timer, and this is exactly the accordion it was
      before. */
-  const rotates = PANELS.length > VISIBLE;
+  const rotates = panels.length > VISIBLE;
 
   const moveWindow = useCallback(
     (d: number, byUser = false) => {
       if (!rotates) return;
 
       const from = startRef.current;
-      const next = (from + d + PANELS.length) % PANELS.length;
+      const next = (from + d + panels.length) % panels.length;
       if (from === next) return;
 
       if (byUser) manual.current = true;
@@ -186,8 +112,8 @@ export default function GalleryWall() {
         setOut({
           turn: nextTurn,
           /* which way the window went, so the stagger and drift run with it. */
-          dir: (next - from + PANELS.length) % PANELS.length === 1 ? 1 : -1,
-          win: windowFrom(from),
+          dir: (next - from + panels.length) % panels.length === 1 ? 1 : -1,
+          win: windowFrom(panels, from),
         });
         outTimer.current = setTimeout(
           () => {
@@ -200,7 +126,7 @@ export default function GalleryWall() {
 
       setStart(next);
     },
-    [reduced, rotates]
+    [panels, reduced, rotates]
   );
 
   const step = useCallback(
@@ -210,7 +136,7 @@ export default function GalleryWall() {
     [moveWindow]
   );
 
-  const win = windowFrom(start);
+  const win = windowFrom(panels, start);
 
   /* Idle attract loop. It stops the moment a stripe opens — and because `active`
      is a dependency, keyboard focus stops it too, since focus opens a stripe.
@@ -265,7 +191,7 @@ export default function GalleryWall() {
     if (!manual.current) return;
     manual.current = false;
     setAnnounce(
-      `Panels ${start + 1} to ${((start + VISIBLE - 1) % PANELS.length) + 1} of ${PANELS.length}`
+      `Panels ${start + 1} to ${((start + VISIBLE - 1) % panels.length) + 1} of ${panels.length}`
     );
   }, [start]);
 
@@ -334,8 +260,8 @@ export default function GalleryWall() {
                 videos.current[i] = el;
               }}
               className="gal-media"
-              poster={`/media/gallery/${p.slug}.jpg`}
-              src={`/media/gallery/${p.slug}.mp4`}
+              poster={p.image}
+              src={p.video}
               muted
               loop
               playsInline
@@ -407,7 +333,7 @@ export default function GalleryWall() {
               >
                 <img
                   className="gal-media"
-                  src={`/media/gallery/${out.win[i].slug}.jpg`}
+                  src={out.win[i].image}
                   alt=""
                 />
                 <span className="gal-tint" />
@@ -425,9 +351,9 @@ export default function GalleryWall() {
               <div key={`copy-${p.slug}`} className="gal-copy">
                 <p className="gal-meta">
                   <i>
-                    {String(((start + i) % PANELS.length) + 1).padStart(2, "0")}
+                    {String(((start + i) % panels.length) + 1).padStart(2, "0")}
                   </i>{" "}
-                  / {String(PANELS.length).padStart(2, "0")} · {p.tag}
+                  / {String(panels.length).padStart(2, "0")} · {p.tag}
                 </p>
                 <h2 className="gal-title">{p.title}</h2>
                 <p className="gal-blurb">{p.blurb}</p>

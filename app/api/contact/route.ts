@@ -1,12 +1,17 @@
-/* The contact form's endpoint.
- *
- * INCOMPLETE ON PURPOSE: today this validates a message and drops it. The D1
- * insert and the mail to hotelthakaliinn1@gmail.com are the next task, and they
- * go in the marked spot below — the site is not on Cloudflare yet, so there is
- * no binding to write to. Nothing is deployed (no wrangler.jsonc, no CI), so no
- * guest can reach this yet. DO NOT DEPLOY /contact UNTIL THAT LANDS: a form that
- * accepts a message and discards it is worse than no form.
- */
+/* The contact form's endpoint. Validates, archives to D1 (env.DB, the `messages`
+ * table from migrations/0001_messages.sql), then notifies the hotel by mail. The
+ * archive write is the part that must not be lost, so it lands first and the mail
+ * can fail without costing an enquiry. */
+import { env } from "cloudflare:workers";
+import { settings } from "@/lib/content";
+
+/* Must be on hotelthakaliinn.com — Email Sending will only accept a `from` on a
+   domain onboarded to this account — and must match the `allowed_sender_addresses`
+   pin in wrangler.jsonc. */
+const FROM = "notify@hotelthakaliinn.com";
+/* Used when the `email` settings row is missing. The address is pinned in
+   wrangler.jsonc too, so this is the only recipient the binding can reach. */
+const FALLBACK_TO = "hotelthakaliinn1@gmail.com";
 
 /* Caps, not just presence checks: this endpoint will be public and unauthenticated,
    and an unbounded body becomes an unbounded D1 row the moment the insert exists. */
@@ -45,10 +50,39 @@ export async function POST(request: Request) {
     );
   }
 
-  // TODO(d1): env.DB.prepare("INSERT INTO messages …").bind(…).run()
-  //           then send the notification to EMAIL. Both go here, in this order:
-  //           the archive write is what must not be lost, the mail is best-effort.
-  console.log("[contact]", { name, email, message });
+  try {
+    await env.DB.prepare(
+      "INSERT INTO messages (name, email, message) VALUES (?, ?, ?)",
+    )
+      .bind(name, email, message)
+      .run();
+  } catch (err) {
+    console.error("[contact] D1 insert failed", err);
+    return Response.json({ ok: false, error: "That did not send." }, { status: 500 });
+  }
+
+  /* Best effort, and after the insert on purpose: a mail outage costs a
+     notification, never the enquiry itself. Awaited rather than fired and
+     forgotten because a Worker stops executing the moment the response returns —
+     the extra ~100ms is what makes "sent" mean somebody was actually told. */
+  try {
+    const to = (await settings()).email || FALLBACK_TO;
+    await env.EMAIL.send({
+      to,
+      from: { email: FROM, name: "Thakali Inn website" },
+      /* So the hotel just hits reply and it reaches the guest, rather than a
+         no-reply mailbox nobody watches. */
+      replyTo: email,
+      /* The guest's name is untrusted and goes into a header: a newline in it
+         would otherwise let them append headers of their own. */
+      subject: `Website enquiry — ${name.replace(/[\r\n]+/g, " ")}`,
+      /* Plain text only. There is nothing here to lay out, and a text-only
+         transactional mail scores better with spam filters than a styled one. */
+      text: `${name} <${email}>\n\n${message}\n`,
+    });
+  } catch (err) {
+    console.error("[contact] notify failed", err);
+  }
 
   return Response.json({ ok: true });
 }

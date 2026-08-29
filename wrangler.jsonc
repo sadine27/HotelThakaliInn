@@ -1,0 +1,49 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hotel-thakali-inn",
+  "compatibility_date": "2026-08-29",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "main": "vinext/server/fetch-handler",
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "none",
+    "binding": "ASSETS"
+  },
+  "cache": {
+    "enabled": true
+  },
+  /* The bought domain. `custom_domain` provisions the certificate and the DNS
+     record itself, so there is nothing to add in the dashboard. Both hostnames
+     serve the same Worker rather than one redirecting to the other — a redirect
+     would be a Cloudflare rule living outside this file, and `metadataBase`
+     already emits the apex as the canonical URL, so search engines only ever see
+     one address. The workers.dev host keeps working alongside these. */
+  "routes": [
+    { "pattern": "hotelthakaliinn.com", "custom_domain": true },
+    { "pattern": "www.hotelthakaliinn.com", "custom_domain": true }
+  ],
+  "images": {
+    "binding": "IMAGES"
+  },
+  /* Both ends pinned. `/api/contact` is public and unauthenticated, so a bug that
+     ever let a guest choose the recipient would otherwise turn the hotel's domain
+     into an open relay — with these, the only thing this Worker can do is mail the
+     hotel from its own address. Changing the `email` settings row therefore needs
+     a matching edit here; the send is caught and logged if it doesn't. */
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_destination_addresses": ["hotelthakaliinn1@gmail.com"],
+      "allowed_sender_addresses": ["notify@hotelthakaliinn.com"]
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "thakali-inn-contact",
+      "database_id": "62a811d5-4f4b-4268-9b3d-6ea35a08d7e1"
+    }
+  ]
+}

@@ -19,6 +19,8 @@
   /* neumorphic ground — one material, lit from top-left */
   --bg: #e4e2dc;
   --surface: #ebe8e1;
+  /* the warmer cream the hero's cards are cut from — see @property --card */
+  --card: #ece4d2;
   --ink: #2b3230;
 
   --nu-dark: rgba(52, 78, 65, 0.22);
@@ -76,8 +78,87 @@
   --dial-shadow-a: 0.5;
 }
 
+/* ── Kathmandu time ─────────────────────────────────────────────────────────
+   components/Live.tsx stamps [data-daypart] on <html> from the real hour in
+   Asia/Kathmandu — dawn and dusk are computed from that day's actual sunrise
+   and sunset, not from fixed hours. This is the whole feature: four token sets,
+   no animation code, riding the same <html>-attribute mechanism the open dial
+   already uses.
+
+   These SHIFT the cream, they do not invert it. Every one of the 3000 lines
+   below assumes a light ground and dark ink; a night mode that flipped that
+   would be a redesign wearing a feature's clothes. What changes is the material's
+   temperature and how hard the light falls on it — which is what actually
+   differs between 6am and midnight in a room.
+
+   Registered so they interpolate: a bare custom property would snap between
+   palettes at the moment the daypart rolls over. */
+@property --bg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #e4e2dc;
+}
+@property --surface {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ebe8e1;
+}
+/* The hero's two cards and the beyond-panel's close button are a warmer cream
+   than --surface — they sit on the ambient video rather than on the page, and
+   the extra yellow is what keeps them from reading as grey against it. That was
+   three copies of a literal; it is one token now, because the daypart has to
+   move the hero's material and the hero is the first thing anyone sees. */
+@property --card {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ece4d2;
+}
+
+/* `day` is the palette the site was drawn in, so it is the :root default above
+   and needs no block — which also makes it the correct fallback when the live
+   route is unreachable and no attribute is ever stamped. */
+
+/* Low sun, long warm light. Shadows soften because nothing is overhead yet. */
+:root[data-daypart="dawn"] {
+  --bg: #ece2d4;
+  --surface: #f4ebde;
+  --nu-dark: rgba(96, 68, 44, 0.16);
+  --card: #f4e7d2;
+  --nu-light: rgba(255, 251, 242, 0.97);
+  --ambient-bright: 0.7;
+}
+
+/* The amber hour: ground pulls toward the olive, contact shadows deepen. */
+:root[data-daypart="dusk"] {
+  --bg: #e5dcc7;
+  --surface: #eee5d2;
+  --nu-dark: rgba(82, 60, 36, 0.24);
+  --card: #ecdcba;
+  --nu-light: rgba(255, 252, 242, 0.9);
+  --ambient-bright: 0.58;
+}
+
+/* Cooler and quieter. The cream stays a cream — this is a lit room at night,
+   not an unlit one — but the light is a lamp rather than a window. */
+:root[data-daypart="night"] {
+  --bg: #d6dadb;
+  --surface: #e0e4e4;
+  --ink: #242b2c;
+  --nu-dark: rgba(22, 42, 52, 0.26);
+  --card: #dde3e1;
+  --nu-light: rgba(255, 255, 255, 0.9);
+  --ambient-bright: 0.38;
+}
+
 html {
-  transition: --notch 0.5s var(--ease);
+  /* 1.4s, and only on the ground: the daypart rolls over at most once while a
+     page is open, so this is a slow change of light rather than a transition
+     anyone should catch happening. */
+  transition:
+    --notch 0.5s var(--ease),
+    --bg 1.4s var(--ease),
+    --surface 1.4s var(--ease),
+    --card 1.4s var(--ease);
 }
 
 html,
@@ -104,7 +185,11 @@ body {
   height: 100%;
   display: block;
   object-fit: cover;
-  filter: blur(2.5px) brightness(0.78) saturate(1.08);
+  /* Follows the daypart too, and it is the loudest part of the effect: at
+     Kathmandu midnight the whole backdrop genuinely goes dark behind the card,
+     rather than the site merely saying it is night. */
+  filter: blur(2.5px) brightness(var(--ambient-bright, 0.78)) saturate(1.08);
+  transition: filter 1.4s var(--ease);
   transform: scale(1.025);
 }
 
@@ -280,7 +365,7 @@ body {
   min-height: var(--card-min-h); /* matches .hero-copy so the two keep one footprint */
   justify-self: end; /* hugs the seam, so the only gap is the channel itself */
   border-radius: 28px;
-  background: #ece4d2;
+  background: var(--card);
   border: 1px solid rgba(255, 250, 238, 0.62);
   box-shadow:
     18px 18px 38px rgba(31, 39, 31, 0.28),
@@ -365,7 +450,7 @@ body {
      bottom of the rail. Safe centring keeps the copy whole from the top down. */
   align-content: safe center;
   border-radius: 28px;
-  background: #ece4d2;
+  background: var(--card);
   border: 1px solid rgba(255, 250, 238, 0.64);
   box-shadow:
     18px 18px 38px rgba(31, 39, 31, 0.26),
@@ -393,13 +478,123 @@ body {
   pointer-events: none;
 }
 
+/* Now a row, not a line: the hotel's name on the left, Kathmandu's present
+   tense on the right. The type stays on the container so both halves are the
+   same utility voice — one is a label, the other is a readout, and they should
+   not compete. */
 .hero-eyebrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
   margin: 0 0 clamp(20px, 4vh, 40px);
   font-family: var(--font-mono), monospace;
   font-size: 11px;
   letter-spacing: 0.34em;
   text-transform: uppercase;
   color: var(--olive);
+}
+
+.hero-brand {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.live {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  /* Tighter than the brand beside it. At 0.34em the readout would be twice the
+     width of the name it shares a row with, and the row has to hold at the
+     card's narrowest. */
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  color: var(--olive);
+  /* Fades in on arrival rather than popping — it lands a moment after paint,
+     and a hard appearance in the corner of the hero reads as a glitch. */
+  animation: live-in 0.6s var(--ease) both;
+}
+
+@keyframes live-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.live-time {
+  font-weight: 600;
+  color: var(--green);
+  /* Tabular so the minute flipping 09 → 10 does not shove the row sideways. */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.live-fact {
+  position: relative;
+  padding-left: 11px;
+}
+
+/* Hairline separators rather than punctuation: these are three readings from
+   three instruments, not a sentence. */
+.live-fact::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.1em;
+  width: 1px;
+  height: 0.85em;
+  background: currentColor;
+  opacity: 0.35;
+}
+
+.live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  /* Sits on the baseline the rest of the row is aligned to. */
+  align-self: center;
+  animation: live-pulse 3.4s var(--ease) infinite;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The prose half, under the booking buttons. Sentence case and the body face
+   on purpose — everything else in this corner is a label, and this is the one
+   thing here meant to be read as a sentence. */
+.live-note {
+  max-width: 34ch;
+  margin: 16px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--green);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--olive);
+  animation: live-in 0.6s var(--ease) both;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .hero-deck {
@@ -1422,7 +1617,19 @@ body {
     display: none;
   }
   .hero-eyebrow {
+    /* Two nowrap rows that fit side by side on the card do not fit on a phone,
+       so the readout drops under the name rather than being truncated. The
+       card has no reserved well band down here, so the extra line is free. */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
     margin-bottom: 12px;
+  }
+  .live {
+    /* Last resort at ~320px: the row can wrap onto itself before anything is
+       clipped. The separators still read correctly on a second line. */
+    flex-wrap: wrap;
+    white-space: normal;
   }
   .hero-deck {
     /* 7rem fitted the shortest slide only — the two-line headlines pushed the
@@ -1554,7 +1761,7 @@ body {
   border: 0;
   border-radius: 50%;
   appearance: none;
-  background: #ece4d2;
+  background: var(--card);
   background-image: none;
   box-shadow: 0 12px 24px rgba(17, 24, 20, 0.22);
   filter: none;
@@ -2025,7 +2232,16 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* The daypart palette still applies — it is information, not motion. Only the
+     crossfade into it, the strip's entrance and the pulsing dot go. */
+  .live,
+  .live-note,
+  .live-dot {
+    animation: none;
+  }
+
   html,
+  .ambient-video video,
   .dial-ring,
   .dial-arc,
   .dial-labels,

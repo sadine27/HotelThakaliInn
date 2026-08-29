@@ -1,18 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ADDRESS,
-  BOOKING_URL,
-  DIRECTIONS_URL,
-  EMAIL,
-  MAPS_URL,
-  MAP_EMBED_URL,
-  PHONE,
-  PHONE_HREF,
-  PLUS_CODE,
-  SOCIALS,
-} from "@/lib/site";
+
+/* Every outward-facing fact this page renders, resolved by app/contact/page.tsx.
+   One object rather than eleven props: they are read together, they change
+   together when staff edit them, and none of them means anything alone. */
+export type ContactInfo = {
+  phone: string;
+  phoneHref: string;
+  email: string;
+  address: string;
+  plusCode: string;
+  bookingUrl: string;
+  mapsUrl: string;
+  mapEmbedUrl: string;
+  directionsUrl: string;
+  socials: { label: string; href: string }[];
+  /* Airport proximity is this property's whole pitch and the only question a
+     guest landing at midnight is actually asking. */
+  arrival: [string, string][];
+};
 
 /* Four glyphs, hand-drawn, for the same reason GalleryWall draws its chevron: an
    icon package would be the largest dependency in a project whose only
@@ -42,31 +49,23 @@ function Glyph({ name }: { name: keyof typeof PATHS }) {
 /* Ordered by how a guest actually reaches us rather than by how impressive each
    one looks: the phone first because it is the one that works at 2am, the form
    last because it is the slowest. */
-const CHANNELS = [
-  { icon: "phone", label: "Call the desk", value: PHONE, href: PHONE_HREF, out: false },
-  { icon: "mail", label: "Email", value: EMAIL, href: `mailto:${EMAIL}`, out: false },
-  { icon: "external", label: "Reserve a room", value: "Booking.com", href: BOOKING_URL, out: true },
-  { icon: "pin", label: "Find us · reviews", value: "Google Maps", href: MAPS_URL, out: true },
-] as const;
-
-/* The page's one loud thing. Airport proximity is this property's whole pitch and
-   the only question a guest landing at midnight is actually asking, so it gets the
-   mono spec treatment instead of being buried in a paragraph. The figures are the
-   ones already used in the hero and services copy. */
-const ARRIVAL: [string, string][] = [
-  ["TIA terminal", "950 m"],
-  ["Main entrance", "1.1 km"],
-  ["Front desk", "Through the night"],
-  ["Airport shuttle", "On request, paid"],
-];
+const channels = (i: ContactInfo) =>
+  [
+    { icon: "phone", label: "Call the desk", value: i.phone, href: i.phoneHref, out: false },
+    { icon: "mail", label: "Email", value: i.email, href: `mailto:${i.email}`, out: false },
+    { icon: "external", label: "Reserve a room", value: "Booking.com", href: i.bookingUrl, out: true },
+    { icon: "pin", label: "Find us · reviews", value: "Google Maps", href: i.mapsUrl, out: true },
+  ] as const;
 
 type Status = "idle" | "sending" | "sent" | "error";
 
-export default function ContactPanel() {
+export default function ContactPanel({ info }: { info: ContactInfo }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const socials = SOCIALS.filter((s) => s.href);
+  /* An account that has not been created yet is stored as an empty href and
+     simply does not render, so adding one later is a single settings edit. */
+  const socials = info.socials.filter((s) => s.href);
 
   async function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,7 +79,9 @@ export default function ContactPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const json = await res.json();
+      /* The Workers types make json() return unknown rather than any, which is
+         correct — this is a response from the network, not a trusted value. */
+      const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) throw new Error(json.error ?? "That did not send.");
       setStatus("sent");
     } catch (err) {
@@ -91,7 +92,7 @@ export default function ContactPanel() {
 
   async function copyPlusCode() {
     try {
-      await navigator.clipboard.writeText(PLUS_CODE);
+      await navigator.clipboard.writeText(info.plusCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -105,14 +106,14 @@ export default function ContactPanel() {
       <section className="con-side">
         <span className="con-eyebrow">Contact</span>
         <h1>Hotel Thakali Inn</h1>
-        <p className="con-address">{ADDRESS}</p>
+        <p className="con-address">{info.address}</p>
         <p className="con-blurb">
           Five minutes from the runway. The desk is staffed through the night — if
           you are landing late, call ahead and we will wait up.
         </p>
 
         <ul className="con-channels">
-          {CHANNELS.map((c) => (
+          {channels(info).map((c) => (
             <li key={c.label}>
               <a
                 className="con-channel"
@@ -144,7 +145,7 @@ export default function ContactPanel() {
         )}
 
         <dl className="con-arrival">
-          {ARRIVAL.map(([term, value]) => (
+          {info.arrival.map(([term, value]) => (
             <div key={term}>
               <dt>{term}</dt>
               <dd>{value}</dd>
@@ -156,18 +157,18 @@ export default function ContactPanel() {
       <section className="con-main">
         <figure className="con-map">
           <iframe
-            src={MAP_EMBED_URL}
+            src={info.mapEmbedUrl}
             title="Hotel Thakali Inn on Google Maps"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />
           <figcaption>
             <button type="button" className="con-code" onClick={copyPlusCode}>
-              {copied ? "Copied" : PLUS_CODE}
+              {copied ? "Copied" : info.plusCode}
             </button>
             <a
               className="con-directions"
-              href={DIRECTIONS_URL}
+              href={info.directionsUrl}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -182,7 +183,7 @@ export default function ContactPanel() {
           <span className="con-eyebrow">Write to us</span>
           {status === "sent" ? (
             <p className="con-sent" role="status">
-              Message sent. We reply from {EMAIL}, usually within a day — call {PHONE}{" "}
+              Message sent. We reply from {info.email}, usually within a day — call {info.phone}{" "}
               if it is urgent.
             </p>
           ) : (

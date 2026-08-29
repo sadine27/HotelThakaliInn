@@ -33,3 +33,4 @@ assets/Hotel Thakali Inn Reels n photos/
 # Local screenshot scratch from browser checks
 .playwright-mcp/
 assets/*.png
+.vinext/

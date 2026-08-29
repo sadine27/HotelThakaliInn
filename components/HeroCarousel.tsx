@@ -1,34 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import ServicesCarousel from "@/components/ServicesCarousel";
-import { BOOKING_URL, MAPS_URL } from "@/lib/site";
+import Image from "next/image";
+import LiveLine, { LiveNote } from "@/components/Live";
+import ServicesCarousel, { type ServiceCardData } from "@/components/ServicesCarousel";
 import { DRAG } from "@/lib/carousel";
 
-/* Skeleton content — swap `src` in once the photos are picked. A slide with no
-   src falls back to a tinted placeholder so the motion can be judged first. */
-const SLIDES = [
-  {
-    title: "Five minutes from the runway",
-    line: "Sinamangal, Kathmandu — close enough to hear the last boarding call and still make it.",
-    src: "/media/hero/arrival.jpg",
-  },
-  {
-    title: "A bed built for landing days",
-    line: "Warm wood, thick curtains, hot water on demand — the duplex king, turned down and waiting.",
-    src: "/media/hero/rooms.jpg",
-  },
-  {
-    title: "Breakfast, the Thakali way",
-    line: "A full spread from seven — eggs, fruit, toast and tea, laid out for early flights and slow mornings alike.",
-    src: "/media/hero/breakfast.jpg",
-  },
-  {
-    title: "Someone at the desk, always",
-    line: "Late check-ins, early cabs — reception at Hotel Thakali Inn never goes dark.",
-    src: "/media/hero/desk.jpg",
-  },
-] as const;
+/* Slides arrive from D1 through app/page.tsx. A slide with no src falls back to a
+   tinted placeholder, so a staff member who adds one before picking the photo
+   gets a numbered card rather than a broken image. */
+export type Slide = { title: string; line: string; src: string };
 
 const DWELL = 5200;
 /* Web derivative of the camera master (RB6998.MP4). The master is High 4:2:2
@@ -46,7 +27,19 @@ const Chevron = () => (
   </svg>
 );
 
-export default function HeroCarousel() {
+export default function HeroCarousel({
+  slides,
+  cards,
+  bookingUrl,
+  mapsUrl,
+}: {
+  slides: Slide[];
+  /* Passed straight through to the services ring behind the hero. It is opened
+     from here, so its data arrives with the page rather than in a second fetch. */
+  cards: ServiceCardData[];
+  bookingUrl: string;
+  mapsUrl: string;
+}) {
   const [i, setI] = useState(0);
   const [prev, setPrev] = useState(-1);
   const [dir, setDir] = useState(1);
@@ -56,7 +49,7 @@ export default function HeroCarousel() {
   const go = (next: number, d = next > i ? 1 : -1) => {
     setPrev(i);
     setDir(d);
-    setI((next + SLIDES.length) % SLIDES.length);
+    setI((next + slides.length) % slides.length);
   };
   const step = (d: 1 | -1) => go(i + d, d);
 
@@ -105,7 +98,7 @@ export default function HeroCarousel() {
       <div className="beyond" data-open={open || undefined}>
         <p className="beyond-eyebrow">Inside</p>
         <p className="beyond-note">Everything the stay is made of.</p>
-        <ServicesCarousel open={open} />
+        <ServicesCarousel open={open} cards={cards} />
         <button className="gate-btn small" onClick={() => setOpen(false)}>
           Back
         </button>
@@ -124,10 +117,20 @@ export default function HeroCarousel() {
     >
       <div className="leaf leaf-l">
       <div className="hero-frame">
-        {SLIDES.map((s, n) => (
+        {slides.map((s, n) => (
           <figure key={s.title} className="hero-shot" data-state={state(n)}>
             {s.src ? (
-              <img src={s.src} alt="" />
+              /* These are the site's first paint and were the heaviest files on
+                 it — plain <img> bypassed the IMAGES binding entirely. `fill`
+                 works because .hero-shot is already positioned. Only the first
+                 slide is priority; the other three are off-stage at load. */
+              <Image
+                src={s.src}
+                alt=""
+                fill
+                sizes="(max-width: 900px) 70vw, 45vw"
+                priority={n === 0}
+              />
             ) : (
               <span className="hero-ph">{String(n + 1).padStart(2, "0")}</span>
             )}
@@ -138,10 +141,16 @@ export default function HeroCarousel() {
 
       <div className="leaf leaf-r">
       <div className="hero-copy">
-        <p className="hero-eyebrow">Hotel Thakali Inn</p>
+        {/* Brand and present tense on one line: the name says where you are,
+            the strip says what it is like there right now. Whoever is reading
+            this at 3am from another timezone is asking the second question. */}
+        <div className="hero-eyebrow">
+          <p className="hero-brand">Hotel Thakali Inn</p>
+          <LiveLine />
+        </div>
 
         <div className="hero-deck">
-          {SLIDES.map((s, n) => (
+          {slides.map((s, n) => (
             <article key={s.title} className="hero-text" data-state={state(n)}>
               <h2>{s.title}</h2>
               <p>{s.line}</p>
@@ -157,7 +166,7 @@ export default function HeroCarousel() {
             <Chevron />
           </button>
 
-          {SLIDES.map((s, n) => (
+          {slides.map((s, n) => (
             <button
               key={s.title}
               aria-current={n === i || undefined}
@@ -169,14 +178,14 @@ export default function HeroCarousel() {
           <span className="hero-count">
             {String(i + 1).padStart(2, "0")}
             <i>/</i>
-            {String(SLIDES.length).padStart(2, "0")}
+            {String(slides.length).padStart(2, "0")}
           </span>
         </div>
 
         <div className="hero-cta-row">
           <a
             className="hero-cta"
-            href={BOOKING_URL}
+            href={bookingUrl}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -195,7 +204,7 @@ export default function HeroCarousel() {
           </a>
           <a
             className="hero-cta"
-            href={MAPS_URL}
+            href={mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -222,6 +231,7 @@ export default function HeroCarousel() {
             Google Reviews
           </a>
         </div>
+        <LiveNote />
       </div>
       </div>
 

@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import LiquidBackground from "./LiquidBackground";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
-import { BOOKING_URL } from "@/lib/site";
 import { DRAG, SWAY } from "@/lib/carousel";
 
 /* Room types, capacities and counts come from the property's Booking.com listing
@@ -13,73 +12,20 @@ import { DRAG, SWAY } from "@/lib/carousel";
    Capacity here is how many people fit, not availability: nothing on this page
    is live, and no rate appears anywhere because rates vary.
 
-   `meta` carries only what DISTINGUISHES a room — anything every room has lives
-   in SHARED below, and repeating it three times is noise. `specs` is the same
-   facts spelled out for the detail view, where there is room to name them. */
-const ROOMS = [
-  {
-    slug: "deluxe-double",
-    name: "Deluxe Double",
-    capacity: "Sleeps 2, plus a child",
-    count: "9 rooms of this type",
-    blurb:
-      "Two beds with a lamp between them and a framed peak above. Wood floors, blackout curtains, and walls built for a road that never quite sleeps.",
-    meta: ["Two single beds"],
-    specs: [
-      ["Beds", "Two single beds"],
-      ["Sleeps", "2 guests — max 2 adults, 1 child"],
-      ["Rooms", "9 of this type"],
-    ],
-    image: "/media/rooms/deluxe-double.jpg",
-  },
-  {
-    slug: "deluxe-king",
-    name: "Deluxe King",
-    capacity: "Sleeps 2, plus a child",
-    count: "7 rooms of this type",
-    blurb:
-      "One wide bed, two armchairs and a low table by the window — the kettle already filled. Room enough to unpack in, not just sleep in.",
-    meta: ["King bed", "Sitting area"],
-    specs: [
-      ["Beds", "One king bed"],
-      ["Sleeps", "2 guests — max 2 adults, 1 child"],
-      ["Rooms", "7 of this type"],
-    ],
-    image: "/media/rooms/deluxe-king.jpg",
-  },
-  {
-    slug: "family",
-    name: "Family Room",
-    capacity: "Sleeps 4, up to 3 adults",
-    count: "2 rooms of this type",
-    blurb:
-      "A king and a single under a wall of prints, with floor left over for the bags. Only two of them in the building, so ask early.",
-    meta: ["King + single", "Dining area"],
-    specs: [
-      ["Beds", "One king bed and one single (100 cm)"],
-      ["Sleeps", "4 guests — max 3 adults, 3 children"],
-      ["Rooms", "2 of this type"],
-    ],
-    image: "/media/rooms/family.jpg",
-  },
-] as const;
-
-/* What every room has, so the per-room chips above can carry only the differences */
-const SHARED =
-  "Air conditioning · Free WiFi · Private bathroom · Flat-screen TV · Tea/coffee maker · Minibar · Desk · Soundproofing";
-
-/* Hotel-level, identical in all three rooms — so it lives beside SHARED rather
-   than being copied into each entry. */
-const GOOD_TO_KNOW = [
-  "Breakfast buffet, 7–10 am",
-  "Airport shuttle on request, paid",
-  "950 m from the airport, 1.1 km from its main entrance",
-];
-
-/* One approximate figure, for the SMALLEST room, given as approximate. Three exact
-   per-room sizes derived from it would be invented, and guests compare this page
-   against Booking. Replace with measured figures — the spec grid has a row ready. */
-const SIZE = "Rooms start at about 42 m² (450 sq ft), bathroom included.";
+   The rows arrive from D1 through app/rooms/page.tsx. `meta` carries only what
+   DISTINGUISHES a room — anything every room has is in the `shared` prop, and
+   repeating it three times is noise. `specs` is the same facts spelled out for
+   the detail view, where there is room to name them. */
+export type Room = {
+  slug: string;
+  name: string;
+  capacity: string;
+  count: string;
+  blurb: string;
+  meta: string[];
+  specs: [string, string][];
+  image: string;
+};
 
 /* A fan, not a closed ring. The services carousel spaces its facets at 360/n,
    which works at five cards (72°) but degenerates at three: 120° turns both
@@ -110,7 +56,7 @@ function RoomCard({
   front,
   onOpen,
 }: {
-  room: (typeof ROOMS)[number];
+  room: Room;
   front: boolean;
   onOpen: () => void;
 }) {
@@ -144,7 +90,25 @@ function RoomCard({
   );
 }
 
-export default function RoomsCarousel() {
+export default function RoomsCarousel({
+  rooms,
+  shared,
+  size,
+  goodToKnow,
+  bookingUrl,
+}: {
+  rooms: Room[];
+  /* What every room has, so the per-room chips can carry only the differences */
+  shared: string;
+  /* One approximate figure, for the SMALLEST room, given as approximate. Three
+     exact per-room sizes derived from it would be invented, and guests compare
+     this page against Booking. */
+  size: string;
+  /* Hotel-level and identical in all three rooms, so it is a setting rather than
+     something copied into each row. */
+  goodToKnow: string[];
+  bookingUrl: string;
+}) {
   const [turn, setTurn] = useState(0);
   /* false until mounted. The fan must not server-render: framer-motion rounds its
      transforms to 3dp on the client while React's SSR prints full precision, and
@@ -164,12 +128,12 @@ export default function RoomsCarousel() {
   /* The URL is the only source of truth for whether the detail is open — a second
      piece of state would be one more thing that can disagree with the address bar.
      An unknown ?room= value simply reads as closed. */
-  const openIndex = ROOMS.findIndex((r) => r.slug === params.get("room"));
+  const openIndex = rooms.findIndex((r) => r.slug === params.get("room"));
   const open = openIndex >= 0;
 
-  const total = ROOMS.length;
+  const total = rooms.length;
   const active = turn; /* no modulo — the fan is bounded, so turn IS the index */
-  const room = ROOMS[active];
+  const room = rooms[active];
 
   const swayTo = useMotionValue(0);
   const sway = useSpring(swayTo, { stiffness: 60, damping: 18 });
@@ -298,7 +262,7 @@ export default function RoomsCarousel() {
                   animate={{ rotateX: (turn + lead) * STEP }}
                   transition={reduced || snap ? { duration: 0 } : { type: "spring", stiffness: 55, damping: 16 }}
                 >
-                  {ROOMS.map((r, i) => (
+                  {rooms.map((r, i) => (
                     <div key={r.name} className="room-face" style={{ "--i": i } as React.CSSProperties}>
                       <RoomCard
                         room={r}
@@ -370,21 +334,21 @@ export default function RoomsCarousel() {
 
               <div className="room-group">
                 <span>In every room</span>
-                <p>{SHARED}</p>
+                <p>{shared}</p>
               </div>
 
               <div className="room-group">
                 <span>Good to know</span>
                 <ul className="room-know">
-                  {GOOD_TO_KNOW.map((g) => (
+                  {goodToKnow.map((g) => (
                     <li key={g}>{g}</li>
                   ))}
                 </ul>
               </div>
 
-              <p className="room-size">{SIZE}</p>
+              <p className="room-size">{size}</p>
 
-              <a className="room-book" href={BOOKING_URL}>
+              <a className="room-book" href={bookingUrl}>
                 Check availability →
               </a>
             </div>
@@ -416,7 +380,7 @@ export default function RoomsCarousel() {
           <button className="room-more" onClick={() => router.push(`/rooms?room=${room.slug}`, { scroll: false })}>
             Know more <span aria-hidden="true">→</span>
           </button>
-          <a className="room-book" href={BOOKING_URL}>
+          <a className="room-book" href={bookingUrl}>
             Check availability →
           </a>
         </div>
@@ -426,7 +390,7 @@ export default function RoomsCarousel() {
         </span>
 
         <p className="room-shared">
-          <span>In every room</span> {SHARED}
+          <span>In every room</span> {shared}
         </p>
       </aside>
     </div>

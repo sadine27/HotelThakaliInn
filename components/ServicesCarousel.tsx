@@ -6,13 +6,15 @@ import Image from "next/image";
 import { motion, useMotionValue, useReducedMotion, useSpring, type Variants } from "framer-motion";
 import { DRAG, SWAY } from "@/lib/carousel";
 
-const CARDS = [
-  { title: "Rooms", tag: "Stay", description: "Warm wood, pressed linen, a window that actually opens — quiet enough for the night before a flight.", href: "/rooms", image: "/media/services/rooms.jpg" },
-  { title: "Breakfast", tag: "Buffet", description: "Eggs, toast, sausage and fresh fruit, laid out hot from seven — with milk tea alongside.", href: "/breakfast", image: "/media/services/breakfast.jpg" },
-  { title: "Amenities", tag: "", description: "Everything the stay needs, nothing it doesn't.", href: "/amenities", image: "/media/services/amenities.jpg" },
-  { title: "Gallery", tag: "", description: "The rooms, the courtyard, the desk — as they actually look.", href: "/gallery", image: "/media/services/gallery.jpg" },
-  { title: "Contact", tag: "Always", description: "Late check-ins, early cabs, a number that actually answers.", href: "/contact", image: "/media/services/contact.jpg" },
-] as const;
+/* The cards arrive from D1 through app/page.tsx, by way of HeroCarousel. An empty
+   tag simply renders no chip. */
+export type ServiceCardData = {
+  title: string;
+  tag: string;
+  description: string;
+  href: string;
+  image: string;
+};
 
 const DWELL = 4200;
 const TILT = 6; /* deg of rotateX */
@@ -66,7 +68,7 @@ const flyIn: Variants = {
 /* reduced motion: the cards are simply already there */
 const still: Variants = { packed: {}, landed: {} };
 
-function ServiceCard({ card, front }: { card: (typeof CARDS)[number]; front: boolean }) {
+function ServiceCard({ card, front }: { card: ServiceCardData; front: boolean }) {
   return (
     <Link href={card.href} className="svc-card" data-active={front || undefined} tabIndex={front ? undefined : -1}>
       <div className="svc-well">
@@ -83,7 +85,7 @@ function ServiceCard({ card, front }: { card: (typeof CARDS)[number]; front: boo
   );
 }
 
-export default function ServicesCarousel({ open }: { open: boolean }) {
+export default function ServicesCarousel({ open, cards }: { open: boolean; cards: ServiceCardData[] }) {
   /* Unbounded, not a modulo index: the ring should turn one facet in the direction
      you asked for, never unwind 288° the long way round when 4 wraps to 0. */
   const [turn, setTurn] = useState(0);
@@ -95,7 +97,7 @@ export default function ServicesCarousel({ open }: { open: boolean }) {
   const [width, setWidth] = useState(0);
   const reduced = useReducedMotion();
 
-  const total = CARDS.length;
+  const total = cards.length;
   const step = 360 / total;
   const active = ((turn % total) + total) % total;
 
@@ -124,6 +126,11 @@ export default function ServicesCarousel({ open }: { open: boolean }) {
     return () => clearInterval(t);
   }, [paused, mobile, reduced, open]);
 
+  /* `step` above divides by this, so an empty ring is a NaN rotation rather than
+     an empty panel. Staff can unpublish every card; they should not be able to
+     take the homepage down doing it. */
+  if (!total) return null;
+
   /* holds the deck's footprint so nothing jumps when the ring arrives */
   if (!width) {
     return (
@@ -136,7 +143,7 @@ export default function ServicesCarousel({ open }: { open: boolean }) {
   if (mobile) {
     return (
       <div className="svc-mobile">
-        {CARDS.map((c) => (
+        {cards.map((c) => (
           <ServiceCard key={c.title} card={c} front />
         ))}
       </div>
@@ -210,7 +217,7 @@ export default function ServicesCarousel({ open }: { open: boolean }) {
               animate={{ rotateY: -turn * step }}
               transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 55, damping: 16 }}
             >
-              {CARDS.map((c, i) => (
+              {cards.map((c, i) => (
                 <div
                   key={c.title}
                   className="svc-face"

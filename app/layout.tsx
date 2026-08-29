@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Manrope, JetBrains_Mono, Fraunces } from "next/font/google";
 import DialNav from "@/components/DialNav";
+import { LiveProvider } from "@/components/Live";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const sans = Manrope({
@@ -25,6 +27,7 @@ const serif = Fraunces({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Hotel Thakali Inn | Sinamangal, Kathmandu",
   description:
     "Quiet rooms and a hot Thakali breakfast, five minutes from Tribhuvan International Airport, Kathmandu.",
@@ -38,10 +41,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable}`}>
       <body style={{ fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
-        {/* The dial lives here, not per page, so every route gets the same one
-            and it keeps its open state across client-side navigation. */}
-        <main style={{ minHeight: "100svh" }}>{children}</main>
-        <DialNav />
+        {/* Wraps everything because the daypart it stamps on <html> repaints the
+            whole site, not just the page that prints the clock. `children` is
+            passed through as a prop, so the pages inside stay server-rendered. */}
+        <LiveProvider>
+          {/* The dial lives here, not per page, so every route gets the same one
+              and it keeps its open state across client-side navigation. */}
+          <main style={{ minHeight: "100svh" }}>{children}</main>
+          <DialNav />
+        </LiveProvider>
       </body>
     </html>
   );
