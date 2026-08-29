@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import ServicesCarousel from "@/components/ServicesCarousel";
 import { BOOKING_URL, MAPS_URL } from "@/lib/site";
+import { DRAG } from "@/lib/carousel";
 
 /* Skeleton content — swap `src` in once the photos are picked. A slide with no
    src falls back to a tinted placeholder so the motion can be judged first. */
@@ -77,15 +78,15 @@ export default function HeroCarousel() {
   });
 
   /* swipe — horizontal on touch, which is also how the slides move there */
-  const x0 = useRef(0);
+  const x0 = useRef<number | null>(null);
   const onDown = (e: React.PointerEvent) => {
     if (e.pointerType === "touch") x0.current = e.clientX;
   };
   const onUp = (e: React.PointerEvent) => {
-    if (e.pointerType !== "touch" || !x0.current) return;
+    if (e.pointerType !== "touch" || x0.current === null) return;
     const dx = e.clientX - x0.current;
-    x0.current = 0;
-    if (Math.abs(dx) > 44) step(dx < 0 ? 1 : -1);
+    x0.current = null;
+    if (Math.abs(dx) > DRAG) step(dx < 0 ? 1 : -1);
   };
 
   /* in = on stage, out = the one just leaving, idle = parked off-stage with no

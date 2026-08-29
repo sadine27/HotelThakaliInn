@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import LiquidBackground from "./LiquidBackground";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import { BOOKING_URL } from "@/lib/site";
+import { DRAG, SWAY } from "@/lib/carousel";
 
 /* Room types, capacities and counts come from the property's Booking.com listing
    (ids 1618318901/02/03 — recorded in the plan, deliberately not rendered).
@@ -79,9 +80,6 @@ const GOOD_TO_KNOW = [
    per-room sizes derived from it would be invented, and guests compare this page
    against Booking. Replace with measured figures — the spec grid has a row ready. */
 const SIZE = "Rooms start at about 42 m² (450 sq ft), bathroom included.";
-
-const DRAG = 44; /* the threshold the hero and the services ring both use */
-const SWAY = 4; /* deg of rotateY the cursor can lean the column */
 
 /* A fan, not a closed ring. The services carousel spaces its facets at 360/n,
    which works at five cards (72°) but degenerates at three: 120° turns both
@@ -176,7 +174,7 @@ export default function RoomsCarousel() {
   const swayTo = useMotionValue(0);
   const sway = useSpring(swayTo, { stiffness: 60, damping: 18 });
 
-  const dragFrom = useRef(0);
+  const dragFrom = useRef<number | null>(null);
   const wrapAt = useRef(0);
   /* Loaded straight into a detail? Then there is no /rooms entry behind us to pop
      back to, and router.back() would walk out of the site. Push once instead; from
@@ -269,21 +267,21 @@ export default function RoomsCarousel() {
           onPointerMove={lean}
           onPointerLeave={() => {
             swayTo.set(0);
-            dragFrom.current = 0;
+            dragFrom.current = null;
           }}
           onPointerDown={(e) => {
             dragFrom.current = e.clientY;
           }}
           onPointerUp={(e) => {
-            if (!dragFrom.current) return;
+            if (dragFrom.current === null) return;
             const dy = e.clientY - dragFrom.current;
-            dragFrom.current = 0;
+            dragFrom.current = null;
             if (Math.abs(dy) <= DRAG) return;
             /* drag up = the fan rolls forward, the way a scroll wheel reads */
             go(dy < 0 ? 1 : -1);
           }}
           onPointerCancel={() => {
-            dragFrom.current = 0;
+            dragFrom.current = null;
           }}
           /* dragstart bubbles, so this catches the image too — without it the
              browser starts a native drag and the pointerup above never arrives */

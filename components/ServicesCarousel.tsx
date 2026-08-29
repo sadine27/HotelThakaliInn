@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useMotionValue, useReducedMotion, useSpring, type Variants } from "framer-motion";
+import { DRAG, SWAY } from "@/lib/carousel";
 
 const CARDS = [
   { title: "Rooms", tag: "Stay", description: "Warm wood, pressed linen, a window that actually opens — quiet enough for the night before a flight.", href: "/rooms", image: "/media/services/rooms.jpg" },
@@ -14,8 +15,6 @@ const CARDS = [
 ] as const;
 
 const DWELL = 4200;
-const DRAG = 44; /* same threshold the hero uses, so a drag feels the same either side */
-const SWAY = 4; /* deg of rotateY the cursor can lean the ring */
 const TILT = 6; /* deg of rotateX */
 
 /* The ring's geometry lives in CSS (--ring-radius on .svc-carousel) so it tracks
@@ -105,7 +104,7 @@ export default function ServicesCarousel({ open }: { open: boolean }) {
   const sway = useSpring(swayTo, { stiffness: 60, damping: 18 });
   const tilt = useSpring(tiltTo, { stiffness: 60, damping: 18 });
 
-  const dragFrom = useRef(0);
+  const dragFrom = useRef<number | null>(null);
   /* a drag that lands on the front card would otherwise fire a click on its <Link>
      and navigate; onClickCapture below eats that one click. */
   const dragged = useRef(false);
@@ -175,22 +174,22 @@ export default function ServicesCarousel({ open }: { open: boolean }) {
         onPointerMove={lean}
         onPointerLeave={() => {
           level();
-          dragFrom.current = 0;
+          dragFrom.current = null;
         }}
         onPointerDown={(e) => {
           dragFrom.current = e.clientX;
           dragged.current = false;
         }}
         onPointerUp={(e) => {
-          if (!dragFrom.current) return;
+          if (dragFrom.current === null) return;
           const dx = e.clientX - dragFrom.current;
-          dragFrom.current = 0;
+          dragFrom.current = null;
           if (Math.abs(dx) <= DRAG) return;
           dragged.current = true;
           setTurn((n) => n + (dx < 0 ? 1 : -1));
         }}
         onPointerCancel={() => {
-          dragFrom.current = 0;
+          dragFrom.current = null;
         }}
         /* dragstart bubbles, so this catches the link and the image both — without it
            the browser starts a native drag and the pointerup above never arrives */
