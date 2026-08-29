@@ -3597,3 +3597,21 @@ body {
   line-height: 1.55;
   font-size: 15px;
 }
+
+/* ── Admin: forms ── */
+
+.adm-field {
+  margin-bottom: 18px;
+}
+
+.adm-field small {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--olive);
+}
+
+.adm-page > button[type="submit"] {
+  margin-top: 8px;
+}
