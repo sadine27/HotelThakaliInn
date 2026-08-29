@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Img from "@/components/Img";
 import LiveLine, { LiveNote } from "@/components/Live";
+import RainGlass from "@/components/RainGlass";
 import ServicesCarousel, { type ServiceCardData } from "@/components/ServicesCarousel";
 import { DRAG } from "@/lib/carousel";
 
@@ -94,6 +95,8 @@ export default function HeroCarousel({
         </video>
         {/* night sky + weather motion layer — see "the sky you can see" in globals.css */}
         <div className="ambient-fx" />
+        {/* rain on glass — droplets on a pane, see components/RainGlass.tsx */}
+        <RainGlass />
       </div>
 
       {/* what the page opens onto — sits behind the two halves */}
