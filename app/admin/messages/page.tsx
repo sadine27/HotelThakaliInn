@@ -51,9 +51,19 @@ export default async function Messages() {
             </p>
             {/* mailto, because replying is the only thing anyone does with one
                 of these and the reply-to on the notification mail already goes
-                to the same place. */}
+                to the same place.
+
+                Encoded, not interpolated. A mailto URL takes ?subject=&body=&bcc=
+                after the address, and the guest chose this string — so an address
+                like "x?subject=Pay+here&bcc=someone@example.com" would turn a
+                staff member's reply into a composer full of someone else's words
+                and recipients. /api/contact rejects those characters now, but
+                rows written before it did are still in this table, so the escape
+                belongs here too. (encodeURIComponent also escapes the @ as %40,
+                which RFC 6068 requires clients to decode.) */}
             <p className="adm-from">
-              <a href={`mailto:${m.email}`}>{m.name}</a> <span>{m.email}</span>
+              <a href={`mailto:${encodeURIComponent(m.email)}`}>{m.name}</a>{" "}
+              <span>{m.email}</span>
             </p>
             {/* white-space: pre-wrap in the CSS — guests use line breaks, and
                 collapsing them turns a readable enquiry into a wall. */}

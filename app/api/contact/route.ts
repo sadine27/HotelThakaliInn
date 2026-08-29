@@ -42,8 +42,14 @@ export async function POST(request: Request) {
 
   /* Deliberately not an RFC-5322 regex: the only question worth asking here is
      whether a reply could plausibly be addressed, and the real check is that the
-     guest reads what they typed. Anything stricter rejects valid addresses. */
-  if (!name || !message || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+     guest reads what they typed. Anything stricter rejects valid addresses.
+
+     The excluded set is wider than whitespace, though, because this string ends
+     up inside a `mailto:` href in the staff inbox and in a `replyTo` on the
+     notification. ? & # % , ; and quotes are what turn a mailto into a composer
+     with someone else's subject, body and bcc — and none of them are legal in an
+     unquoted address anyway, so nothing real is turned away. */
+  if (!name || !message || !/^[^\s@?&#%,;<>"']+@[^\s@?&#%,;<>"']+\.[^\s@?&#%,;<>"']+$/.test(email)) {
     return Response.json(
       { ok: false, error: "Please fill in your name, a valid email, and a message." },
       { status: 400 },
