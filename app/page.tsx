@@ -1,5 +1,6 @@
 import HeroCarousel from "@/components/HeroCarousel";
-import { section, settings } from "@/lib/content";
+import HotelSchema from "@/components/HotelSchema";
+import { list, section, settings } from "@/lib/content";
 
 /* See app/rooms/page.tsx — the prerender pass runs in plain Node, where env.DB
    does not exist, and only reads this literal in the page file itself. */
@@ -19,17 +20,27 @@ export default async function Home() {
   if (!slides.length) return null;
 
   return (
-    <HeroCarousel
-      slides={slides.map((s) => ({ title: s.title, line: s.body, src: s.image }))}
-      cards={cards.map((c) => ({
-        title: c.title,
-        tag: c.tag,
-        description: c.body,
-        href: c.href,
-        image: c.image,
-      }))}
-      bookingUrl={config.booking_url ?? ""}
-      mapsUrl={config.maps_url ?? ""}
-    />
+    <>
+      {/* The property's facts, machine-readable, on the two pages that already
+          hold them in memory. Rendered here rather than in the layout so no
+          page inherits a D1 read it did not ask for. */}
+      <HotelSchema config={config} socials={list(config.socials)} />
+      <HeroCarousel
+        slides={slides.map((s) => ({
+          title: s.title,
+          line: s.body,
+          src: s.image,
+        }))}
+        cards={cards.map((c) => ({
+          title: c.title,
+          tag: c.tag,
+          description: c.body,
+          href: c.href,
+          image: c.image,
+        }))}
+        bookingUrl={config.booking_url ?? ""}
+        mapsUrl={config.maps_url ?? ""}
+      />
+    </>
   );
 }

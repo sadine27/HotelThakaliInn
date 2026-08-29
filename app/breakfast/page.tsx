@@ -2,7 +2,11 @@ import Img from "@/components/Img";
 import ServingStrip from "@/components/ServingStrip";
 import { section } from "@/lib/content";
 
-export const metadata = { title: "Breakfast | Hotel Thakali Inn" };
+export const metadata = {
+  title: "Breakfast | Hotel Thakali Inn",
+  description:
+    "A hot Thakali breakfast, served every morning at Hotel Thakali Inn in Sinamangal, Kathmandu — dal, rice, and tea before an early flight.",
+};
 
 /* See app/rooms/page.tsx — the prerender pass runs in plain Node, where env.DB
    does not exist, and only reads this literal in the page file itself. */

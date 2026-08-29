@@ -3,6 +3,7 @@ import { Manrope, JetBrains_Mono, Fraunces } from "next/font/google";
 import DialNav from "@/components/DialNav";
 import FloatDock from "@/components/FloatDock";
 import { LiveProvider } from "@/components/Live";
+import ViewBeacon from "@/components/ViewBeacon";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -53,6 +54,9 @@ export default function RootLayout({
           {/* The other two corners: back, WhatsApp, book. Same reasoning as the
               dial — every page needs them and no page owns them. */}
           <FloatDock />
+          {/* Counts the page. Renders nothing, stores nothing about the reader
+              — see app/api/view/route.ts. */}
+          <ViewBeacon />
         </LiveProvider>
       </body>
     </html>

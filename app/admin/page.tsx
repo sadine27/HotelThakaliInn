@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { env } from "cloudflare:workers";
 import { endSession, requireSession } from "@/lib/auth";
-import { TZ } from "@/lib/live";
+import { kathmanduDay, kathmanduDayBefore } from "@/lib/live";
 
 export const dynamic = "force-dynamic";
 
@@ -30,46 +30,84 @@ function Tile({ href, label, description, primary, secondaryLabel, secondary, ac
   );
 }
 
+/* What a path is called out loud. Staff know these pages by their names, not by
+   their URLs, and "/" is the worst offender. */
+const PAGE_NAMES: Record<string, string> = {
+  "/": "Home",
+  "/rooms": "Rooms",
+  "/breakfast": "Breakfast",
+  "/amenities": "Amenities",
+  "/gallery": "Gallery",
+  "/contact": "Contact",
+  "/book": "Book a room",
+};
+const pageName = (path: string) => PAGE_NAMES[path] ?? path;
+
+/* Thirty days of counts as one line. An inline polyline rather than a charting
+   library: it is a dozen lines of arithmetic and no dependency, where the
+   library would be the largest thing in the bundle for one drawing on one page
+   nobody but staff ever loads. */
+function Sparkline({ series }: { series: { day: string; count: number }[] }) {
+  const W = 640;
+  const H = 56;
+  const peak = Math.max(1, ...series.map((d) => d.count));
+  const step = series.length > 1 ? W / (series.length - 1) : W;
+  const points = series
+    .map((d, i) => {
+      /* Two pixels of headroom at each end, so the busiest day is not clipped by
+         the viewBox and a zero day still sits on a visible line. */
+      const y = H - 2 - (d.count / peak) * (H - 4);
+      return `${(i * step).toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg
+      className="adm-spark"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={`Daily views over the last ${series.length} days. Busiest day: ${peak}.`}
+    >
+      {/* Area first, so the line draws on top of its own shading. */}
+      <polygon className="adm-spark-fill" points={`0,${H} ${points} ${W},${H}`} />
+      <polyline className="adm-spark-line" points={points} />
+    </svg>
+  );
+}
+
+function Delta({ now, before }: { now: number; before: number }) {
+  /* No previous week means no comparison to make. "+100%" against zero is the
+     classic dashboard lie, so this says the honest thing instead. */
+  if (before === 0) return <span className="adm-delta adm-delta--flat">no week before this</span>;
+  const pct = Math.round(((now - before) / before) * 100);
+  const dir = pct > 0 ? "up" : pct < 0 ? "down" : "flat";
+  return (
+    <span className={`adm-delta adm-delta--${dir}`}>
+      <span aria-hidden="true">{dir === "up" ? "↑" : dir === "down" ? "↓" : "→"}</span>{" "}
+      {Math.abs(pct)}% vs the week before
+    </span>
+  );
+}
+
 export default async function Admin() {
   await requireSession();
 
-  // Kathmandu date helpers
-  function getKathmanduDateParts(date: Date) {
-    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
-    return {
-      year: parseInt(parts.find(p => p.type === 'year')!.value, 10),
-      month: parseInt(parts.find(p => p.type === 'month')!.value, 10),
-      day: parseInt(parts.find(p => p.type === 'day')!.value, 10),
-    };
-  }
-  function formatKathmanduDate(year: number, month: number, day: number) {
-    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-  }
-
   const now = new Date();
-  const todayParts = getKathmanduDateParts(now);
-  const kathmanduToday = formatKathmanduDate(todayParts.year, todayParts.month, todayParts.day);
-  const offsetMs = (5 * 60 + 45) * 60 * 1000;
-  const noonKathmanduUTC = Date.UTC(todayParts.year, todayParts.month - 1, todayParts.day, 12) - offsetMs;
-  const sevenDaysAgoDate = new Date(noonKathmanduUTC);
-  sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 7);
-  const sevenDaysAgoParts = getKathmanduDateParts(sevenDaysAgoDate);
-  const kathmanduSevenDaysAgo = formatKathmanduDate(sevenDaysAgoParts.year, sevenDaysAgoParts.month, sevenDaysAgoParts.day);
+  const kathmanduToday = kathmanduDay(now);
+  const kathmanduSevenDaysAgo = kathmanduDayBefore(7, now);
 
   function formatHumanDate(dateStr: string) {
     const [y, m, d] = dateStr.split('-').map(Number);
-    const arrivalDate = new Date(Date.UTC(y, m - 1, d));
-    const arrivalKathmanduParts = getKathmanduDateParts(arrivalDate);
-    const arrivalKathmandu = new Date(Date.UTC(arrivalKathmanduParts.year, arrivalKathmanduParts.month - 1, arrivalKathmanduParts.day));
-    const todayKathmandu = new Date(Date.UTC(todayParts.year, todayParts.month - 1, todayParts.day));
-    const diffDays = Math.round((arrivalKathmandu.getTime() - todayKathmandu.getTime()) / (24 * 60 * 60 * 1000));
+    const [ty, tm, td] = kathmanduToday.split('-').map(Number);
+    const arrival = Date.UTC(y, m - 1, d);
+    const diffDays = Math.round((arrival - Date.UTC(ty, tm - 1, td)) / 86_400_000);
     const human = new Intl.DateTimeFormat('en-GB', {
       timeZone: 'UTC',
       weekday: 'short',
       day: 'numeric',
       month: 'short',
       year: 'numeric',
-    }).format(arrivalKathmandu);
+    }).format(new Date(arrival));
     let when: string;
     if (diffDays === 0) when = 'today';
     else if (diffDays === 1) when = 'tomorrow';
@@ -77,8 +115,15 @@ export default async function Admin() {
     return { human, when };
   }
 
-  // Queries
-  const [requestsUpcoming, requestsLast7, messagesTotal, messagesLast7, settingsCount, contentPublished, contentHidden, nextArrival] = await Promise.all([
+  /* One query of daily counts answers five of the six questions below — today,
+     this week, last week, the shape of the line, and every gap in it — so it is
+     one round trip rather than five. It reaches back fourteen days because the
+     week-over-week comparison needs the week before the week. */
+  const since7 = kathmanduDayBefore(6, now);
+  const prevFrom = kathmanduDayBefore(13, now);
+  const prevTo = kathmanduDayBefore(7, now);
+
+  const [requestsUpcoming, requestsLast7, messagesTotal, messagesLast7, settingsCount, contentPublished, contentHidden, nextArrival, daily, topPages, topRefs, viewSpan] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as count FROM booking_requests WHERE check_in >= ?`).bind(kathmanduToday).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT COUNT(*) as count FROM booking_requests WHERE substr(created_at, 1, 10) >= ?`).bind(kathmanduSevenDaysAgo).first<{ count: number }>()
@@ -95,7 +140,38 @@ export default async function Admin() {
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT name, check_in FROM booking_requests WHERE check_in >= ? ORDER BY check_in ASC LIMIT 1`).bind(kathmanduToday).first<{ name: string; check_in: string }>()
       .then(r => r ?? null).catch(() => null),
+    env.DB.prepare(`SELECT day, COUNT(*) as count FROM page_views WHERE day >= ? GROUP BY day ORDER BY day`).bind(kathmanduDayBefore(29, now))
+      .all<{ day: string; count: number }>().then(r => r.results).catch(() => null),
+    env.DB.prepare(`SELECT path, COUNT(*) as count FROM page_views WHERE day >= ? GROUP BY path ORDER BY count DESC LIMIT 5`).bind(since7)
+      .all<{ path: string; count: number }>().then(r => r.results).catch(() => []),
+    env.DB.prepare(`SELECT referrer, COUNT(*) as count FROM page_views WHERE day >= ? AND referrer != '' GROUP BY referrer ORDER BY count DESC LIMIT 5`).bind(since7)
+      .all<{ referrer: string; count: number }>().then(r => r.results).catch(() => []),
+    env.DB.prepare(`SELECT MIN(day) as first, COUNT(*) as total FROM page_views`).first<{ first: string | null; total: number }>()
+      .then(r => r ?? null).catch(() => null),
   ]);
+
+  /* Null only when the query threw — the table missing, D1 unreachable. An empty
+     table comes back as an empty array and reads as the legitimate zero it is. */
+  const counting = daily !== null;
+  const byDay = new Map((daily ?? []).map((d) => [d.day, d.count]));
+  const sum = (from: string, to: string) =>
+    (daily ?? []).reduce((n, d) => (d.day >= from && d.day <= to ? n + d.count : n), 0);
+
+  const viewsToday = byDay.get(kathmanduToday) ?? 0;
+  const views7 = sum(since7, kathmanduToday);
+  const viewsPrev7 = sum(prevFrom, prevTo);
+  const viewsAll = viewSpan?.total ?? 0;
+
+  /* Thirty slots whether or not anything landed in them, oldest first. A quiet
+     day has to be drawn as a zero rather than left out, or the line closes the
+     gap and a dead Tuesday looks like a busy one. */
+  const series = Array.from({ length: 30 }, (_, i) => {
+    const day = kathmanduDayBefore(29 - i, now);
+    return { day, count: byDay.get(day) ?? 0 };
+  });
+
+  const busiest = Math.max(0, ...series.map((s) => s.count));
+  const firstDay = viewSpan?.first ?? null;
 
   async function signOut() {
     "use server";
@@ -162,6 +238,108 @@ export default async function Admin() {
           )}
         </div>
       </nav>
+
+      <section className="adm-stats">
+        <header className="adm-stats-head">
+          <h2>Who is reading the site</h2>
+          <p>
+            Every page a visitor opens, counted here. No names, no location, no
+            cookie — this cannot tell you who anyone is, only which pages get
+            read and where the reader came from.
+          </p>
+        </header>
+
+        {!counting ? (
+          <p className="adm-stats-empty">
+            Counting is not running — the database could not be reached.
+          </p>
+        ) : (
+          <>
+            <div className="adm-figures">
+              <div className="adm-figure">
+                <span className="adm-figure-n">{viewsToday}</span>
+                <span className="adm-figure-l">today</span>
+                <span className="adm-figure-s">since midnight in Kathmandu</span>
+              </div>
+              <div className="adm-figure">
+                <span className="adm-figure-n">{views7}</span>
+                <span className="adm-figure-l">last 7 days</span>
+                <span className="adm-figure-s">
+                  <Delta now={views7} before={viewsPrev7} />
+                </span>
+              </div>
+              <div className="adm-figure">
+                <span className="adm-figure-n">{viewsAll}</span>
+                <span className="adm-figure-l">all time</span>
+                <span className="adm-figure-s">
+                  {firstDay ? `since ${firstDay}` : "nothing counted yet"}
+                </span>
+              </div>
+            </div>
+
+            <figure className="adm-spark-wrap">
+              <Sparkline series={series} />
+              <figcaption>
+                <span>{series[0].day}</span>
+                <span className="adm-spark-peak">
+                  {busiest === 0 ? "no views yet" : `busiest day: ${busiest}`}
+                </span>
+                <span>today</span>
+              </figcaption>
+            </figure>
+
+            <div className="adm-lists">
+              <div className="adm-list">
+                <h3>Most read, last 7 days</h3>
+                {topPages.length === 0 ? (
+                  <p className="adm-list-empty">Nothing yet this week.</p>
+                ) : (
+                  <ol>
+                    {topPages.map((p) => (
+                      <li key={p.path}>
+                        <span className="adm-list-name">{pageName(p.path)}</span>
+                        <span className="adm-list-bar" aria-hidden="true">
+                          <i style={{ width: `${(p.count / topPages[0].count) * 100}%` }} />
+                        </span>
+                        <span className="adm-list-n">{p.count}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+
+              <div className="adm-list">
+                <h3>Where they came from</h3>
+                {topRefs.length === 0 ? (
+                  <p className="adm-list-empty">
+                    Nobody arrived from another site this week. They typed the
+                    address, used a bookmark, or followed a link that hides where
+                    it came from — most apps do.
+                  </p>
+                ) : (
+                  <ol>
+                    {topRefs.map((r) => (
+                      <li key={r.referrer}>
+                        <span className="adm-list-name">{r.referrer}</span>
+                        <span className="adm-list-bar" aria-hidden="true">
+                          <i style={{ width: `${(r.count / topRefs[0].count) * 100}%` }} />
+                        </span>
+                        <span className="adm-list-n">{r.count}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            </div>
+
+            <p className="adm-stats-note">
+              Counting started {firstDay ?? "today"}. There is nothing before
+              that and nothing can be recovered — the visits that happened before
+              this existed were never written down.
+            </p>
+          </>
+        )}
+      </section>
 
       <form action={signOut} className="adm-signout">
         <button type="submit">Sign out</button>

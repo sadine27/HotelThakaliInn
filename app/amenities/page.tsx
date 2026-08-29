@@ -1,7 +1,11 @@
 import Img from "@/components/Img";
 import { section } from "@/lib/content";
 
-export const metadata = { title: "Amenities | Hotel Thakali Inn" };
+export const metadata = {
+  title: "Amenities | Hotel Thakali Inn",
+  description:
+    "What every room at Hotel Thakali Inn has, and what the property offers — Sinamangal, Kathmandu, five minutes from Tribhuvan International Airport.",
+};
 
 /* See app/rooms/page.tsx — the prerender pass runs in plain Node, where env.DB
    does not exist, and only reads this literal in the page file itself. */

@@ -2,7 +2,11 @@ import { Suspense } from "react";
 import RoomsCarousel, { type Room } from "@/components/RoomsCarousel";
 import { list, section, settings } from "@/lib/content";
 
-export const metadata = { title: "Rooms | Hotel Thakali Inn" };
+export const metadata = {
+  title: "Rooms | Hotel Thakali Inn",
+  description:
+    "Single, double and family rooms in Sinamangal, Kathmandu, five minutes from Tribhuvan International Airport. Hot water, quiet nights, and a desk that is staffed through them.",
+};
 
 /* Not a preference — a correctness requirement. vinext's prerender pass runs in
    plain Node, where `env.DB` does not exist, and it only sees this literal in the

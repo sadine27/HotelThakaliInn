@@ -2,7 +2,11 @@ import { Suspense } from "react";
 import BookingForm from "@/components/BookingForm";
 import { section, settings } from "@/lib/content";
 
-export const metadata = { title: "Request a room | Hotel Thakali Inn" };
+export const metadata = {
+  title: "Request a room | Hotel Thakali Inn",
+  description:
+    "Ask for a room directly at Hotel Thakali Inn, Kathmandu. No card and no deposit — send your dates and we reply to confirm.",
+};
 
 /* See app/rooms/page.tsx — the prerender pass runs in plain Node, where env.DB
    does not exist, and only reads this literal in the page file itself. */

@@ -32,3 +32,24 @@ export type Live = {
      settings row — the button then does not render at all. */
   phone: string;
 };
+
+/* "YYYY-MM-DD" in Kathmandu. Everything that has to agree on what "today" means
+   — the view beacon writing a row, the dashboard counting them back — goes
+   through this one function, because the site's day rolls over at Kathmandu
+   midnight and the server's does not. en-CA is ISO order by definition, so this
+   needs no padding or reassembly. */
+export const kathmanduDay = (date = new Date()) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+
+/* N days back from a Kathmandu day, as another Kathmandu day. Date arithmetic
+   in UTC on a noon anchor: noon is far enough from either midnight that the
+   :45 offset can never push it into the wrong date. */
+export const kathmanduDayBefore = (days: number, from = new Date()) => {
+  const [y, m, d] = kathmanduDay(from).split("-").map(Number);
+  return kathmanduDay(new Date(Date.UTC(y, m - 1, d - days, 12)));
+};
