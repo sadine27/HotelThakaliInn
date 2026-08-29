@@ -14,12 +14,6 @@ import { TZ, type Live, type SkyKey } from "@/lib/live";
    file touching a binding declares it as a literal. */
 export const dynamic = "force-dynamic";
 
-/* 15 min at the edge. Kathmandu's temperature does not move faster than that,
-   and it means Open-Meteo sees a handful of requests a day no matter how many
-   guests are on the site. `cacheEverything` because their response has no
-   Cache-Control worth respecting. */
-const UPSTREAM_TTL = 900;
-
 /* Minutes since local midnight. Both sides of every comparison below go through
    this, which is what keeps Kathmandu's :45 offset from ever being arithmetic —
    we only ever subtract two wall clocks in the same zone. */
@@ -83,9 +77,13 @@ function air(aqi: number): string {
    take a page down. */
 async function grab<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url, {
-      cf: { cacheTtl: UPSTREAM_TTL, cacheEverything: true },
-    } as RequestInit);
+    /* Deliberately no cf.cacheTtl here. force-dynamic makes Next propagate this
+       route's no-store onto outbound fetch requests, and the Workers cache
+       refuses CacheTtl on a no-store request — an explicit header cannot win
+       that fight. It buys nothing anyway: the CDN caches the whole /api/live
+       response for 15 minutes (s-maxage below), so the Worker — and this fetch
+       — only runs a few times an hour. */
+    const res = await fetch(url);
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch (err) {
