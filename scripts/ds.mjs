@@ -136,6 +136,14 @@ for (const [, path, body] of out.matchAll(/^=== (?:EDIT|FILE): (.+?) ===\n([\s\S
   if (!existsSync(path)) { errors.push(`${path}: EDIT on a file that does not exist`); continue; }
   let next = planned.find((p) => p.path === path)?.next ?? readFileSync(path, "utf8");
   for (const [, find, repl] of body.matchAll(/<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/g)) {
+    /* A doubled ======= or a nested marker means the model emitted a malformed
+       block. The non-greedy regex still "parses" it and would write the second
+       half of the garbage into the file, so reject it outright — a patch that
+       applies cleanly and means nothing is the worst failure mode here. */
+    if (/^(=======|<<<<<<< SEARCH|>>>>>>> REPLACE)$/m.test(find) || /^(=======|<<<<<<< SEARCH)$/m.test(repl)) {
+      errors.push(`${path}: malformed block, stray conflict marker inside SEARCH/REPLACE`);
+      continue;
+    }
     const hits = next.split(find).length - 1;
     if (hits !== 1) { errors.push(`${path}: SEARCH matched ${hits}x (need exactly 1): ${find.slice(0, 70).replace(/\n/g, "\n")}…`); continue; }
     next = next.replace(find, () => repl);
@@ -148,4 +156,14 @@ for (const e of errors) console.log("  ✗ " + e);
 if (!planned.length && !errors.length) console.log("  (no edit blocks found)");
 if (!APPLY) { console.log(`  ${planned.length} file(s) ready — rerun with --apply`); process.exit(errors.length ? 1 : 0); }
 if (errors.length) { console.log("  ABORTED, nothing written — fix the brief and retry"); process.exit(1); }
+/* Belt and braces. A malformed block once wrote 23 stray ======= lines into a
+   stylesheet; CSS error-recovery swallows the marker AND the rule after it, so
+   the damage was silent and cost an hour to find. Never again: refuse to write
+   a file that still contains a conflict marker. */
+const dirty = planned.filter(({ next }) => /^(=======|<<<<<<< SEARCH|>>>>>>> REPLACE)$/m.test(next));
+if (dirty.length) {
+  for (const { path } of dirty) console.log(`  ✗ ${path}: result still contains a conflict marker`);
+  console.log("  ABORTED, nothing written");
+  process.exit(1);
+}
 for (const { path, next } of planned) { writeFileSync(path, next); console.log("  ✓ wrote " + path); }

@@ -22,7 +22,6 @@
      for buttons, but honestly. */
   --sage: #b7cdc3;
   --brass: #c9985a;
-=======
   /* The one thing the brand palette can't say. A failed form has to read as
      wrong, and every other colour here is a shade of "fine" — so this is a fired
      clay, brightened so it still reads as an error on the dark ground. */
@@ -396,7 +395,6 @@ body {
     0 1px 0 rgba(255, 255, 255, 0.06),
     18px 18px 38px rgba(0, 0, 0, 0.5),
     -10px -10px 28px rgba(0, 0, 0, 0.32);
-=======
   overflow: hidden;
   isolation: isolate;
 }
@@ -472,6 +470,11 @@ body {
   position: relative;
   overflow: hidden; /* trims the rim ring to the three quarters that are card */
   display: grid;
+  /* Implicit auto columns size to min-content, and grid items default to
+     min-width: auto — a long unbreakable string blows the track past the card.
+     minmax(0, 1fr) lets the track shrink to the card's content box, which is
+     what stops the headline being sliced mid-word. */
+  grid-template-columns: minmax(0, 1fr);
   /* safe: plain centring splits any overflow across both edges, and this box
      clips, so a card a few px too short lost the top of the eyebrow *and* the
      bottom of the rail. Safe centring keeps the copy whole from the top down. */
@@ -483,7 +486,6 @@ body {
     0 1px 0 rgba(255, 255, 255, 0.06),
     18px 18px 38px rgba(0, 0, 0, 0.48),
     -10px -10px 28px rgba(0, 0, 0, 0.3);
-=======
   /* the hole. Feathered over the last 0.4% only — this is a cut edge, not a
      fade, and a soft one would read as a rendering artifact. */
   -webkit-mask: radial-gradient(circle var(--notch) at calc(100% - var(--pivot)) 100%, transparent 99.6%, #000 100%);
@@ -504,7 +506,6 @@ body {
   border-radius: 50%;
   border: 1px solid rgba(255, 250, 238, 0.7);
   box-shadow: -9px -11px 24px rgba(0, 0, 0, 0.4);
-=======
   pointer-events: none;
 }
 
@@ -539,7 +540,12 @@ body {
      width of the name it shares a row with, and the row has to hold at the
      card's narrowest. */
   letter-spacing: 0.12em;
-  white-space: nowrap;
+  /* The readout may wrap: the eyebrow keeps the brand on its own line and this
+     chip takes a second row when the card is narrow. The time uses tabular
+     numerals so the minute flip never shoves the wrapped line sideways, and the
+     .live-fact separators stay attached to the facts they introduce because
+     each fact is one flex item. */
+  white-space: normal;
   color: var(--olive);
   /* Fades in on arrival rather than popping — it lands a moment after paint,
      and a hard appearance in the corner of the hero reads as a glitch. */
@@ -556,7 +562,6 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 8px 24px rgba(0, 0, 0, 0.42);
 }
-=======
 
 @keyframes live-in {
   from {
@@ -634,7 +639,6 @@ body {
     0 8px 24px rgba(0, 0, 0, 0.42);
   animation: live-in 0.6s var(--ease) both;
 }
-=======
 
 .sr-only {
   position: absolute;
@@ -712,7 +716,6 @@ body {
   background: var(--surface);
   color: var(--green);
   box-shadow: var(--nu-raised);
-=======
   cursor: pointer;
   transition: box-shadow 0.3s var(--ease), color 0.3s ease;
 }
@@ -723,7 +726,6 @@ body {
 
 .hero-arrow:active {
   box-shadow: var(--nu-pressed);
-=======
 }
 
 .hero-arrow.next svg {
@@ -1003,7 +1005,6 @@ body {
   background: var(--surface);
   box-shadow: var(--nu-raised);
 }
-=======
 
 .svc-back::after {
   content: "";
@@ -1012,7 +1013,6 @@ body {
   border-radius: 18px;
   box-shadow: inset 3px 4px 10px rgba(0, 0, 0, 0.32);
 }
-=======
 
 /* the photo used to bleed to the card's edge, which left nothing of the
    surface visible and reduced the neumorphism to a stray white glow. The card
@@ -1030,7 +1030,6 @@ body {
   transition: box-shadow 0.4s var(--ease);
   box-shadow: var(--nu-raised);
 }
-=======
 
 .svc-card[data-active] {
   box-shadow:
@@ -1038,7 +1037,6 @@ body {
     5px 8px 16px -5px rgba(0, 0, 0, 0.55),
     20px 26px 48px -12px rgba(0, 0, 0, 0.6);
 }
-=======
 
 .svc-card[data-active]:hover {
   box-shadow:
@@ -1046,7 +1044,6 @@ body {
     6px 10px 20px -6px rgba(0, 0, 0, 0.58),
     26px 34px 60px -14px rgba(0, 0, 0, 0.64);
 }
-=======
 
 .svc-well {
   position: absolute;
@@ -1078,7 +1075,6 @@ body {
     inset 0 -1px 0 rgba(255, 255, 255, 0.04);
   pointer-events: none;
 }
-=======
 
 .svc-media {
   object-fit: cover;
@@ -1153,13 +1149,11 @@ body {
   cursor: pointer;
   transition: box-shadow 0.3s var(--ease);
 }
-=======
 
 .svc-arrow:active,
 .room-arrow:active {
   box-shadow: var(--nu-pressed);
 }
-=======
 
 .svc-arrow.left {
   left: -4px;
@@ -1458,7 +1452,6 @@ body {
   background: var(--surface);
   box-shadow: var(--nu-raised);
 }
-=======
 
 /* how many of this type the hotel has — static, like the capacity on the card.
    Deliberately no rate anywhere on this page: they vary. */
@@ -1483,7 +1476,6 @@ body {
   box-shadow: var(--nu-raised);
   transition: box-shadow 0.3s var(--ease);
 }
-=======
 
 .room-book:hover {
   box-shadow:
@@ -1491,12 +1483,10 @@ body {
     6px 9px 18px -5px rgba(0, 0, 0, 0.56),
     16px 22px 40px -12px rgba(0, 0, 0, 0.62);
 }
-=======
 
 .room-book:active {
   box-shadow: var(--nu-pressed);
 }
-=======
 
 .room-index {
   font-family: var(--font-mono), monospace;
@@ -1668,10 +1658,7 @@ body {
     margin-bottom: 12px;
   }
   .live {
-    /* Last resort at ~320px: the row can wrap onto itself before anything is
-       clipped. The separators still read correctly on a second line. */
     flex-wrap: wrap;
-    white-space: normal;
   }
   .hero-deck {
     /* 7rem fitted the shortest slide only — the two-line headlines pushed the
@@ -3003,7 +2990,6 @@ body {
   box-shadow: var(--nu-raised);
   transition: box-shadow 0.3s var(--ease);
 }
-=======
 
 .con-channel:hover {
   box-shadow:
@@ -3011,12 +2997,10 @@ body {
     6px 9px 18px -5px rgba(0, 0, 0, 0.56),
     16px 22px 40px -12px rgba(0, 0, 0, 0.62);
 }
-=======
 
 .con-channel:active {
   box-shadow: var(--nu-pressed);
 }
-=======
 
 .con-channel-icon {
   display: grid;
