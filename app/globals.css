@@ -187,8 +187,12 @@ body {
   object-fit: cover;
   /* Follows the daypart too, and it is the loudest part of the effect: at
      Kathmandu midnight the whole backdrop genuinely goes dark behind the card,
-     rather than the site merely saying it is night. */
-  filter: blur(2.5px) brightness(var(--ambient-bright, 0.78)) saturate(1.08);
+     rather than the site merely saying it is night. The --sky-* factors are the
+     weather axis from the appended sky section: they MULTIPLY the daypart's
+     values, so the hour and the sky compose instead of competing. */
+  filter: blur(2.5px)
+    brightness(calc(var(--ambient-bright, 0.78) * var(--sky-dim, 1)))
+    saturate(calc(1.08 * var(--sky-sat, 1)));
   transition: filter 1.4s var(--ease);
   transform: scale(1.025);
 }
@@ -3977,5 +3981,122 @@ body {
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
+  }
+}
+
+/* ── Kathmandu sky ──────────────────────────────────────────────────────────
+   components/Live.tsx stamps [data-sky] on <html> from the live WMO weather
+   code — the same attribute mechanism as [data-daypart] above, but a second
+   axis that deliberately owns different variables: the hour moves the ground,
+   the sky moves the atmosphere on top of it. The composition is multiplicative
+   — --sky-dim and --sky-sat multiply the ambient video's brightness and
+   saturation (see the filter above), and --sky-wash layers a tint over the
+   scrim — so the two axes can never fight over one value and there is no N×N
+   table of combined states to maintain.
+
+   `clear` has no block: it is the weather the site was drawn in, and the
+   correct fallback when the live route is unreachable and no attribute is
+   ever stamped. Every delta is small on purpose — the daypart already spent
+   the site's boldness, and the sky only grades what is behind the cards. */
+
+:root[data-sky="cloudy"] {
+  --sky-dim: 0.9;
+  --sky-sat: 0.92;
+}
+
+/* Fog lifts the image — dimmed contrast under a pale wash reads as the valley
+   filling in, and the blur the video already sits behind deepens it. */
+:root[data-sky="fog"] {
+  --sky-dim: 0.98;
+  --sky-sat: 0.5;
+  --sky-wash: rgba(203, 209, 207, 0.2);
+}
+
+/* Monsoon. Cooler, darker, desaturated — the room reads as the refuge it is. */
+:root[data-sky="rain"] {
+  --sky-dim: 0.72;
+  --sky-sat: 0.7;
+  --sky-wash: rgba(62, 79, 89, 0.15);
+}
+
+:root[data-sky="snow"] {
+  --sky-dim: 0.9;
+  --sky-sat: 0.78;
+  --sky-wash: rgba(231, 237, 240, 0.24);
+}
+
+/* The heaviest hand — a storm is the one sky an airport guest needs to notice. */
+:root[data-sky="storm"] {
+  --sky-dim: 0.55;
+  --sky-sat: 0.65;
+  --sky-wash: rgba(22, 30, 38, 0.3);
+}
+
+/* The wash rides its own pseudo-element so it can transition as a plain colour:
+   a background-color change interpolates, a background list containing the
+   scrim's gradient would snap. ::before paints above the ::after scrim because
+   it is the one with a z-index. */
+.ambient-video::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-color: var(--sky-wash, transparent);
+  transition: background-color 1.4s var(--ease);
+}
+
+/* The dot is the sky's lamp: its colour names the state the strip's text is
+   already spelling out, so the weather is never colour-only. */
+:root[data-sky="fog"] .live-dot {
+  background: #96a3a0;
+}
+
+:root[data-sky="rain"] .live-dot {
+  background: #55717e;
+}
+
+:root[data-sky="snow"] .live-dot {
+  background: #b9c8cc;
+}
+
+:root[data-sky="storm"] .live-dot {
+  background: #3a474d;
+}
+
+/* Rain and storm tick faster — the same pulse at a weather cadence instead of
+   a quiet breathing. */
+:root[data-sky="rain"] .live-dot,
+:root[data-sky="storm"] .live-dot {
+  animation: live-pulse 1.6s var(--ease) infinite;
+}
+
+/* The weather elements as frosted glass — the same recipe as the room panels:
+   translucency, a hairline rim and an inner highlight. Over the card's cream
+   the frost has nothing to refract and the chip simply reads as raised glass,
+   which is the point: one material for the present tense, everywhere. */
+.live {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(9px) saturate(1.1);
+  -webkit-backdrop-filter: blur(9px) saturate(1.1);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7);
+}
+
+.live-note {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.36);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The weather colours stay — they are information. Only the faster tick goes. */
+  :root[data-sky="rain"] .live-dot,
+  :root[data-sky="storm"] .live-dot {
+    animation: none;
   }
 }

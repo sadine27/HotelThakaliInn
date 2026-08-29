@@ -7,6 +7,12 @@
 
 export const TZ = "Asia/Kathmandu";
 
+/* The six appearances the sky can take, grouped by the route from the 28 WMO
+   weather codes. The human label ships beside it as `sky`; this is the half the
+   client stamps on <html> as [data-sky] — styling off human strings is how a
+   palette breaks the day someone rewords "Partly cloudy". */
+export type SkyKey = "clear" | "cloudy" | "fog" | "rain" | "snow" | "storm";
+
 export type Live = {
   /* "HH:MM" in Kathmandu, so the client has a correct first value without
      having to trust the visitor's clock. It ticks it forward itself after. */
@@ -17,6 +23,7 @@ export type Live = {
      weather makes every other fact on the page suspect. */
   temp: number | null;
   sky: string | null;
+  skyKey: SkyKey | null;
   aqi: number | null;
   air: string | null;
 };

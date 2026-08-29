@@ -8,7 +8,7 @@
  * there is no secret to rotate and nothing to expire while nobody is looking.
  */
 import { settings } from "@/lib/content";
-import { TZ, type Live } from "@/lib/live";
+import { TZ, type Live, type SkyKey } from "@/lib/live";
 
 /* Route handlers are never prerendered, but the constraint is absolute: any
    file touching a binding declares it as a literal. */
@@ -49,18 +49,21 @@ function daypart(now: number, sunrise: number, sunset: number): Live["daypart"] 
 
 /* WMO weather codes, grouped. The full table has 28 entries and splits hairs a
    guest does not care about ("slight" vs "moderate" drizzle); what they want to
-   know is whether to expect to get wet walking from the terminal. */
-function sky(code: number): string {
-  if (code === 0) return "Clear";
-  if (code <= 2) return "Partly cloudy";
-  if (code === 3) return "Overcast";
-  if (code <= 48) return "Fog";
-  if (code <= 57) return "Drizzle";
-  if (code <= 67) return "Rain";
-  if (code <= 77) return "Snow";
-  if (code <= 82) return "Showers";
-  if (code <= 86) return "Snow showers";
-  return "Thunderstorm";
+   know is whether to expect to get wet walking from the terminal. Each group
+   returns a label for the strip and a key for the palette — the client stamps
+   [data-sky] from the key, and one source of truth beats ten label strings
+   re-grouped on the client. */
+function sky(code: number): { label: string; key: SkyKey } {
+  if (code === 0) return { label: "Clear", key: "clear" };
+  if (code <= 2) return { label: "Partly cloudy", key: "cloudy" };
+  if (code === 3) return { label: "Overcast", key: "cloudy" };
+  if (code <= 48) return { label: "Fog", key: "fog" };
+  if (code <= 57) return { label: "Drizzle", key: "rain" };
+  if (code <= 67) return { label: "Rain", key: "rain" };
+  if (code <= 77) return { label: "Snow", key: "snow" };
+  if (code <= 82) return { label: "Showers", key: "rain" };
+  if (code <= 86) return { label: "Snow showers", key: "snow" };
+  return { label: "Thunderstorm", key: "storm" };
 }
 
 /* US AQI bands. Kathmandu's air is a real thing guests ask about and a real
@@ -121,6 +124,7 @@ export async function GET() {
   const temp = forecast?.current?.temperature_2m;
   const code = forecast?.current?.weather_code;
   const aqi = quality?.current?.us_aqi;
+  const s = typeof code === "number" ? sky(code) : null;
 
   const body: Live = {
     time: now,
@@ -129,7 +133,8 @@ export async function GET() {
        fallback: it is the palette the whole design was drawn in. */
     daypart: sunrise && sunset ? daypart(mins(now), mins(sunrise), mins(sunset)) : "day",
     temp: typeof temp === "number" ? Math.round(temp) : null,
-    sky: typeof code === "number" ? sky(code) : null,
+    sky: s?.label ?? null,
+    skyKey: s?.key ?? null,
     aqi: typeof aqi === "number" ? Math.round(aqi) : null,
     air: typeof aqi === "number" ? air(Math.round(aqi)) : null,
   };

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { TZ, type Live } from "@/lib/live";
+import { TZ, type Live, type SkyKey } from "@/lib/live";
 
 /* The site's present tense, shared.
  *
@@ -60,8 +60,16 @@ export function LiveProvider({ children }: { children: React.ReactNode }) {
     if (!live) return;
     const el = document.documentElement;
     el.dataset.daypart = live.daypart;
+    /* The second axis, same mechanism: the hour moves the ground (--bg and
+       friends), the sky moves the atmosphere on top of it (--sky-*), and the
+       two own different variables so they can never fight. A missing sky key
+       deletes the attribute — a weather outage leaves the palette exactly
+       where the daypart put it. */
+    if (live.skyKey) el.dataset.sky = live.skyKey;
+    else delete el.dataset.sky;
     return () => {
       delete el.dataset.daypart;
+      delete el.dataset.sky;
     };
   }, [live]);
 
@@ -80,6 +88,16 @@ const NOTE: Record<Live["daypart"], string> = {
   day: "Reception open, rooms ready",
   dusk: "Kitchen open, front desk staffed",
   night: "Front desk awake — late arrivals are normal here",
+};
+
+/* Only the skies that change what an airport guest does next get a sentence —
+   clear, cloudy and snow need none. Same register as NOTE and the same rule:
+   every fact is one the seeded copy already claims (the 950 m terminal, the
+   paid shuttle, flights running late). Nothing invented. */
+const SKY: Partial<Record<SkyKey, string>> = {
+  fog: "Fog over the valley — flights can run late",
+  rain: "Raining in Kathmandu — the terminal is 950 m from the front door",
+  storm: "A storm is passing — ask the front desk about the airport shuttle",
 };
 
 /* The clock, ticked locally. It lives here rather than in the provider because a
@@ -159,5 +177,11 @@ export default function LiveLine() {
 export function LiveNote() {
   const live = useLive();
   if (!live) return null;
-  return <p className="live-note">{NOTE[live.daypart]}</p>;
+  const sky = live.skyKey ? SKY[live.skyKey] : undefined;
+  return (
+    <p className="live-note">
+      {NOTE[live.daypart]}
+      {sky ? ` · ${sky}` : ""}
+    </p>
+  );
 }
