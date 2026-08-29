@@ -19,7 +19,13 @@
      serve the same Worker rather than one redirecting to the other — a redirect
      would be a Cloudflare rule living outside this file, and `metadataBase`
      already emits the apex as the canonical URL, so search engines only ever see
-     one address. The workers.dev host keeps working alongside these. */
+     one address.
+
+     The old *.workers.dev host does NOT survive this: wrangler disables it when
+     `workers_dev` is absent from the config, and the 2026-08-29 deploy said so.
+     That is the intent — one public address — but it means there is no longer a
+     second URL to test against. Set "workers_dev": true here if you ever want a
+     staging host back. */
   "routes": [
     { "pattern": "hotelthakaliinn.com", "custom_domain": true },
     { "pattern": "www.hotelthakaliinn.com", "custom_domain": true }
