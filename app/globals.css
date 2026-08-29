@@ -15,7 +15,7 @@
      text, as a border, and as a button face with dark text on it. */
   --green: #9fbcac;
   --green-ink: #1c2a22;
-  --olive: #8fa396;
+  --olive: #a9ada1;
   /* On a dark ground the old --green read as another shadow, so headings and
      accents use the lit sage above. Brass is the material memory of the city's
      temple roofs: a warm metal that does for CTAs what the old white glow did
@@ -57,14 +57,14 @@
      lies against the page and has to be the lit thing to be found; once the well
      opens it is against the well's darker floor and turns up a step. Both sets
      live here so the two halves of the switch can't drift apart. */
-  --dial-track: rgba(236, 228, 210, 0.16);
-  --dial-idle: rgba(236, 228, 210, 0.5);
-  --dial-hover: rgba(236, 228, 210, 0.78);
-  --dial-active: #f2ecdd;
-  --dial-label: rgba(236, 228, 210, 0.62);
-  --dial-label-on: #f2ecdd;
+  --dial-track: rgba(232, 229, 218, 0.07);
+  --dial-idle: rgba(232, 229, 218, 0.24);
+  --dial-hover: rgba(232, 229, 218, 0.46);
+  --dial-active: #6f9480;
+  --dial-label: rgba(232, 229, 218, 0.5);
+  --dial-label-on: #e8e5da;
   --dial-shadow: #000000;
-  --dial-shadow-a: 0.4;
+  --dial-shadow-a: 0.22;
 
   --ease: cubic-bezier(0.34, 0.9, 0.28, 1);
   /* heavy start, long settle — a sheet with weight rather than a snap */
@@ -84,15 +84,16 @@
      cream family as the closed state, just brighter, because the floor is
      darker than the page. No inversion: the dial is the lit thing in both
      states, and only the amount of light changes. */
-  --dial-track: rgba(236, 228, 210, 0.2);
-  --dial-idle: rgba(236, 228, 210, 0.62);
-  --dial-hover: rgba(236, 228, 210, 0.88);
-  --dial-active: #f2ecdd;
-  --dial-label: rgba(236, 228, 210, 0.72);
-  --dial-label-on: #f2ecdd;
-  /* deeper, so the segments lift off the well's floor */
+  --dial-track: rgba(232, 229, 218, 0.09);
+  --dial-idle: rgba(232, 229, 218, 0.32);
+  --dial-hover: rgba(232, 229, 218, 0.6);
+  --dial-active: #6f9480;
+  --dial-label: rgba(232, 229, 218, 0.6);
+  --dial-label-on: #e8e5da;
+  /* still lifted off the well's floor, but a contact shadow rather than a
+     drop — at the old depth the segments read as chunky plastic tiles */
   --dial-shadow: #000000;
-  --dial-shadow-a: 0.55;
+  --dial-shadow-a: 0.3;
 }
 
 /* ── Kathmandu time ─────────────────────────────────────────────────────────
@@ -160,11 +161,11 @@
    streetlight, and the stars come out (see .ambient-fx). The video is bright —
    it is the light source, not a distraction. */
 :root[data-daypart="night"] {
-  --bg: #0a1216;
-  --surface: #101920;
-  --ink: #dce6ec;
+  --bg: #0b100e;
+  --surface: #121916;
+  --ink: #e8e5da;
   --nu-dark: rgba(0, 0, 0, 0.55);
-  --card: #152028;
+  --card: #171f1b;
   --ambient-bright: 1.05;
 }
 
@@ -746,7 +747,7 @@ body {
   padding: 0;
   border: 0;
   border-radius: 2px;
-  background: rgba(107, 112, 92, 0.3);
+  background: rgba(232, 229, 218, 0.22);
   cursor: pointer;
   transition: width 0.5s var(--ease), background 0.5s var(--ease);
 }
@@ -1732,13 +1733,19 @@ body {
   width: calc(2 * var(--notch) - 2px);
   height: calc(2 * var(--notch) - 2px);
   border-radius: 50%;
-  /* the card supplies a cut edge only where there is card; past it the well
-     runs onto bare glass, so it carries its own hairline the whole way round */
-  border: 1px solid rgba(236, 228, 210, 0.16);
-  background: rgba(16, 24, 19, 0.55);
-  box-shadow:
-    inset 9px 10px 26px rgba(0, 0, 0, 0.42),
-    inset -8px -9px 22px rgba(236, 228, 210, 0.09);
+  /* No border and no flat fill: on the dark ground a hard-edged disc with a
+     hairline read as a blot pasted over the page rather than a recess. The
+     ground fades out instead, which is the treatment the mobile block below
+     already uses. The card still supplies a crisp cut edge where there IS
+     card — that hole is the feature, this is only what happens past it. */
+  border: 0;
+  background: radial-gradient(
+    circle,
+    rgba(9, 14, 11, 0.7) 44%,
+    rgba(9, 14, 11, 0.46) 68%,
+    rgba(9, 14, 11, 0) 88%
+  );
+  box-shadow: none;
 }
 
 /* invisible disc that keeps hover unbroken between the puck and the arcs */
@@ -1860,6 +1867,29 @@ html[data-dial-open] .dial-seg {
   }
 }
 
+/* Between phone and desktop the dial held its full 520px — on a half-snapped
+   window, a zoomed browser or a phone held sideways that is a giant clipped
+   HUD, not a corner control. Scale it with the width so the ratio it has on a
+   desktop screen holds all the way down; --notch-open follows because the
+   card's cut, its reserved band and the well must keep meeting at the rendered
+   dial's reach. Below 721 the phone block above takes over; above 1160 nothing
+   changes. */
+@media (min-width: 721px) and (max-width: 1160px) {
+  :root {
+    --notch-open: calc(232px * (100vw / 1160px));
+  }
+  .dial-anchor {
+    transform: scale(calc(100vw / 1160px));
+  }
+  /* The well floor lives inside the scaled anchor, so it would shrink twice
+     (once with --notch-open, once with the anchor scale) and end up smaller
+     than the hole cut in the card. Counter-scale it back so the floor and the
+     hole keep meeting at the rendered dial's reach. */
+  .dial-anchor::before {
+    transform: scale(calc(1160px / 100vw));
+  }
+}
+
 /* ── Know more: the carousel column grown across the whole page ────── */
 
 /* The entire expansion is one interpolated property. grid-template-columns
@@ -1952,10 +1982,10 @@ html[data-dial-open] .dial-seg {
    rather than replacing it. */
 .room-view {
   background:
-    radial-gradient(60% 50% at 15% 20%, rgba(255, 255, 255, 0.9), transparent 60%),
-    radial-gradient(55% 60% at 85% 15%, rgba(107, 112, 92, 0.3), transparent 65%),
-    radial-gradient(65% 55% at 78% 85%, rgba(52, 78, 65, 0.2), transparent 65%),
-    radial-gradient(50% 50% at 22% 85%, rgba(236, 228, 210, 0.95), transparent 60%),
+    radial-gradient(60% 50% at 15% 20%, rgba(111, 148, 128, 0.1), transparent 60%),
+    radial-gradient(55% 60% at 85% 15%, rgba(201, 185, 138, 0.055), transparent 65%),
+    radial-gradient(65% 55% at 78% 85%, rgba(111, 148, 128, 0.07), transparent 65%),
+    radial-gradient(50% 50% at 22% 85%, rgba(232, 229, 218, 0.045), transparent 60%),
     var(--bg);
   background-size: 160% 160%, 180% 180%, 170% 170%, 150% 150%, 100% 100%;
   background-repeat: no-repeat;
@@ -3315,7 +3345,7 @@ html[data-dial-open] .dial-seg {
    than its opacity, so it stays legible while the request is in flight. */
 .con-send:disabled {
   cursor: default;
-  background: rgba(107, 112, 92, 0.5);
+  background: rgba(169, 173, 161, 0.3);
   color: rgba(242, 236, 224, 0.72);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }

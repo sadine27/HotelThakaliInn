@@ -163,14 +163,14 @@ export default function DialNav() {
           <g
             className="dial-ring"
             style={{ transform: `scale(${open ? 1 : 0.74})` }}
-            strokeWidth={open ? 22 : 14}
+            strokeWidth={open ? 14 : 9}
           >
             {/* recessed track the segments sit in */}
             <path
               d={arcPath(SWEEP_FROM - 2, SWEEP_FROM + ITEMS.length * SLOT + 2, R_ARC)}
               fill="none"
               stroke={TRACK}
-              strokeWidth={open ? 34 : 21}
+              strokeWidth={open ? 22 : 14}
               strokeLinecap="round"
               className="dial-arc"
               opacity={open ? 1 : 0.7}
