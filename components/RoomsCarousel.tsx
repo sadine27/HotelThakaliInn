@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import Img from "@/components/Img";
 import { useRouter, useSearchParams } from "next/navigation";
 import LiquidBackground from "./LiquidBackground";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
@@ -79,7 +79,7 @@ function RoomCard({
       }
     >
       <div className="svc-well">
-        <Image src={room.image} alt="" fill sizes="(max-width: 900px) 88vw, 46vw" className="svc-media" priority={front} />
+        <Img src={room.image} alt="" fill sizes="(max-width: 900px) 88vw, 46vw" className="svc-media" priority={front} />
         <div className="svc-scrim" />
       </div>
       <div className="svc-content">

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
+import PhotoField from "@/components/PhotoField";
 import { section } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,21 @@ const SECTIONS = ["hero", "service", "room", "gallery", "breakfast", "amenity"] 
 type Section = (typeof SECTIONS)[number];
 
 const isSection = (value: string): value is Section => SECTIONS.includes(value as Section);
+
+/* The client sends a MIME type it chose, and a .txt renamed to .jpg keeps its
+   text/plain nowhere at all — so the file's own first bytes decide. This is the
+   free equivalent of env.IMAGES.info(): if a paid Images subscription is ever
+   confirmed, swap in info() and delete this table. */
+const MAGIC: [string, string, number[]][] = [
+  ["image/jpeg", "jpg", [0xff, 0xd8, 0xff]],
+  ["image/png", "png", [0x89, 0x50, 0x4e, 0x47]],
+  ["image/webp", "webp", [0x52, 0x49, 0x46, 0x46]], // RIFF; bytes 8-11 spell WEBP
+];
+
+/* Comfortably above a 1600px JPEG (the seeded ones are 200-400 KB) and below
+   the 3 MB Server Action body cap in next.config.mjs, so this check is the one
+   that rejects rather than the transport. */
+const MAX = 2 * 1024 * 1024;
 
 /* Column names are generic because one table serves six sections. On this screen
    they need to read as the thing being edited. */
@@ -82,6 +98,35 @@ export default async function Content({
       .run();
   }
 
+  async function upload(formData: FormData) {
+    "use server";
+    await requireSession();
+
+    const file = formData.get("file");
+    const sec = String(formData.get("section") ?? "");
+    const slug = String(formData.get("slug") ?? "");
+    if (!(file instanceof File) || !file.size || file.size > MAX || !isSection(sec) || !slug) return;
+
+    const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
+    if (!match) return;
+    const [type, ext] = match;
+    /* RIFF is also AVI and WAV. Only the WEBP fourcc makes it an image. */
+    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") return;
+
+    /* The uploaded filename is never used — not as the key, not as metadata. It
+       is attacker-controlled text and a UUID answers every question it would,
+       including "is this a new photo or the old one cached forever". */
+    const key = `${crypto.randomUUID()}.${ext}`;
+    await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: type } });
+
+    await env.DB.prepare(
+      "UPDATE content SET image = ?3, updated_at = datetime('now') WHERE section = ?1 AND slug = ?2",
+    )
+      .bind(sec, slug, `/img/${key}`)
+      .run();
+  }
+
   async function removeItem(formData: FormData) {
     "use server";
     await requireSession();
@@ -114,7 +159,10 @@ export default async function Content({
       </nav>
 
       {[...rows, null].map((row, i) => (
-        <form key={row?.slug ?? "new"} className="adm-item" action={saveItem}>
+        /* The upload is a sibling form, not a nested one — a <form> inside a
+           <form> is invalid HTML and browsers silently drop the inner one. */
+        <div key={row?.slug ?? "new"} className="adm-row">
+        <form className="adm-item" action={saveItem}>
           <input type="hidden" name="section" value={name} />
 
           <div className="adm-field">
@@ -178,6 +226,24 @@ export default async function Content({
 
           <button type="submit">{row ? "Save" : "Add"}</button>
         </form>
+
+        {/* Only on an existing row: the action writes to a row identified by
+            (section, slug), so there is nothing to attach a photo to until the
+            row has been added. */}
+        {row && (
+          <form action={upload} encType="multipart/form-data" className="adm-upload">
+            <input type="hidden" name="section" value={name} />
+            <input type="hidden" name="slug" value={row.slug} />
+            <label>photo</label>
+            <PhotoField />
+            <button type="submit">Upload photo</button>
+            <small>
+              JPEG, PNG or WebP. Big photos are resized in your browser before they are sent, so
+              a photo straight off a phone or camera is fine. It replaces the image path above.
+            </small>
+          </form>
+        )}
+        </div>
       ))}
 
       {rows.length > 0 && (

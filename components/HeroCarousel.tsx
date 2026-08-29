@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import Img from "@/components/Img";
 import LiveLine, { LiveNote } from "@/components/Live";
 import ServicesCarousel, { type ServiceCardData } from "@/components/ServicesCarousel";
 import { DRAG } from "@/lib/carousel";
@@ -124,7 +124,7 @@ export default function HeroCarousel({
                  it — plain <img> bypassed the IMAGES binding entirely. `fill`
                  works because .hero-shot is already positioned. Only the first
                  slide is priority; the other three are off-stage at load. */
-              <Image
+              <Img
                 src={s.src}
                 alt=""
                 fill

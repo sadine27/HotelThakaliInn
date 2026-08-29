@@ -61,5 +61,11 @@
       "database_name": "thakali-inn-contact",
       "database_id": "62a811d5-4f4b-4268-9b3d-6ea35a08d7e1"
     }
-  ]
+  ],
+  /* Not a public bucket. Serving through the Worker means one URL shape, no
+     second hostname to configure, and no way to reach an object except through
+     code we wrote. `/img/*` sends `immutable`, so the CDN answers nearly every
+     request and R2 sees roughly one read per image per edge — which is what
+     keeps this inside the free tier rather than a promise that it will. */
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "thakali-inn-media" }]
 }

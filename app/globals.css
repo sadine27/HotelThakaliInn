@@ -3717,3 +3717,65 @@ body {
   background: var(--alert);
   color: #f2ecdd;
 }
+
+/* --- admin: photo upload ------------------------------------------------- */
+
+/* The wrapper exists because the upload has to be its own <form>. It reads as
+   one card: the save panel keeps its shadow, the upload strip is tucked under
+   it so the two are obviously about the same row. */
+.adm-row {
+  margin-bottom: 14px;
+}
+
+.adm-row .adm-item {
+  margin-bottom: 0;
+  border-radius: 10px 10px 0 0;
+}
+
+.adm-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px 14px;
+  border-radius: 0 0 10px 10px;
+  background: color-mix(in srgb, var(--surface) 70%, var(--bg));
+  box-shadow: var(--nu-raised);
+}
+
+.adm-upload label {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.adm-upload input[type="file"] {
+  flex: 1 1 220px;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+}
+
+.adm-upload button {
+  width: auto;
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+/* Full width on its own line, under both controls. */
+.adm-upload small {
+  flex: 1 0 100%;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--olive);
+}
+
+/* The resize notice from components/PhotoField.tsx, next to the size hint. */
+.adm-upload small[role="status"] {
+  flex: 1 0 100%;
+  color: var(--ink);
+}
