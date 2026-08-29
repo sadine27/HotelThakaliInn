@@ -2054,8 +2054,8 @@ html[data-dial-open] .dial-seg {
   background-image: var(--shot);
   background-size: cover;
   background-position: center;
-  filter: blur(56px) saturate(0.72);
-  opacity: 0.14;
+  filter: blur(56px) saturate(0.22) brightness(0.8);
+  opacity: 0.055;
   pointer-events: none;
 }
 

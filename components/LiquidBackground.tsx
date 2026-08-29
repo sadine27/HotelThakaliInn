@@ -113,7 +113,7 @@ export default function LiquidBackground({ speed = 0.15 }: { speed?: number }) {
        and the ResizeObserver fires all through the 640ms column expansion — with
        alpha:false the default clear is opaque black, so it clears to the page's
        own ground instead. */
-    gl.clearColor(0.894, 0.886, 0.863, 1);
+    gl.clearColor(0.043, 0.063, 0.055, 1);
 
     const vs = compile(gl, gl.VERTEX_SHADER, VERT);
     const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG);
