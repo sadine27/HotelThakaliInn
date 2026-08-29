@@ -135,6 +135,7 @@ export async function GET() {
     skyKey: s?.key ?? null,
     aqi: typeof aqi === "number" ? Math.round(aqi) : null,
     air: typeof aqi === "number" ? air(Math.round(aqi)) : null,
+    phone: config.phone ?? "",
   };
 
   return Response.json(body, {

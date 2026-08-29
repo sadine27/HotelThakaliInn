@@ -39,8 +39,11 @@
   /* Elevation without a light halo: a hairline top rim does the job the old
      white glow did, and a deep dark shadow says "lifted". */
   --nu-dark: rgba(0, 0, 0, 0.5);
-  --nu-raised: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 32px rgba(0, 0, 0, 0.5);
-  --nu-pressed: inset 0 3px 12px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  --nu-raised:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 32px rgba(0, 0, 0, 0.5);
+  --nu-pressed:
+    inset 0 3px 12px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 
   /* the dial's inset from the corner. The spread bottom-aligns to this same
      line, so the card's bottom-right corner IS the dial's pivot — which is what
@@ -223,7 +226,12 @@ body {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, rgba(8, 11, 9, 0.6), rgba(201, 152, 90, 0.08) 42%, rgba(8, 11, 9, 0.55)),
+    linear-gradient(
+      120deg,
+      rgba(8, 11, 9, 0.6),
+      rgba(201, 152, 90, 0.08) 42%,
+      rgba(8, 11, 9, 0.55)
+    ),
     rgba(8, 11, 9, 0.25);
 }
 
@@ -254,7 +262,10 @@ body {
      window they come out *shorter* than their own content, and a max-height
      can't put back what a too-short box already lost. */
   --card-min-h: 560px;
-  --card-max-h: max(var(--card-min-h), calc(100svh - var(--pad-y) - var(--inset) - 2px)); /* 2px = the leaf's own top+bottom hairline */
+  --card-max-h: max(
+    var(--card-min-h),
+    calc(100svh - var(--pad-y) - var(--inset) - 2px)
+  ); /* 2px = the leaf's own top+bottom hairline */
   position: relative;
   z-index: 1;
   display: grid;
@@ -277,7 +288,9 @@ body {
   backdrop-filter: blur(9px) saturate(1.1);
   -webkit-backdrop-filter: blur(9px) saturate(1.1);
   backface-visibility: hidden;
-  transition: transform 1.9s var(--swing), box-shadow 1.4s ease;
+  transition:
+    transform 1.9s var(--swing),
+    box-shadow 1.4s ease;
 }
 
 /* the cut edge of the sheet — only there once the halves part, which is the
@@ -320,7 +333,11 @@ body {
   );
 }
 .leaf-l::after {
-  background: linear-gradient(90deg, rgba(43, 50, 48, 0) 30%, rgba(43, 50, 48, 0.4));
+  background: linear-gradient(
+    90deg,
+    rgba(43, 50, 48, 0) 30%,
+    rgba(43, 50, 48, 0.4)
+  );
 }
 .leaf-r {
   padding-left: var(--gutter);
@@ -337,7 +354,11 @@ body {
   );
 }
 .leaf-r::after {
-  background: linear-gradient(270deg, rgba(43, 50, 48, 0) 30%, rgba(43, 50, 48, 0.4));
+  background: linear-gradient(
+    270deg,
+    rgba(43, 50, 48, 0) 30%,
+    rgba(43, 50, 48, 0.4)
+  );
 }
 
 /* opening: the halves wait for the button to clear.
@@ -387,7 +408,9 @@ body {
      so that drift is exactly what pulls the card's corner off the pivot. Both
      cards take the same cap, so they bend together and keep matching footprints. */
   max-height: var(--card-max-h);
-  min-height: var(--card-min-h); /* matches .hero-copy so the two keep one footprint */
+  min-height: var(
+    --card-min-h
+  ); /* matches .hero-copy so the two keep one footprint */
   justify-self: end; /* hugs the seam, so the only gap is the channel itself */
   border-radius: 28px;
   background: var(--card);
@@ -409,7 +432,9 @@ body {
   border-radius: 20px;
   overflow: hidden;
   opacity: 0;
-  transition: transform var(--swap) var(--ease), opacity var(--swap) var(--ease);
+  transition:
+    transform var(--swap) var(--ease),
+    opacity var(--swap) var(--ease);
 }
 
 .hero-shot img {
@@ -448,9 +473,16 @@ body {
      bright rectangle on an otherwise dark page, and it flashed before the
      photograph arrived to cover it. Dark plate, one hairline top edge. */
   background:
-    linear-gradient(150deg, rgba(255, 255, 255, 0.05), rgba(159, 188, 172, 0.04) 55%, rgba(13, 18, 16, 0.5)),
+    linear-gradient(
+      150deg,
+      rgba(255, 255, 255, 0.05),
+      rgba(159, 188, 172, 0.04) 55%,
+      rgba(13, 18, 16, 0.5)
+    ),
     var(--surface);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -24px 48px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -24px 48px rgba(0, 0, 0, 0.4);
 }
 
 /* the facing page: same footprint and material as the photo, so the two halves
@@ -462,8 +494,12 @@ body {
 
   width: min(100%, calc(84vh + 118px));
   aspect-ratio: 6 / 7;
-  max-height: var(--card-max-h); /* see .hero-frame — this is what keeps the corner on the pivot */
-  min-height: var(--card-min-h); /* the eyebrow, deck, rail and the well's reserved band */
+  max-height: var(
+    --card-max-h
+  ); /* see .hero-frame — this is what keeps the corner on the pivot */
+  min-height: var(
+    --card-min-h
+  ); /* the eyebrow, deck, rail and the well's reserved band */
   justify-self: start; /* mirrors the photo across the channel */
   /* ponytail: the pivot assumes the card is column-width, which stops being
      true past ~2:1 viewports where the 84vh cap wins and the card pulls left
@@ -493,8 +529,16 @@ body {
     -10px -10px 28px rgba(0, 0, 0, 0.3);
   /* the hole. Feathered over the last 0.4% only — this is a cut edge, not a
      fade, and a soft one would read as a rendering artifact. */
-  -webkit-mask: radial-gradient(circle var(--notch) at calc(100% - var(--pivot)) 100%, transparent 99.6%, #000 100%);
-  mask: radial-gradient(circle var(--notch) at calc(100% - var(--pivot)) 100%, transparent 99.6%, #000 100%);
+  -webkit-mask: radial-gradient(
+    circle var(--notch) at calc(100% - var(--pivot)) 100%,
+    transparent 99.6%,
+    #000 100%
+  );
+  mask: radial-gradient(
+    circle var(--notch) at calc(100% - var(--pivot)) 100%,
+    transparent 99.6%,
+    #000 100%
+  );
 }
 
 /* The cut edge. A mask takes the border and the shadow with it, so the arc gets
@@ -670,7 +714,9 @@ body {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transition: transform var(--swap) var(--ease), opacity var(--swap) var(--ease);
+  transition:
+    transform var(--swap) var(--ease),
+    opacity var(--swap) var(--ease);
 }
 
 /* text runs upward: parked below, leaving above (mirrored when going back) */
@@ -722,7 +768,9 @@ body {
   color: var(--green);
   box-shadow: var(--nu-raised);
   cursor: pointer;
-  transition: box-shadow 0.3s var(--ease), color 0.3s ease;
+  transition:
+    box-shadow 0.3s var(--ease),
+    color 0.3s ease;
 }
 
 .hero-arrow:hover {
@@ -749,7 +797,9 @@ body {
   border-radius: 2px;
   background: rgba(232, 229, 218, 0.22);
   cursor: pointer;
-  transition: width 0.5s var(--ease), background 0.5s var(--ease);
+  transition:
+    width 0.5s var(--ease),
+    background 0.5s var(--ease);
 }
 
 .hero-tick[aria-current] {
@@ -790,7 +840,9 @@ body {
   background: rgba(19, 26, 22, 0.8);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   color: var(--ink);
   font-family: var(--font-mono), monospace;
   font-size: 11px;
@@ -798,7 +850,11 @@ body {
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
-  transition: box-shadow 0.3s var(--ease), color 0.3s ease, transform 0.3s var(--ease), background 0.3s ease;
+  transition:
+    box-shadow 0.3s var(--ease),
+    color 0.3s ease,
+    transform 0.3s var(--ease),
+    background 0.3s ease;
 }
 
 .hero-cta:hover {
@@ -806,12 +862,16 @@ body {
   border-color: rgba(201, 152, 90, 0.45);
   transform: translateY(-1px);
   background: rgba(19, 26, 22, 0.88);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(201, 152, 90, 0.12);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(201, 152, 90, 0.12);
 }
 
 .hero-cta:active {
   transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .hero-cta-icon {
@@ -856,7 +916,9 @@ body {
   letter-spacing: 0.24em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: box-shadow 0.35s var(--ease), transform 0.35s var(--ease);
+  transition:
+    box-shadow 0.35s var(--ease),
+    transform 0.35s var(--ease);
 }
 
 .gate-btn:hover {
@@ -893,13 +955,19 @@ body {
   /* A full-bleed overlay: at 56% cream it washed the whole viewport pale and
      undid the dark ground the moment it opened. Same shape, dark scrim, so the
      blur behind it still reads as depth rather than as fog. */
-  background: radial-gradient(85% 65% at 50% 42%, rgba(23, 32, 27, 0.92), rgba(13, 18, 16, 0.96) 72%);
+  background: radial-gradient(
+    85% 65% at 50% 42%,
+    rgba(23, 32, 27, 0.92),
+    rgba(13, 18, 16, 0.96) 72%
+  );
   backdrop-filter: blur(8px) saturate(1.08);
   -webkit-backdrop-filter: blur(8px) saturate(1.08);
   opacity: 0;
   transform: scale(0.96);
   pointer-events: none;
-  transition: opacity 0.8s ease, transform 1.1s var(--ease);
+  transition:
+    opacity 0.8s ease,
+    transform 1.1s var(--ease);
 }
 
 .beyond[data-open] {
@@ -936,7 +1004,9 @@ body {
      1.6× the front card, and .beyond scrolls on y, which computes overflow-x to
      `auto` — so a card that outgrows the window would raise a horizontal bar. */
   --card-h: min(clamp(280px, 62vh, 520px), 37vw);
-  --card-w: calc(var(--card-h) * 17 / 11); /* the old 680×440 ratio, kept as a ratio */
+  --card-w: calc(
+    var(--card-h) * 17 / 11
+  ); /* the old 680×440 ratio, kept as a ratio */
   --ring-n: 5;
   --ring-step: calc(360deg / var(--ring-n));
   /* Circumradius of a regular --ring-n-gon whose side is one card, so at spread 1
@@ -945,7 +1015,9 @@ body {
      their near and far edges together until they collapse to slivers. At 1.5 they
      rendered 21px wide; at 1 they read as cards. */
   --ring-spread: 1;
-  --ring-radius: calc(var(--card-w) / 2 / tan(180deg / var(--ring-n)) * var(--ring-spread));
+  --ring-radius: calc(
+    var(--card-w) / 2 / tan(180deg / var(--ring-n)) * var(--ring-spread)
+  );
   display: grid;
   justify-items: center;
   width: min(96vw, 1500px);
@@ -994,7 +1066,8 @@ body {
 .svc-face {
   position: absolute;
   inset: 0;
-  transform: rotateY(calc(var(--i) * var(--ring-step))) translateZ(var(--ring-radius));
+  transform: rotateY(calc(var(--i) * var(--ring-step)))
+    translateZ(var(--ring-radius));
   transform-style: preserve-3d;
 }
 
@@ -1093,7 +1166,12 @@ body {
 .svc-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(0deg, rgba(20, 24, 18, 0.86) 0%, rgba(20, 24, 18, 0.32) 46%, rgba(20, 24, 18, 0.05) 68%);
+  background: linear-gradient(
+    0deg,
+    rgba(20, 24, 18, 0.86) 0%,
+    rgba(20, 24, 18, 0.32) 46%,
+    rgba(20, 24, 18, 0.05) 68%
+  );
 }
 
 .svc-content {
@@ -1239,7 +1317,9 @@ body {
      instead of 360/n — at a 72deg step this reduces to exactly that expression.
      Half the step is the half-angle each facet subtends, so this is the distance
      that puts neighbouring cards edge to edge without intersecting. */
-  --ring-radius: calc(var(--card-h) / 2 / tan(calc(var(--ring-step) / 2)) * var(--ring-spread));
+  --ring-radius: calc(
+    var(--card-h) / 2 / tan(calc(var(--ring-step) / 2)) * var(--ring-spread)
+  );
   position: relative;
   z-index: 1;
   display: grid;
@@ -1344,7 +1424,8 @@ body {
 .room-face {
   position: absolute;
   inset: 0;
-  transform: rotateX(calc(var(--i) * var(--ring-step) * -1)) translateZ(var(--ring-radius));
+  transform: rotateX(calc(var(--i) * var(--ring-step) * -1))
+    translateZ(var(--ring-radius));
   transform-style: preserve-3d;
 }
 
@@ -1607,7 +1688,11 @@ body {
     );
   }
   .leaf-l::after {
-    background: linear-gradient(180deg, rgba(43, 50, 48, 0) 30%, rgba(43, 50, 48, 0.4));
+    background: linear-gradient(
+      180deg,
+      rgba(43, 50, 48, 0) 30%,
+      rgba(43, 50, 48, 0.4)
+    );
   }
   .leaf-r {
     padding: var(--gutter) var(--pad-x) 84px; /* clears the dial */
@@ -1625,7 +1710,11 @@ body {
     );
   }
   .leaf-r::after {
-    background: linear-gradient(0deg, rgba(43, 50, 48, 0) 30%, rgba(43, 50, 48, 0.4));
+    background: linear-gradient(
+      0deg,
+      rgba(43, 50, 48, 0) 30%,
+      rgba(43, 50, 48, 0.4)
+    );
   }
   .hero[data-open] .leaf-l {
     transform: rotateX(104deg);
@@ -1702,6 +1791,165 @@ body {
   }
 }
 
+/* ── corner dock: back, WhatsApp, book ─────────────────────────────── */
+
+/* The dial owns the bottom-right corner. These take the other two, so the
+   floating controls read as one system rather than as three things that happen
+   to sit on top of the page. z-index below .dial-layer's 50, so the open fan is
+   never underneath a button; the layer is pointer-events:none, so being under
+   it costs the dock no clicks. */
+
+.dock-back,
+.dock {
+  position: fixed;
+  z-index: 45;
+}
+
+.dock-back {
+  top: 26px;
+  left: 26px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(232, 229, 218, 0.14);
+  background: rgba(19, 26, 22, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: rgba(232, 229, 218, 0.72);
+  cursor: pointer;
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.3s var(--ease);
+}
+
+.dock-back:hover {
+  color: var(--brass);
+  border-color: rgba(201, 152, 90, 0.45);
+  /* leftward, not up: the button means "the way you came" */
+  transform: translateX(-2px);
+}
+
+.dock {
+  left: 26px;
+  bottom: 26px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dock-wa {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(232, 229, 218, 0.14);
+  background: rgba(19, 26, 22, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  /* Monochrome, not WhatsApp's #25D366: on this ground the brand green is a
+     shout, and the glyph's silhouette is what makes it recognisable anyway. */
+  color: rgba(232, 229, 218, 0.66);
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.3s var(--ease);
+}
+
+.dock-wa:hover {
+  color: var(--green);
+  border-color: rgba(159, 188, 172, 0.4);
+  transform: translateY(-2px);
+}
+
+.dock-book {
+  padding: 13px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 152, 90, 0.35);
+  background: rgba(19, 26, 22, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--brass);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s var(--ease),
+    box-shadow 0.3s var(--ease);
+}
+
+.dock-book:hover {
+  border-color: rgba(201, 152, 90, 0.62);
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(201, 152, 90, 0.14);
+}
+
+.dock-back:active,
+.dock-wa:active,
+.dock-book:active {
+  transform: translateY(0);
+}
+
+/* An opened room already draws its own Back at the top of the detail column,
+   and the column covers the page — two back buttons a few pixels apart, one
+   overlapping the other. The page's own wins: it is the one that closes the
+   column rather than leaving the page. */
+body:has(.room-page[data-open]) .dock-back {
+  display: none;
+}
+
+/* The gallery's eyebrow and headline start in the same corner. Shifted past
+   the button rather than the button being moved, because the button's corner
+   is the same on every page and the eyebrow is one line of small type. */
+.gal-head {
+  padding-left: 46px;
+}
+
+@media (max-width: 720px) {
+  .dock-back {
+    top: 18px;
+    left: 18px;
+  }
+  .dock {
+    left: 18px;
+    bottom: 18px;
+    gap: 8px;
+  }
+  .dock-wa {
+    width: 40px;
+    height: 40px;
+  }
+  .dock-book {
+    padding: 11px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-back,
+  .dock-wa,
+  .dock-book {
+    transition: none;
+  }
+  .dock-back:hover,
+  .dock-wa:hover,
+  .dock-book:hover {
+    transform: none;
+  }
+}
+
 /* ── dial ──────────────────────────────────────────────────────────── */
 
 .dial-layer {
@@ -1771,14 +2019,18 @@ body {
 .dial-ring {
   transform-box: view-box;
   transform-origin: 260px 260px;
-  transition: transform 0.55s var(--ease), stroke-width 0.55s var(--ease);
+  transition:
+    transform 0.55s var(--ease),
+    stroke-width 0.55s var(--ease);
 }
 
 .dial-arc {
   /* the svg is pointer-events:none, but the arcs opt back in so hovering the
      collapsed band opens the dial — the spokes only exist once it's open */
   pointer-events: stroke;
-  transition: stroke-width 0.55s var(--ease), stroke 0.3s ease;
+  transition:
+    stroke-width 0.55s var(--ease),
+    stroke 0.3s ease;
 }
 
 /* Each segment — its arc and its label — is one hit target. The painted
@@ -1822,7 +2074,9 @@ html[data-dial-open] .dial-seg {
   cursor: pointer;
   pointer-events: auto;
   overflow: hidden;
-  transition: box-shadow 0.4s var(--ease), transform 0.4s var(--ease);
+  transition:
+    box-shadow 0.4s var(--ease),
+    transform 0.4s var(--ease);
 }
 
 .dial-puck[aria-expanded="true"] {
@@ -1939,7 +2193,9 @@ html[data-dial-open] .dial-seg {
 }
 
 .room-arrow {
-  transition: box-shadow 0.3s var(--ease), opacity 300ms var(--ease);
+  transition:
+    box-shadow 0.3s var(--ease),
+    opacity 300ms var(--ease);
 }
 .room-page[data-open] .room-arrow {
   opacity: 0;
@@ -1960,7 +2216,9 @@ html[data-dial-open] .dial-seg {
   opacity: 0;
   transform: translateY(14px);
   pointer-events: none;
-  transition: opacity 320ms var(--ease), transform 320ms var(--ease);
+  transition:
+    opacity 320ms var(--ease),
+    transform 320ms var(--ease);
 }
 
 .room-page[data-open] .room-view {
@@ -1982,12 +2240,33 @@ html[data-dial-open] .dial-seg {
    rather than replacing it. */
 .room-view {
   background:
-    radial-gradient(60% 50% at 15% 20%, rgba(111, 148, 128, 0.1), transparent 60%),
-    radial-gradient(55% 60% at 85% 15%, rgba(201, 185, 138, 0.055), transparent 65%),
-    radial-gradient(65% 55% at 78% 85%, rgba(111, 148, 128, 0.07), transparent 65%),
-    radial-gradient(50% 50% at 22% 85%, rgba(232, 229, 218, 0.045), transparent 60%),
+    radial-gradient(
+      60% 50% at 15% 20%,
+      rgba(111, 148, 128, 0.1),
+      transparent 60%
+    ),
+    radial-gradient(
+      55% 60% at 85% 15%,
+      rgba(201, 185, 138, 0.055),
+      transparent 65%
+    ),
+    radial-gradient(
+      65% 55% at 78% 85%,
+      rgba(111, 148, 128, 0.07),
+      transparent 65%
+    ),
+    radial-gradient(
+      50% 50% at 22% 85%,
+      rgba(232, 229, 218, 0.045),
+      transparent 60%
+    ),
     var(--bg);
-  background-size: 160% 160%, 180% 180%, 170% 170%, 150% 150%, 100% 100%;
+  background-size:
+    160% 160%,
+    180% 180%,
+    170% 170%,
+    150% 150%,
+    100% 100%;
   background-repeat: no-repeat;
   animation: room-liquid 26s var(--ease) infinite alternate;
 }
@@ -1996,13 +2275,28 @@ html[data-dial-open] .dial-seg {
    independently so the motion reads as fluid rather than a single pan */
 @keyframes room-liquid {
   0% {
-    background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0 0;
+    background-position:
+      0% 0%,
+      100% 0%,
+      100% 100%,
+      0% 100%,
+      0 0;
   }
   50% {
-    background-position: 30% 45%, 65% 35%, 55% 70%, 35% 55%, 0 0;
+    background-position:
+      30% 45%,
+      65% 35%,
+      55% 70%,
+      35% 55%,
+      0 0;
   }
   100% {
-    background-position: 60% 10%, 35% 65%, 15% 90%, 75% 20%, 0 0;
+    background-position:
+      60% 10%,
+      35% 65%,
+      15% 90%,
+      75% 20%,
+      0 0;
   }
 }
 
@@ -2244,12 +2538,17 @@ html[data-dial-open] .dial-seg {
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.3s ease, box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s var(--ease),
+    transform 0.3s var(--ease);
 }
 
 /* no blur available means the tint is doing all the work, so it has to be opaque
    enough to carry the light text on its own */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   .room-more,
   .room-back {
     background: rgba(52, 78, 65, 0.92);
@@ -3317,10 +3616,15 @@ html[data-dial-open] .dial-seg {
   text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.3s ease, box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s var(--ease),
+    transform 0.3s var(--ease);
 }
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
   .con-send {
     background: rgba(52, 78, 65, 0.92);
   }
@@ -3374,7 +3678,8 @@ html[data-dial-open] .dial-seg {
     align-content: start;
     min-height: 0;
     overflow: visible;
-    padding: clamp(28px, 5vh, 56px) clamp(20px, 5vw, 40px) calc(var(--inset) + 40px);
+    padding: clamp(28px, 5vh, 56px) clamp(20px, 5vw, 40px)
+      calc(var(--inset) + 40px);
   }
   .con-main {
     grid-template-rows: auto auto;
@@ -3609,7 +3914,9 @@ html[data-dial-open] .dial-seg {
   background: var(--surface, #fff);
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.2s, opacity 0.2s;
+  transition:
+    border-color 0.2s,
+    opacity 0.2s;
 }
 
 .adm-tile:hover {
@@ -3933,7 +4240,8 @@ html[data-dial-open] .dial-seg {
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: clamp(28px, 5vh, 56px) clamp(20px, 5vw, 40px) calc(var(--inset) + 40px);
+  padding: clamp(28px, 5vh, 56px) clamp(20px, 5vw, 40px)
+    calc(var(--inset) + 40px);
 }
 
 .bk-card {
@@ -3998,7 +4306,9 @@ html[data-dial-open] .dial-seg {
   color: var(--ink);
   appearance: none;
   -webkit-appearance: none;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .bk-field input::placeholder,
@@ -4061,19 +4371,27 @@ html[data-dial-open] .dial-seg {
   font-weight: 600;
   letter-spacing: 0.04em;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition:
+    box-shadow 0.3s var(--ease),
+    transform 0.3s var(--ease);
 }
 
 .bk-send:hover:not(:disabled) {
   background: #d9ab6d;
   transform: translateY(-1px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .bk-send:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 2px 5px rgba(0, 0, 0, 0.22);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 2px 5px rgba(0, 0, 0, 0.22);
 }
 
 .bk-send:focus-visible {
@@ -4087,7 +4405,9 @@ html[data-dial-open] .dial-seg {
   text-decoration: none;
   border-bottom: 1px solid rgba(236, 228, 210, 0.25);
   padding-bottom: 2px;
-  transition: color 0.3s ease, border-color 0.3s ease;
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .bk-ota:hover {
@@ -4296,13 +4616,44 @@ html[data-dial-open] .dial-seg {
   opacity: 0;
   transition: opacity 1.4s var(--ease);
   background-image:
-    radial-gradient(1.5px 1.5px at 22% 24%, rgba(255, 255, 255, 0.9) 45%, transparent 60%),
-    radial-gradient(1px 1px at 78% 12%, rgba(255, 255, 255, 0.7) 45%, transparent 60%),
-    radial-gradient(1.5px 1.5px at 48% 64%, rgba(255, 255, 255, 0.8) 45%, transparent 60%),
-    radial-gradient(1px 1px at 90% 40%, rgba(255, 255, 255, 0.65) 45%, transparent 60%),
-    linear-gradient(180deg, rgba(9, 15, 36, 0.6), rgba(24, 34, 62, 0.34) 55%, rgba(9, 15, 36, 0.5));
-  background-size: 260px 300px, 420px 360px, 340px 280px, 520px 400px, auto;
-  background-position: 0 0, 90px 40px, 0 0, 160px 80px, 0 0;
+    radial-gradient(
+      1.5px 1.5px at 22% 24%,
+      rgba(255, 255, 255, 0.9) 45%,
+      transparent 60%
+    ),
+    radial-gradient(
+      1px 1px at 78% 12%,
+      rgba(255, 255, 255, 0.7) 45%,
+      transparent 60%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 48% 64%,
+      rgba(255, 255, 255, 0.8) 45%,
+      transparent 60%
+    ),
+    radial-gradient(
+      1px 1px at 90% 40%,
+      rgba(255, 255, 255, 0.65) 45%,
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(9, 15, 36, 0.6),
+      rgba(24, 34, 62, 0.34) 55%,
+      rgba(9, 15, 36, 0.5)
+    );
+  background-size:
+    260px 300px,
+    420px 360px,
+    340px 280px,
+    520px 400px,
+    auto;
+  background-position:
+    0 0,
+    90px 40px,
+    0 0,
+    160px 80px,
+    0 0;
 }
 
 :root[data-daypart="night"] .ambient-fx::before {
@@ -4342,19 +4693,37 @@ html[data-dial-open] .dial-seg {
 :root[data-sky="snow"] .ambient-fx::after {
   opacity: 1;
   background-image:
-    radial-gradient(3px 3px at 25% 15%, rgba(255, 255, 255, 0.95) 50%, transparent 60%),
-    radial-gradient(2px 2px at 70% 40%, rgba(255, 255, 255, 0.8) 50%, transparent 60%),
-    radial-gradient(2.5px 2.5px at 45% 80%, rgba(255, 255, 255, 0.9) 50%, transparent 60%);
+    radial-gradient(
+      3px 3px at 25% 15%,
+      rgba(255, 255, 255, 0.95) 50%,
+      transparent 60%
+    ),
+    radial-gradient(
+      2px 2px at 70% 40%,
+      rgba(255, 255, 255, 0.8) 50%,
+      transparent 60%
+    ),
+    radial-gradient(
+      2.5px 2.5px at 45% 80%,
+      rgba(255, 255, 255, 0.9) 50%,
+      transparent 60%
+    );
   background-size: 190px 190px;
   animation: fx-snow 9s linear infinite;
 }
 
 @keyframes fx-snow {
   from {
-    background-position: 0 0, 60px 90px, 120px 150px;
+    background-position:
+      0 0,
+      60px 90px,
+      120px 150px;
   }
   to {
-    background-position: 190px 190px, 250px 280px, 310px 340px;
+    background-position:
+      190px 190px,
+      250px 280px,
+      310px 340px;
   }
 }
 
@@ -4363,25 +4732,41 @@ html[data-dial-open] .dial-seg {
 :root[data-sky="fog"] .ambient-fx::after {
   opacity: 1;
   background-image:
-    radial-gradient(480px 240px at 20% 55%, rgba(216, 226, 228, 0.6), transparent 70%),
-    radial-gradient(560px 260px at 80% 30%, rgba(226, 233, 234, 0.5), transparent 70%);
+    radial-gradient(
+      480px 240px at 20% 55%,
+      rgba(216, 226, 228, 0.6),
+      transparent 70%
+    ),
+    radial-gradient(
+      560px 260px at 80% 30%,
+      rgba(226, 233, 234, 0.5),
+      transparent 70%
+    );
   background-size: 900px 500px;
   animation: fx-fog 26s linear infinite alternate;
 }
 
 @keyframes fx-fog {
   from {
-    background-position: 0 0, 0 0;
+    background-position:
+      0 0,
+      0 0;
   }
   to {
-    background-position: 900px 0, -900px 0;
+    background-position:
+      900px 0,
+      -900px 0;
   }
 }
 
 /* Cloudy: one slow soft shadow crossing — the sky of the ordinary day. */
 :root[data-sky="cloudy"] .ambient-fx::after {
   opacity: 1;
-  background-image: radial-gradient(520px 190px at 50% 50%, rgba(38, 52, 64, 0.3), transparent 70%);
+  background-image: radial-gradient(
+    520px 190px at 50% 50%,
+    rgba(38, 52, 64, 0.3),
+    transparent 70%
+  );
   background-size: 1000px 320px;
   animation: fx-cloud 22s linear infinite alternate;
 }
@@ -4407,5 +4792,292 @@ html[data-dial-open] .dial-seg {
   :root[data-sky="cloudy"] .ambient-fx::after {
     animation: none;
     opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   BREAKFAST — three sittings, one of which is happening right now
+
+   The page's whole reason to exist beyond the buffet photo: the site already
+   knows Kathmandu's wall clock, so it can answer "is breakfast on?" instead of
+   printing a window and leaving a guest who has just landed to do the sum.
+   ========================================================================== */
+
+.bf-page,
+.am-page {
+  /* Painted, not faded — same reason as .con-page: body paints var(--bg), so a
+     root that animates from opacity 0 flashes dark on arrival. */
+  background: var(--bg);
+  min-height: 100svh;
+  /* Top clears the floating back button (26px + 42px tall); bottom clears the
+     dock's WhatsApp/Book row, which is fixed and would otherwise sit on the
+     last card once the page is scrolled to the end. */
+  padding: clamp(84px, 10vh, 120px) clamp(28px, 5vw, 72px) 128px;
+}
+
+.bf-head,
+.am-head {
+  /* px, not ch: `ch` here would resolve against this element's own 15px sans
+     and has nothing to do with how wide the serif headline inside it runs. */
+  max-width: 640px;
+  margin: 0 0 clamp(36px, 6vh, 72px);
+  animation: room-rise 760ms var(--ease) both;
+}
+
+.am-head {
+  max-width: 760px;
+}
+
+.bf-eyebrow,
+.am-eyebrow {
+  margin: 0 0 10px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.bf-head h1,
+.am-head h1 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(30px, 3.6vw, 50px);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--green);
+}
+
+.bf-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(40px, 7vh, 88px);
+  max-width: 1180px;
+}
+
+.bf-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  animation: room-rise 760ms var(--ease) both;
+}
+
+/* Alternating sides, done by reversing the track order rather than by writing a
+   second rule for every child: the photo keeps its own column definition and
+   only the direction changes. */
+.bf-item:nth-child(even) {
+  direction: rtl;
+}
+.bf-item:nth-child(even) > * {
+  direction: ltr;
+}
+
+.bf-shot {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(232, 229, 218, 0.08);
+  background: var(--surface);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.4);
+}
+
+.bf-shot img {
+  object-fit: cover;
+}
+
+.bf-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bf-when {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.bf-copy h2 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(22px, 2.4vw, 32px);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.bf-body {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--olive);
+}
+
+/* The live line. Quiet when breakfast is hours away, lit when it is being
+   served — the state change is the whole information, so it is carried by the
+   dot's colour and not by a badge. */
+.bf-now {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 4px 0 0;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 229, 218, 0.1);
+  background: var(--surface);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--olive);
+  transition:
+    color 0.4s ease,
+    border-color 0.4s ease;
+}
+
+.bf-now-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.bf-now[data-serving] {
+  color: var(--green);
+  border-color: rgba(159, 188, 172, 0.3);
+}
+
+.bf-now[data-serving] .bf-now-dot {
+  opacity: 1;
+  animation: bf-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes bf-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ==========================================================================
+   AMENITIES — the list the front desk reads out on the phone
+   ========================================================================== */
+
+.am-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  /* Without this the row containing the photo card stretches every one-line
+     fact beside it to the photo's height. */
+  align-items: start;
+  gap: 14px;
+  max-width: 1180px;
+}
+
+.am-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 20px 22px;
+  border-radius: 16px;
+  border: 1px solid rgba(232, 229, 218, 0.07);
+  background: var(--card);
+  animation: room-rise 700ms var(--ease) both;
+}
+
+/* The four rows that carry a photo are the ones about the property rather than
+   the room, and they are the ones worth stopping on — so they take two tracks
+   and lead with the picture. */
+.am-card[data-shot] {
+  padding: 0;
+  overflow: hidden;
+}
+
+.am-card[data-shot] > :not(.am-shot) {
+  padding-left: 22px;
+  padding-right: 22px;
+}
+.am-card[data-shot] > .am-tag {
+  padding-top: 18px;
+}
+.am-card[data-shot] > :last-child {
+  padding-bottom: 20px;
+}
+
+.am-shot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--surface);
+}
+
+.am-shot img {
+  object-fit: cover;
+}
+
+.am-tag {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.am-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.am-body {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--olive);
+}
+
+@media (max-width: 900px) {
+  .bf-item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  /* One column, so the alternation has nothing to alternate and the rtl trick
+     would only mirror the copy. */
+  .bf-item:nth-child(even) {
+    direction: ltr;
+  }
+  .am-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+  .am-card[data-shot] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-head,
+  .am-head,
+  .bf-item,
+  .am-card {
+    animation: none;
+  }
+  .bf-now[data-serving] .bf-now-dot {
+    animation: none;
   }
 }

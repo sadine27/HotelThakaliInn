@@ -26,4 +26,9 @@ export type Live = {
   skyKey: SkyKey | null;
   aqi: number | null;
   air: string | null;
+  /* Not live in the sense the rest of this is, but it travels with them: the
+     floating WhatsApp button is mounted in the root layout, which cannot read
+     D1 without making every page dynamic. Empty string when staff clear the
+     settings row — the button then does not render at all. */
+  phone: string;
 };

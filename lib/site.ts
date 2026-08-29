@@ -20,6 +20,17 @@ export const SITE_URL = "https://hotelthakaliinn.com";
    number can never drift from the printed one. */
 export const phoneHref = (phone: string) => `tel:${phone.replace(/[^+\d]/g, "")}`;
 
+/* wa.me wants digits only, no plus, and a country code that is always present —
+   a bare local number opens WhatsApp on "invalid contact". The stored value is
+   "+977-9840007925", so stripping is usually the whole job; the two guards are
+   for the day someone edits the settings row to a local format. */
+export const waHref = (phone: string) => {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = digits.slice(1);
+  if (!digits.startsWith("977")) digits = `977${digits}`;
+  return `https://wa.me/${digits}`;
+};
+
 /* Keyless embed — `output=embed` needs no Maps API key and no billing account.
    Pinned to the listing's exact coordinates, not to a name search, so the marker
    can't wander onto a similarly named place. */

@@ -57,7 +57,7 @@ const FRAG = `
     /* pattern read as a height: the shoulder gives the colour break, the steep
        pow gives a narrow specular band that only lights the crests. */
     float edge  = smoothstep(0.40, 0.80, pattern);
-    float gloss = pow(smoothstep(0.60, 0.97, pattern), 3.0) * 0.35;
+    float gloss = pow(smoothstep(0.78, 0.99, pattern), 4.0) * 0.11;
 
     vec3 c = mix(colorA, colorB, edge);
     c = mix(c, colorC, smoothstep(0.10, 0.40, pattern) * 0.30);

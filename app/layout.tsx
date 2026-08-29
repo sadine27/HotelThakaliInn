@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, JetBrains_Mono, Fraunces } from "next/font/google";
 import DialNav from "@/components/DialNav";
+import FloatDock from "@/components/FloatDock";
 import { LiveProvider } from "@/components/Live";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
@@ -49,6 +50,9 @@ export default function RootLayout({
               and it keeps its open state across client-side navigation. */}
           <main style={{ minHeight: "100svh" }}>{children}</main>
           <DialNav />
+          {/* The other two corners: back, WhatsApp, book. Same reasoning as the
+              dial — every page needs them and no page owns them. */}
+          <FloatDock />
         </LiveProvider>
       </body>
     </html>
