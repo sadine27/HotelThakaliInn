@@ -63,7 +63,7 @@ export default function DialNav() {
      View Transition (the dial itself is lifted out of the snapshot by
      view-transition-name in globals.css, so it stays put); every other gesture
      falls through to the plain <Link>, which already works. */
-  function go(event: React.MouseEvent<HTMLAnchorElement>, href: string) {
+  function go(event: React.MouseEvent<HTMLAnchorElement | SVGGElement>, href: string) {
     /* A middle-click or cmd-click means "new tab" — preventDefault on those is
        the classic way a fancy nav breaks a habit people rely on. */
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -72,6 +72,19 @@ export default function DialNav() {
     if (reduced || !document.startViewTransition) return;
     event.preventDefault();
     document.startViewTransition(() => router.push(href));
+  }
+
+  /* Only clicks in the OPEN dial's band count. Collapsed, the band sits at
+     r≈95px (scale .74), so a fast click on it would land here mid-animation
+     and navigate from a spoke the visitor never saw. The open arc lives at
+     r≈128 and the labels at r≈150 — this window covers both, not the collapsed
+     band, not the well floor. */
+  function inOpenBand(event: React.MouseEvent<SVGGElement>) {
+    const svg = event.currentTarget.ownerSVGElement;
+    if (!svg) return false;
+    const box = svg.getBoundingClientRect();
+    const d = Math.hypot(event.clientX - (box.left + box.width / 2), event.clientY - (box.top + box.height / 2));
+    return d > 106 && d < 168;
   }
 
   /* The well is cut by the page, not by this component, so the page has to know
@@ -148,61 +161,70 @@ export default function DialNav() {
               className="dial-arc"
               opacity={open ? 1 : 0.7}
             />
-            <g filter="url(#nuMatteShadow)">
-              {segments.map((s, i) => (
-                <path
+            {segments.map((s, i) => {
+              const p = polar(s.mid, R_LABEL);
+              const flip = s.mid > 90 && s.mid < 270;
+              return (
+                /* One hit target per segment: the visible arc and its label. The
+                   gap between segments is dead, so a click that misses a spoke
+                   can never fire its neighbour — the old 42px pills tiled the
+                   whole slot edge-to-edge and a near-miss on HOME landed on
+                   ROOMS. The filter moves to the path so the labels stay
+                   unshadowed, as before. */
+                <g
                   key={s.href}
-                  className="dial-arc"
-                  d={arcPath(s.from, s.to, R_ARC)}
-                  fill="none"
-                  stroke={i === activeIndex ? ACTIVE : i === hovered ? HOVER : IDLE}
-                  strokeLinecap="butt"
-                />
-              ))}
-            </g>
-
-            <g className="dial-labels" opacity={open ? 1 : 0}>
-              {segments.map((s, i) => {
-                const p = polar(s.mid, R_LABEL);
-                const flip = s.mid > 90 && s.mid < 270;
-                return (
+                  className="dial-seg"
+                  onMouseEnter={() => setHovered(i)}
+                  onMouseLeave={() => setHovered(-1)}
+                  onClick={(e) => {
+                    if (open && inOpenBand(e)) go(e, s.href);
+                  }}
+                >
+                  <path
+                    className="dial-arc"
+                    d={arcPath(s.from, s.to, R_ARC)}
+                    fill="none"
+                    stroke={i === activeIndex ? ACTIVE : i === hovered ? HOVER : IDLE}
+                    strokeLinecap="butt"
+                    filter="url(#nuMatteShadow)"
+                  />
                   <text
-                    key={s.href}
                     x={p.x}
                     y={p.y}
                     transform={`rotate(${s.mid + (flip ? 180 : 0)} ${p.x} ${p.y})`}
                     textAnchor={flip ? "end" : "start"}
                     dominantBaseline="middle"
+                    opacity={open ? 1 : 0}
                     fill={i === activeIndex || i === hovered ? "var(--dial-label-on)" : "var(--dial-label)"}
                     style={{
                       font: `${i === activeIndex ? 700 : 500} 10.5px var(--font-mono), ui-monospace, monospace`,
                       letterSpacing: "0.14em",
-                      transition: "fill .25s ease",
+                      transition: "fill .25s ease, opacity .32s ease",
                     }}
                   >
                     {s.label}
                   </text>
-                );
-              })}
-            </g>
+                </g>
+              );
+            })}
           </g>
         </svg>
 
         <nav aria-label="Main">
           {segments.map((s, i) => (
+            /* The keyboard route. Pointer events are off (CSS) — the mouse
+               target is the segment's arc + label above — so this link only
+               fires for a real Enter on a focused spoke. */
             <Link
               key={s.href}
               href={s.href}
               className="dial-spoke"
               aria-current={i === activeIndex ? "page" : undefined}
               tabIndex={open ? 0 : -1}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(-1)}
               onFocus={() => setHovered(i)}
               onClick={(e) => go(e, s.href)}
               style={{
                 transform: `rotate(${s.mid}deg) translate(52px, -21px)`,
-                pointerEvents: open ? "auto" : "none",
               }}
             >
               <span
@@ -224,8 +246,12 @@ export default function DialNav() {
           type="button"
           className="dial-puck"
           aria-expanded={open}
-          aria-label={open ? "Close navigation" : "Open navigation"}
-          onClick={() => setOpen((v) => !v)}
+          aria-label="Open navigation"
+          /* Opens, never toggles: hover has already opened the dial by the time
+             a desktop click lands, so a toggle closes it in the user's hand —
+             and on touch the tap's hover-sim has the same effect. Tapping the
+             empty floor closes it instead. */
+          onClick={() => setOpen(true)}
         >
           <LogoMark size={38} />
         </button>

@@ -1774,8 +1774,15 @@ body {
   transition: stroke-width 0.55s var(--ease), stroke 0.3s ease;
 }
 
-.dial-labels {
-  transition: opacity 0.32s ease;
+/* Each segment — its arc and its label — is one hit target. The painted
+   geometry is exactly the target, so the dead gap between segments can't
+   fire a neighbour, which is what used to send HOME clicks to ROOMS. */
+.dial-seg {
+  pointer-events: auto;
+}
+
+html[data-dial-open] .dial-seg {
+  cursor: pointer;
 }
 
 .dial-spoke {
@@ -1786,7 +1793,9 @@ body {
   height: 42px;
   border-radius: 21px;
   transform-origin: 0 0;
-  pointer-events: auto;
+  /* mouse-inert: the seg g above is the pointer target. The link stays for
+     keyboard users — Tab reaches it and Enter fires its click. */
+  pointer-events: none;
 }
 
 .dial-puck {
@@ -4285,34 +4294,17 @@ body {
   transition: opacity 1.4s var(--ease);
 }
 
-/* Rain: two stripe fields falling straight down — the layer itself is tilted,
-   which is what a slant of rain actually is, wind on a vertical fall. Each
-   stripe is one stop of a repeating gradient and the loop moves by exactly the
-   field's period, so it falls forever without a seam. */
-:root[data-sky="rain"] .ambient-fx::after,
-:root[data-sky="storm"] .ambient-fx::after {
-  opacity: 0.35;
-  transform: rotate(6deg) scale(1.15);
-  filter: blur(1px);
-  background-image:
-    repeating-linear-gradient(to bottom, transparent 0 33px, rgba(165, 180, 172, 0.38) 33px 34px),
-    repeating-linear-gradient(to bottom, transparent 0 71px, rgba(150, 168, 160, 0.22) 71px 72px);
-  background-size: 100% 34px, 100% 72px;
-  animation: fx-rain 0.5s linear infinite;
-}
-
-:root[data-sky="storm"] .ambient-fx::after {
-  opacity: 0.5;
-  animation-duration: 0.32s;
-}
-
-@keyframes fx-rain {
-  from {
-    background-position: 0 0, 0 0;
-  }
-  to {
-    background-position: 0 34px, 0 72px;
-  }
+/* Rain is a canvas now (components/RainGlass.tsx): droplets on a pane of
+   glass, not gradient stripes. The stripes read as a technical grid — water
+   on glass is the opposite: irregular, mostly still, a few sliding. The
+   canvas mounts next to this div, inside the same stacking context. */
+.rain-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* Snow: three tiled flake fields drifting down and across by one full tile per
@@ -4379,8 +4371,7 @@ body {
   :root[data-daypart="night"] .ambient-fx::before {
     animation: none;
   }
-  :root[data-sky="rain"] .ambient-fx::after,
-  :root[data-sky="storm"] .ambient-fx::after,
+  /* rain lives in the canvas, which draws one static frame under this flag */
   :root[data-sky="snow"] .ambient-fx::after,
   :root[data-sky="fog"] .ambient-fx::after,
   :root[data-sky="cloudy"] .ambient-fx::after {
