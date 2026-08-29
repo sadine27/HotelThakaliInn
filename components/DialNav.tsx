@@ -75,15 +75,19 @@ export default function DialNav() {
   }
 
   /* Only clicks in the OPEN dial's band count. Collapsed, the band sits at
-     r≈95px (scale .74), so a fast click on it would land here mid-animation
-     and navigate from a spoke the visitor never saw. The open arc lives at
-     r≈128 and the labels at r≈150 — this window covers both, not the collapsed
-     band, not the well floor. */
+     r≈95 viewBox units (scale .74), so a fast click on it would land here
+     mid-animation and navigate from a spoke the visitor never saw. The open
+     arc lives at r≈128 and the labels at r≈150 — this window covers both,
+     not the collapsed band, not the well floor.
+
+     Measured in viewBox units, not screen px: the anchor scales to 0.62 on
+     small screens, and a screen-px window would put every spoke outside its
+     own bounds there — the dial opened but nothing was clickable. */
   function inOpenBand(event: React.MouseEvent<SVGGElement>) {
     const svg = event.currentTarget.ownerSVGElement;
     if (!svg) return false;
     const box = svg.getBoundingClientRect();
-    const d = Math.hypot(event.clientX - (box.left + box.width / 2), event.clientY - (box.top + box.height / 2));
+    const d = Math.hypot(event.clientX - (box.left + box.width / 2), event.clientY - (box.top + box.height / 2)) / (box.width / 520);
     return d > 106 && d < 168;
   }
 
@@ -132,7 +136,17 @@ export default function DialNav() {
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />
-        <svg className="dial-svg" viewBox="0 0 520 520" aria-hidden="true">
+        <svg
+          className="dial-svg"
+          viewBox="0 0 520 520"
+          aria-hidden="true"
+          /* The arcs are not focusable, so clicking one would by default move
+             focus from the puck to <body> — and the anchor's onBlur reads that
+             as "focus left" and closes the dial underneath the click. Suppress
+             the mousedown focus change: the click still fires, focus stays
+             where it was, and blur keeps its real job (Tab out = close). */
+          onMouseDown={(e) => e.preventDefault()}
+        >
           <defs>
             {/* set through style, not attributes, so the vars resolve and the
                 shadow deepens with the palette as the well opens under it */}
