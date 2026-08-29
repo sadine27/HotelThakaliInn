@@ -3345,3 +3345,127 @@ body {
     transition-delay: 0s;
   }
 }
+
+/* ── Staff admin ────────────────────────────────────────────────────────────
+   A tool, not a showpiece. Everything above this line is trying to sell a
+   room; this is trying to let three people change a price and get on with
+   their shift. So: no animation, no neumorphic depth, one column, and mono
+   for anything that is data rather than prose.
+
+   Same tokens as the rest of the site, which is not decoration — the daypart
+   swap on <html> reaches these too, so a staff member working the night desk
+   gets the same warm-dim ground the guest pages have rather than a white
+   rectangle in a dark room. Nothing here is scoped away from that on purpose. */
+
+.adm {
+  min-height: 100svh;
+  padding: 40px 24px 72px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.adm h1 {
+  margin: 0 0 4px;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.adm-sub {
+  margin: 0 0 28px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+/* Labels, keys and timestamps are all mono: in a form of thirteen free-text
+   rows, the label is the only fixed thing on the screen, and setting it apart
+   from the value the staff member typed is what keeps the page scannable. */
+.adm label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.adm input,
+.adm textarea,
+.adm select {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid rgba(52, 78, 65, 0.18);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+
+.adm textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.adm input:focus-visible,
+.adm textarea:focus-visible,
+.adm select:focus-visible,
+.adm button:focus-visible,
+.adm a:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.adm button {
+  padding: 11px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--green);
+  color: #f2ecdd;
+  font: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.adm button:hover {
+  background: #2b4235;
+}
+
+.adm-error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--alert);
+}
+
+/* ── Sign in ── */
+
+.adm-login {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+  margin: max(8vh, 48px) auto 0;
+  padding: 32px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--nu-raised);
+}
+
+.adm-login h1,
+.adm-login .adm-sub {
+  text-align: center;
+}
+
+.adm-login .adm-sub {
+  margin-bottom: 18px;
+}
+
+.adm-login button {
+  margin-top: 8px;
+}

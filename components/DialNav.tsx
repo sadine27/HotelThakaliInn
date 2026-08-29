@@ -69,6 +69,12 @@ export default function DialNav() {
     s.href === "/" ? pathname === "/" : pathname.startsWith(s.href)
   );
 
+  /* Not on the staff admin. It is mounted in the root layout so every guest route
+     gets the same dial and it survives client-side navigation — but the admin is a
+     tool, and six links to guest pages is the wrong furniture in it. Hooks run
+     first so the order is stable across the boundary. */
+  if (pathname.startsWith("/admin")) return null;
+
   return (
     <div className="dial-layer">
       <div
