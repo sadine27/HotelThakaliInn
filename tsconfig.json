@@ -16,6 +16,11 @@
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./*"] }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  // The .next/types glob is deliberately not here. It is Next's typed-routes
+  // output, and this app builds with vinext, which never writes it — so the only
+  // thing that directory can ever hold is a half-finished artifact from a
+  // `next build` that failed on cloudflare:workers, and typechecking it yields
+  // four errors about routes.js exports that do not exist.
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }
