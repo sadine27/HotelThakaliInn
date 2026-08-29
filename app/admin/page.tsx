@@ -23,6 +23,11 @@ export default async function Admin() {
       <p className="adm-sub">Everything here is live the moment you save it</p>
 
       <nav className="adm-hub">
+        {/* Above Enquiries: this is the one that costs money to miss. */}
+        <Link href="/admin/requests">
+          <strong>Booking requests</strong>
+          <span>Direct requests from the booking page, by arrival date</span>
+        </Link>
         <Link href="/admin/messages">
           <strong>Enquiries</strong>
           <span>Messages sent from the contact form</span>

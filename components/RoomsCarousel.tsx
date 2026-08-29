@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Img from "@/components/Img";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import LiquidBackground from "./LiquidBackground";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
@@ -383,6 +384,9 @@ export default function RoomsCarousel({
           <a className="room-book" href={bookingUrl}>
             Check availability →
           </a>
+          <Link className="room-book" href={`/book?room=${room.slug}`}>
+            Request this room
+          </Link>
         </div>
 
         <span className="room-index">

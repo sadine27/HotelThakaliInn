@@ -54,6 +54,7 @@ const channels = (i: ContactInfo) =>
     { icon: "phone", label: "Call the desk", value: i.phone, href: i.phoneHref, out: false },
     { icon: "mail", label: "Email", value: i.email, href: `mailto:${i.email}`, out: false },
     { icon: "external", label: "Reserve a room", value: "Booking.com", href: i.bookingUrl, out: true },
+    { icon: "mail", label: "Request a room", value: "Direct, no payment", href: "/book", out: false },
     { icon: "pin", label: "Find us · reviews", value: "Google Maps", href: i.mapsUrl, out: true },
   ] as const;
 

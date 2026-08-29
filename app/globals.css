@@ -3779,3 +3779,178 @@ body {
   flex: 1 0 100%;
   color: var(--ink);
 }
+
+/* ── Booking request ────────────────────────────────────────────────────────
+   A quiet form page. The site's only other form is the contact panel's, so
+   this borrows its input and button treatment token for token — two forms,
+   one visual language, and the difference is the dates and the honesty about
+   what happens next. */
+
+.bk-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 5vh, 56px) clamp(20px, 5vw, 40px) calc(var(--inset) + 40px);
+}
+
+.bk-card {
+  width: min(560px, 100%);
+  background: var(--surface);
+  box-shadow: var(--nu-raised);
+  border-radius: 22px;
+  padding: clamp(24px, 4vw, 40px);
+}
+
+.bk-eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.bk-card h1 {
+  font-family: var(--font-serif), serif;
+  font-size: clamp(30px, 5vw, 40px);
+  font-weight: 400;
+  margin: 10px 0 8px;
+  color: var(--ink);
+}
+
+.bk-blurb {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(43, 50, 48, 0.72);
+}
+
+.bk-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.bk-field {
+  display: grid;
+  gap: 6px;
+}
+
+.bk-field > span {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.bk-field input,
+.bk-field select,
+.bk-field textarea {
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(52, 78, 65, 0.14);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--green);
+}
+
+.bk-field input:focus-visible,
+.bk-field select:focus-visible,
+.bk-field textarea:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
+.bk-field-wide,
+.bk-actions {
+  grid-column: 1 / -1;
+}
+
+.bk-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.bk-send {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(242, 236, 224, 0.3);
+  background: rgba(52, 78, 65, 0.72);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  color: var(--surface);
+  font: inherit;
+  cursor: pointer;
+}
+
+.bk-send:hover:not(:disabled) {
+  background: rgba(52, 78, 65, 0.84);
+  transform: translateY(-1px);
+}
+
+.bk-send:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+
+.bk-ota {
+  font-size: 13px;
+  color: var(--olive);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bk-ota:hover {
+  color: var(--green);
+}
+
+.bk-sent {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 70%, var(--bg));
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.bk-error {
+  font-size: 14px;
+  color: var(--alert);
+}
+
+@media (max-width: 560px) {
+  .bk-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* cut, not shortened — the same as the rest of this file */
+  .bk-form input,
+  .bk-form select,
+  .bk-form textarea,
+  .bk-send {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
+}
+
+/* ── Booking requests in the admin ────────────────────────────────────────── */
+
+/* A stay that has already begun stays readable, just quieter — the page is
+   ordered by arrival date, so past rows sink to the top and dim. */
+.adm-messages li[data-past] {
+  opacity: 0.55;
+}
+
+.adm-past {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--alert);
+}
