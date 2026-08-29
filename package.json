@@ -4,11 +4,11 @@
   "scripts": {
     "dev": "vinext dev --port 3001",
     "build": "vinext build",
-    "start": "wrangler dev --config dist/server/wrangler.json",
+    "start": "wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state",
     "lint": "tsc --noEmit",
     "dev:vinext": "vinext dev --port 3001",
     "build:vinext": "vinext build",
-    "start:vinext": "wrangler dev --config dist/server/wrangler.json",
+    "start:vinext": "wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state",
     "deploy:vinext": "vinext-cloudflare deploy --config dist/server/wrangler.json"
   },
   "dependencies": {
