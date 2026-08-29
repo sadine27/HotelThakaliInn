@@ -130,11 +130,16 @@ if (!out.trim()) { console.log(`EMPTY — ${rt}/${u.completion_tokens} tokens we
    half-applied edits across three files is the failure that costs an hour. */
 const planned = [];
 const errors = [];
+const fileEol = new Map(); // path → the line ending its file was checked out with
 for (const [, path, body] of out.matchAll(/^=== (?:EDIT|FILE): (.+?) ===\n([\s\S]*?)\n=== END ===/gm)) {
   const isEdit = body.includes("<<<<<<< SEARCH");
   if (!isEdit) { planned.push({ path, next: body.replace(/^```[a-z]*\n|\n```$/g, "") }); continue; }
   if (!existsSync(path)) { errors.push(`${path}: EDIT on a file that does not exist`); continue; }
   let next = planned.find((p) => p.path === path)?.next ?? readFileSync(path, "utf8");
+  /* Working trees on Windows are CRLF (core.autocrlf); a model's anchor is LF.
+     Normalise once, remember the file's own ending, restore it on write. */
+  if (!fileEol.has(path)) fileEol.set(path, next.includes("\r\n") ? "\r\n" : "\n");
+  next = next.replace(/\r\n/g, "\n");
   for (const [, find, repl] of body.matchAll(/<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/g)) {
     /* A doubled ======= or a nested marker means the model emitted a malformed
        block. The non-greedy regex still "parses" it and would write the second
@@ -144,9 +149,11 @@ for (const [, path, body] of out.matchAll(/^=== (?:EDIT|FILE): (.+?) ===\n([\s\S
       errors.push(`${path}: malformed block, stray conflict marker inside SEARCH/REPLACE`);
       continue;
     }
-    const hits = next.split(find).length - 1;
-    if (hits !== 1) { errors.push(`${path}: SEARCH matched ${hits}x (need exactly 1): ${find.slice(0, 70).replace(/\n/g, "\n")}…`); continue; }
-    next = next.replace(find, () => repl);
+    const f = find.replace(/\r\n/g, "\n");
+    const r = repl.replace(/\r\n/g, "\n");
+    const hits = next.split(f).length - 1;
+    if (hits !== 1) { errors.push(`${path}: SEARCH matched ${hits}x (need exactly 1): ${f.slice(0, 70)}…`); continue; }
+    next = next.replace(f, () => r);
   }
   const slot = planned.find((p) => p.path === path);
   if (slot) slot.next = next; else planned.push({ path, next });
@@ -166,4 +173,8 @@ if (dirty.length) {
   console.log("  ABORTED, nothing written");
   process.exit(1);
 }
-for (const { path, next } of planned) { writeFileSync(path, next); console.log("  ✓ wrote " + path); }
+for (const { path, next } of planned) {
+  const eol = fileEol.get(path) ?? "\n";
+  writeFileSync(path, eol === "\r\n" ? next.replace(/\n/g, "\r\n") : next);
+  console.log("  ✓ wrote " + path);
+}

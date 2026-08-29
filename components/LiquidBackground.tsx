@@ -31,10 +31,10 @@ const FRAG = `
   uniform vec2 u_resolution;
   uniform float u_time;
 
-  const vec3 colorA    = vec3(0.051, 0.071, 0.063); // #0d1210  --bg
-  const vec3 colorB    = vec3(0.090, 0.125, 0.106); // #17201b  --card
-  const vec3 colorC    = vec3(0.220, 0.267, 0.235); // #38443c  --olive, dark ground
-  const vec3 tint      = vec3(0.624, 0.737, 0.675); // #9fbcac  --green
+  const vec3 colorA    = vec3(0.047, 0.055, 0.055); // #0c0e0e  neutral charcoal, blends with every daypart
+  const vec3 colorB    = vec3(0.078, 0.090, 0.086); // #141715
+  const vec3 colorC    = vec3(0.149, 0.165, 0.157); // #262a28  neutral mid
+  const vec3 tint      = vec3(0.431, 0.506, 0.478); // #6e817a  desaturated sage, a whisper not a wash
   const vec3 highlight = vec3(0.788, 0.596, 0.353); // #c9985a  --brass crest, never white
 
   void main() {

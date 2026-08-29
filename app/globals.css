@@ -785,12 +785,12 @@ body {
   padding: 12px 18px;
   border-radius: 14px;
   white-space: nowrap;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  box-shadow: 0 8px 24px rgba(52, 78, 65, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  color: var(--green);
+  border: 1px solid rgba(236, 228, 210, 0.14);
+  background: rgba(19, 26, 22, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--ink);
   font-family: var(--font-mono), monospace;
   font-size: 11px;
   letter-spacing: 0.16em;
@@ -801,15 +801,16 @@ body {
 }
 
 .hero-cta:hover {
-  color: var(--ink);
+  color: var(--brass);
+  border-color: rgba(201, 152, 90, 0.45);
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 10px 28px rgba(52, 78, 65, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  background: rgba(19, 26, 22, 0.88);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(201, 152, 90, 0.12);
 }
 
 .hero-cta:active {
   transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(52, 78, 65, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .hero-cta-icon {
@@ -1218,7 +1219,7 @@ body {
 /* Painted by app/rooms/layout.tsx, outside the Suspense boundary, so it is in
    the prerendered HTML. .room-page carries the same colour but cannot do this
    job: it is inside the boundary (absent until hydration) and it fades in from
-   opacity 0, so body's #1f271f shows through it either way. */
+   opacity 0, so the body background (var(--bg)) shows through it either way. */
 .room-ground {
   background: var(--bg);
   min-height: 100svh;
@@ -1244,7 +1245,7 @@ body {
   /* the ask: half to two-thirds of the width, fluid between those bounds */
   grid-template-columns: clamp(50%, 58vw, 65%) 1fr;
   min-height: 100svh;
-  /* body is #1f271f so the home page's video reads through; this route has no
+  /* body paints var(--bg) so the home page's video reads through; this route has no
      video behind it and needs its own ground */
   background: var(--bg);
   /* backstop only. The stage is centred in a full-height column, so the ring's
@@ -1478,7 +1479,8 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   text-decoration: none;
-  color: var(--green);
+  color: var(--brass);
+  border: 1px solid rgba(201, 152, 90, 0.35);
   background: var(--surface);
   box-shadow: var(--nu-raised);
   transition: box-shadow 0.3s var(--ease);
@@ -2497,13 +2499,13 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: var(--green);
-  opacity: 0.34;
+  background: #12231a;
+  opacity: 0.5;
   transition: opacity var(--gal-slide);
 }
 
 .gal-stage:has([data-open]) .gal-col:not([data-open]) .gal-tint {
-  opacity: 0.66;
+  opacity: 0.7;
 }
 
 .gal-col[data-open] .gal-tint {
@@ -2906,7 +2908,7 @@ body {
    --------------------------------------------------------------------------- */
 
 .con-page {
-  /* Painted, not faded. body is #1f271f, so a page root that animates from
+  /* Painted, not faded. body paints var(--bg), so a page root that animates from
      opacity 0 flashes dark on arrival — the ground is here and static, and only
      the two columns rise. Same reason /rooms needs its own layout.tsx wrapper;
      this page has no Suspense boundary, so it can hold its own ground instead. */
@@ -4289,17 +4291,18 @@ body {
    field's period, so it falls forever without a seam. */
 :root[data-sky="rain"] .ambient-fx::after,
 :root[data-sky="storm"] .ambient-fx::after {
-  opacity: 0.85;
-  transform: rotate(5deg) scale(1.08);
+  opacity: 0.35;
+  transform: rotate(6deg) scale(1.15);
+  filter: blur(1px);
   background-image:
-    repeating-linear-gradient(to bottom, transparent 0 33px, rgba(206, 224, 238, 0.5) 33px 34px),
-    repeating-linear-gradient(to bottom, transparent 0 71px, rgba(190, 214, 232, 0.32) 71px 72px);
+    repeating-linear-gradient(to bottom, transparent 0 33px, rgba(165, 180, 172, 0.38) 33px 34px),
+    repeating-linear-gradient(to bottom, transparent 0 71px, rgba(150, 168, 160, 0.22) 71px 72px);
   background-size: 100% 34px, 100% 72px;
   animation: fx-rain 0.5s linear infinite;
 }
 
 :root[data-sky="storm"] .ambient-fx::after {
-  opacity: 0.95;
+  opacity: 0.5;
   animation-duration: 0.32s;
 }
 
