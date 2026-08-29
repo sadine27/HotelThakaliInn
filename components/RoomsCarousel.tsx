@@ -146,7 +146,37 @@ export default function RoomsCarousel({
      then on there is history to pop like anyone else's. */
   const deepLinked = useRef(open);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    /* Returning visitor: reopen the room they were reading last time. Read in
+       this effect rather than at render so the first paint stays the default
+       card (and hydration cannot disagree), and never over a ?room= that is
+       already in the address bar. Private-mode browsers can throw on storage —
+       losing the memory is fine, so it is caught and dropped. */
+    if (params.get("room") === null) {
+      try {
+        const saved = localStorage.getItem("ti_room");
+        if (saved && rooms.some((r) => r.slug === saved)) {
+          router.replace(`/rooms?room=${saved}`, { scroll: false });
+        }
+      } catch {
+        /* private mode */
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Remember which room the detail is open on, so the visit after this one can
+     land there. Written on every open — button, shared link or memory. */
+  useEffect(() => {
+    if (openIndex < 0) return;
+    try {
+      localStorage.setItem("ti_room", rooms[openIndex].slug);
+    } catch {
+      /* private mode */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openIndex]);
   useEffect(() => () => window.clearTimeout(wrapAt.current), []);
 
   /* a shared or reloaded ?room= link has to bring the fan with it, so that closing

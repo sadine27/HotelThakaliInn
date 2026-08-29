@@ -3954,3 +3954,28 @@ body {
   font-size: 11px;
   color: var(--alert);
 }
+
+/* ── Page transition ──────────────────────────────────────────────────────── */
+
+/* The page swaps; the dial does not. Giving the dial its own
+   view-transition-name lifts it out of the root snapshot, so it stays put and
+   keeps its open state while the page behind it changes — which is what makes
+   the dial read as the thing driving the navigation rather than a menu that
+   happens to sit on top. */
+.dial-layer {
+  view-transition-name: dial;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

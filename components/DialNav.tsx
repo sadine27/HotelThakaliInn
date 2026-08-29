@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import LogoMark from "./LogoMark";
 
 const ITEMS = [
@@ -55,6 +56,23 @@ export default function DialNav() {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(-1);
   const pathname = usePathname();
+  const router = useRouter();
+  const reduced = useReducedMotion();
+
+  /* The dial drives the page transition. A plain left-click is wrapped in a
+     View Transition (the dial itself is lifted out of the snapshot by
+     view-transition-name in globals.css, so it stays put); every other gesture
+     falls through to the plain <Link>, which already works. */
+  function go(event: React.MouseEvent<HTMLAnchorElement>, href: string) {
+    /* A middle-click or cmd-click means "new tab" — preventDefault on those is
+       the classic way a fancy nav breaks a habit people rely on. */
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    /* No API, or the visitor asked for less motion: the transition is an
+       enhancement on a navigation that must never depend on it. */
+    if (reduced || !document.startViewTransition) return;
+    event.preventDefault();
+    document.startViewTransition(() => router.push(href));
+  }
 
   /* The well is cut by the page, not by this component, so the page has to know
      when the dial wants room. A collapsed puck sitting in a full-size well is a
@@ -181,6 +199,7 @@ export default function DialNav() {
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(-1)}
               onFocus={() => setHovered(i)}
+              onClick={(e) => go(e, s.href)}
               style={{
                 transform: `rotate(${s.mid}deg) translate(52px, -21px)`,
                 pointerEvents: open ? "auto" : "none",
