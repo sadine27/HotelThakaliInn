@@ -51,6 +51,24 @@ export async function settings(): Promise<Record<string, string>> {
   return Object.fromEntries(results.map((r) => [r.key, r.value]));
 }
 
+/* Every filename the content table points at, mapped to the rows that point.
+   Both columns in one UNION ALL, so a blob referenced only by `video` still
+   reads as used — the admin photo sweep and orphan guard build on this.
+   `ponytail:` unindexed scan of a table with a few dozen rows; add an index on
+   image/video only if content ever grows enough to matter. */
+export async function mediaReferences(): Promise<Map<string, { section: string; slug: string }[]>> {
+  const { results } = await env.DB.prepare(
+    "SELECT image AS file, section, slug FROM content WHERE image <> '' UNION ALL SELECT video AS file, section, slug FROM content WHERE video <> ''",
+  ).all<{ file: string; section: string; slug: string }>();
+  const refs = new Map<string, { section: string; slug: string }[]>();
+  for (const r of results) {
+    const list = refs.get(r.file);
+    if (list) list.push({ section: r.section, slug: r.slug });
+    else refs.set(r.file, [{ section: r.section, slug: r.slug }]);
+  }
+  return refs;
+}
+
 /* Settings values that are lists are stored as JSON strings. A missing or
    malformed row falls back rather than taking the page down with it — staff can
    edit these, and a page that 500s is worse than one missing a line. */

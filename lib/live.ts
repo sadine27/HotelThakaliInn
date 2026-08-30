@@ -31,6 +31,12 @@ export type Live = {
      D1 without making every page dynamic. Empty string when staff clear the
      settings row — the button then does not render at all. */
   phone: string;
+  /* Same reasoning as phone: the footer is mounted in the root layout, which
+     cannot read D1 without making every page dynamic, so the accounts ride
+     along with the rest of the live payload instead of a second fetch. */
+  socials: { label: string; href: string }[];
+  address: string;
+  email: string;
 };
 
 /* "YYYY-MM-DD" in Kathmandu. Everything that has to agree on what "today" means

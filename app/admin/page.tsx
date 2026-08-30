@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { env } from "cloudflare:workers";
 import { endSession, requireSession } from "@/lib/auth";
 import { kathmanduDay, kathmanduDayBefore } from "@/lib/live";
+import { directCount, dailyCounts, sparklineSeries, topPages as topPagesQuery, topReferrers, viewSpan as viewSpanQuery } from "@/lib/analytics";
+import { sparklinePoints, weekDelta } from "@/lib/sparkline";
 
 export const dynamic = "force-dynamic";
 
@@ -51,15 +53,7 @@ function Sparkline({ series }: { series: { day: string; count: number }[] }) {
   const W = 640;
   const H = 56;
   const peak = Math.max(1, ...series.map((d) => d.count));
-  const step = series.length > 1 ? W / (series.length - 1) : W;
-  const points = series
-    .map((d, i) => {
-      /* Two pixels of headroom at each end, so the busiest day is not clipped by
-         the viewBox and a zero day still sits on a visible line. */
-      const y = H - 2 - (d.count / peak) * (H - 4);
-      return `${(i * step).toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const points = sparklinePoints(series.map((d) => d.count), W, H);
   return (
     <svg
       className="adm-spark"
@@ -76,10 +70,10 @@ function Sparkline({ series }: { series: { day: string; count: number }[] }) {
 }
 
 function Delta({ now, before }: { now: number; before: number }) {
+  const pct = weekDelta(now, before);
   /* No previous week means no comparison to make. "+100%" against zero is the
      classic dashboard lie, so this says the honest thing instead. */
-  if (before === 0) return <span className="adm-delta adm-delta--flat">no week before this</span>;
-  const pct = Math.round(((now - before) / before) * 100);
+  if (pct === null) return <span className="adm-delta adm-delta--flat">no week before this</span>;
   const dir = pct > 0 ? "up" : pct < 0 ? "down" : "flat";
   return (
     <span className={`adm-delta adm-delta--${dir}`}>
@@ -123,7 +117,7 @@ export default async function Admin() {
   const prevFrom = kathmanduDayBefore(13, now);
   const prevTo = kathmanduDayBefore(7, now);
 
-  const [requestsUpcoming, requestsLast7, messagesTotal, messagesLast7, settingsCount, contentPublished, contentHidden, nextArrival, daily, topPages, topRefs, viewSpan] = await Promise.all([
+  const [requestsUpcoming, requestsLast7, messagesTotal, messagesLast7, settingsCount, contentPublished, contentHidden, nextArrival, daily, topPages, topRefs, viewSpan, direct] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as count FROM booking_requests WHERE check_in >= ?`).bind(kathmanduToday).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT COUNT(*) as count FROM booking_requests WHERE substr(created_at, 1, 10) >= ?`).bind(kathmanduSevenDaysAgo).first<{ count: number }>()
@@ -140,38 +134,34 @@ export default async function Admin() {
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT name, check_in FROM booking_requests WHERE check_in >= ? ORDER BY check_in ASC LIMIT 1`).bind(kathmanduToday).first<{ name: string; check_in: string }>()
       .then(r => r ?? null).catch(() => null),
-    env.DB.prepare(`SELECT day, COUNT(*) as count FROM page_views WHERE day >= ? GROUP BY day ORDER BY day`).bind(kathmanduDayBefore(29, now))
-      .all<{ day: string; count: number }>().then(r => r.results).catch(() => null),
-    env.DB.prepare(`SELECT path, COUNT(*) as count FROM page_views WHERE day >= ? GROUP BY path ORDER BY count DESC LIMIT 5`).bind(since7)
-      .all<{ path: string; count: number }>().then(r => r.results).catch(() => []),
-    env.DB.prepare(`SELECT referrer, COUNT(*) as count FROM page_views WHERE day >= ? AND referrer != '' GROUP BY referrer ORDER BY count DESC LIMIT 5`).bind(since7)
-      .all<{ referrer: string; count: number }>().then(r => r.results).catch(() => []),
-    env.DB.prepare(`SELECT MIN(day) as first, COUNT(*) as total FROM page_views`).first<{ first: string | null; total: number }>()
-      .then(r => r ?? null).catch(() => null),
+    dailyCounts(29, now),
+    topPagesQuery(since7),
+    topReferrers(since7),
+    viewSpanQuery(),
+    directCount(since7),
   ]);
 
   /* Null only when the query threw — the table missing, D1 unreachable. An empty
      table comes back as an empty array and reads as the legitimate zero it is. */
   const counting = daily !== null;
-  const byDay = new Map((daily ?? []).map((d) => [d.day, d.count]));
+  const byDay = daily ?? new Map();
   const sum = (from: string, to: string) =>
-    (daily ?? []).reduce((n, d) => (d.day >= from && d.day <= to ? n + d.count : n), 0);
+    [...byDay.entries()].reduce((n, [day, count]) => (day >= from && day <= to ? n + count : n), 0);
 
   const viewsToday = byDay.get(kathmanduToday) ?? 0;
   const views7 = sum(since7, kathmanduToday);
   const viewsPrev7 = sum(prevFrom, prevTo);
   const viewsAll = viewSpan?.total ?? 0;
 
-  /* Thirty slots whether or not anything landed in them, oldest first. A quiet
-     day has to be drawn as a zero rather than left out, or the line closes the
-     gap and a dead Tuesday looks like a busy one. */
-  const series = Array.from({ length: 30 }, (_, i) => {
-    const day = kathmanduDayBefore(29 - i, now);
-    return { day, count: byDay.get(day) ?? 0 };
-  });
+  const series = sparklineSeries(byDay, 30, now);
 
   const busiest = Math.max(0, ...series.map((s) => s.count));
   const firstDay = viewSpan?.first ?? null;
+
+  /* One divisor for every bar in the referrer list, direct traffic included —
+     a separate max would let a bar overflow its track when direct is the
+     biggest source. */
+  const refMax = Math.max(direct ?? 0, topRefs[0]?.count ?? 0);
 
   async function signOut() {
     "use server";
@@ -310,7 +300,7 @@ export default async function Admin() {
 
               <div className="adm-list">
                 <h3>Where they came from</h3>
-                {topRefs.length === 0 ? (
+                {topRefs.length === 0 && (direct === null || direct === 0) ? (
                   <p className="adm-list-empty">
                     Nobody arrived from another site this week. They typed the
                     address, used a bookmark, or followed a link that hides where
@@ -318,11 +308,20 @@ export default async function Admin() {
                   </p>
                 ) : (
                   <ol>
+                    {direct !== null && direct > 0 && (
+                      <li key="direct">
+                        <span className="adm-list-name">Typed the address themselves</span>
+                        <span className="adm-list-bar" aria-hidden="true">
+                          <i style={{ width: `${(direct / refMax) * 100}%` }} />
+                        </span>
+                        <span className="adm-list-n">{direct}</span>
+                      </li>
+                    )}
                     {topRefs.map((r) => (
                       <li key={r.referrer}>
                         <span className="adm-list-name">{r.referrer}</span>
                         <span className="adm-list-bar" aria-hidden="true">
-                          <i style={{ width: `${(r.count / topRefs[0].count) * 100}%` }} />
+                          <i style={{ width: `${(r.count / refMax) * 100}%` }} />
                         </span>
                         <span className="adm-list-n">{r.count}</span>
                       </li>

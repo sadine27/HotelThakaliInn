@@ -1,6 +1,6 @@
 import ContactPanel from "@/components/ContactPanel";
 import HotelSchema from "@/components/HotelSchema";
-import { list, settings } from "@/lib/content";
+import { list, section, settings } from "@/lib/content";
 import { directionsUrl, mapEmbedUrl, phoneHref, waHref } from "@/lib/site";
 
 export const metadata = {
@@ -14,7 +14,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Contact() {
-  const config = await settings();
+  const [config, hero] = await Promise.all([settings(), section("hero")]);
   const phone = config.phone ?? "";
   const plusCode = config.plus_code ?? "";
 
@@ -24,7 +24,7 @@ export default async function Contact() {
     <>
       {/* Same block as the homepage. Two pages carry it because these are the
           two a search engine is most likely to land on for the hotel's name. */}
-      <HotelSchema config={config} socials={socials} />
+      <HotelSchema config={config} socials={socials} image={hero[0]?.image} />
       <ContactPanel
         info={{
           phone,

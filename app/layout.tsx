@@ -3,8 +3,9 @@ import { Manrope, JetBrains_Mono, Fraunces } from "next/font/google";
 import DialNav from "@/components/DialNav";
 import FloatDock from "@/components/FloatDock";
 import { LiveProvider } from "@/components/Live";
+import SiteFooter from "@/components/SiteFooter";
 import ViewBeacon from "@/components/ViewBeacon";
-import { SITE_URL } from "@/lib/site";
+import { DESCRIPTION, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const sans = Manrope({
@@ -31,8 +32,7 @@ const serif = Fraunces({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Hotel Thakali Inn | Sinamangal, Kathmandu",
-  description:
-    "Quiet rooms and a hot Thakali breakfast, five minutes from Tribhuvan International Airport, Kathmandu.",
+  description: DESCRIPTION,
 };
 
 export default function RootLayout({
@@ -50,6 +50,7 @@ export default function RootLayout({
           {/* The dial lives here, not per page, so every route gets the same one
               and it keeps its open state across client-side navigation. */}
           <main style={{ minHeight: "100svh" }}>{children}</main>
+          <SiteFooter />
           <DialNav />
           {/* The other two corners: back, WhatsApp, book. Same reasoning as the
               dial — every page needs them and no page owns them. */}

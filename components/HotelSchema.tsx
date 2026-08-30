@@ -1,4 +1,4 @@
-import { SITE_URL } from "@/lib/site";
+import { DESCRIPTION, SITE_URL } from "@/lib/site";
 
 /* The machine-readable version of the facts already printed on the contact page.
  *
@@ -19,9 +19,11 @@ import { SITE_URL } from "@/lib/site";
 export default function HotelSchema({
   config,
   socials,
+  image,
 }: {
   config: Record<string, string>;
   socials: { label: string; href: string }[];
+  image?: string;
 }) {
   const phone = config.phone ?? "";
   const lat = config.lat;
@@ -33,11 +35,10 @@ export default function HotelSchema({
     "@id": `${SITE_URL}/#hotel`,
     name: "Hotel Thakali Inn",
     url: SITE_URL,
-    /* The site's own opengraph card, which is generated from the real hero
-       photo — one image, already built, already cached. */
-    image: `${SITE_URL}/opengraph-image`,
-    description:
-      "Quiet rooms and a hot Thakali breakfast, five minutes from Tribhuvan International Airport, Kathmandu.",
+    /* The real hero photo straight from R2, with the generated opengraph card
+       as fallback for the day staff clear the hero image field. */
+    image: image ? `${SITE_URL}${image}` : `${SITE_URL}/opengraph-image`,
+    description: DESCRIPTION,
     address: {
       "@type": "PostalAddress",
       streetAddress: config.address ?? "",

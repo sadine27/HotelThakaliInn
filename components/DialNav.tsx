@@ -100,6 +100,31 @@ export default function DialNav() {
     else delete el.dataset.dialOpen;
   }, [open]);
 
+  /* Hover drives open/close on a mouse, but a scroll has no "leave" — on touch
+     there is no hover at all, so a tap that opens the fan otherwise leaves it
+     open (and its well rendered) for the rest of the visit. Any scroll while
+     open closes it, the same way moving the mouse away would.
+
+     The animated close (0.55s transform/stroke-width transitions) is fine
+     standing alone, but scrolling is already asking the browser to paint —
+     running the two at once is what dropped frames and made the labels
+     visibly bump. data-dial-instant strips those transitions for one frame
+     so the scroll-triggered close snaps shut instead of fighting the scroll
+     for the main thread; hover-driven closes keep the normal animation. */
+  useEffect(() => {
+    if (!open) return;
+    const close = () => {
+      document.documentElement.dataset.dialInstant = "";
+      setOpen(false);
+      setHovered(-1);
+      window.setTimeout(() => {
+        delete document.documentElement.dataset.dialInstant;
+      }, 50);
+    };
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [open]);
+
   const activeIndex = segments.findIndex((s) =>
     s.href === "/" ? pathname === "/" : pathname.startsWith(s.href)
   );

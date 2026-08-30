@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
+import { DESCRIPTION } from "@/lib/site";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Hotel Thakali Inn",
     short_name: "Thakali Inn",
-    description: "Quiet rooms and a hot Thakali breakfast, five minutes from Tribhuvan International Airport, Kathmandu.",
+    description: DESCRIPTION,
     start_url: "/",
     background_color: "#ECE4D2",
     theme_color: "#344E41",

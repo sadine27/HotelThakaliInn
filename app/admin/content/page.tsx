@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import PhotoField from "@/components/PhotoField";
-import { section } from "@/lib/content";
+import { mediaReferences, section } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ const MAX = 2 * 1024 * 1024;
 async function dropOrphan(image: string | undefined) {
   if (!image?.startsWith("/img/")) return;
   const { results } = await env.DB.prepare(
-    "SELECT 1 FROM content WHERE image = ?1 LIMIT 1",
+    "SELECT 1 FROM content WHERE image = ?1 OR video = ?1 LIMIT 1",
   )
     .bind(image)
     .all();
@@ -53,11 +53,15 @@ async function dropOrphan(image: string | undefined) {
  * paying rent for nothing. Only /img/ keys are considered — the seeded /media/
  * paths are files in the repo, not uploads, and are not ours to delete. */
 async function findUnused() {
-  const [objects, used] = await Promise.all([
+  const [objects, refs] = await Promise.all([
     env.MEDIA.list({ limit: 1000 }),
-    env.DB.prepare("SELECT image FROM content WHERE image LIKE '/img/%'").all<{ image: string }>(),
+    mediaReferences(),
   ]);
-  const referenced = new Set(used.results.map((r) => r.image.slice(5)));
+  /* Only /img/ keys are uploads — the seeded /media/ paths are repo files, and a
+     video column can hold an external URL that never starts with /img/. */
+  const referenced = new Set(
+    [...refs.keys()].filter((k) => k.startsWith("/img/")).map((k) => k.slice(5)),
+  );
   return objects.objects
     .filter((o) => !referenced.has(o.key))
     .map((o) => ({ key: o.key, size: o.size, uploaded: o.uploaded }));

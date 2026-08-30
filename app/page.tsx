@@ -28,7 +28,7 @@ export default async function Home() {
       {/* The property's facts, machine-readable, on the two pages that already
           hold them in memory. Rendered here rather than in the layout so no
           page inherits a D1 read it did not ask for. */}
-      <HotelSchema config={config} socials={list(config.socials)} />
+      <HotelSchema config={config} socials={list(config.socials)} image={slides[0].image} />
       <HeroCarousel
         slides={slides.map((s) => ({
           title: s.title,

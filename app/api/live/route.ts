@@ -7,7 +7,7 @@
  * Open-Meteo for both upstreams — no API key, no billing account, no signup, so
  * there is no secret to rotate and nothing to expire while nobody is looking.
  */
-import { settings } from "@/lib/content";
+import { list, settings } from "@/lib/content";
 import { TZ, type Live, type SkyKey } from "@/lib/live";
 
 /* Route handlers are never prerendered, but the constraint is absolute: any
@@ -136,6 +136,9 @@ export async function GET() {
     aqi: typeof aqi === "number" ? Math.round(aqi) : null,
     air: typeof aqi === "number" ? air(Math.round(aqi)) : null,
     phone: config.phone ?? "",
+    socials: list<{ label: string; href: string }>(config.socials).filter((s) => s.href),
+    address: config.address ?? "",
+    email: config.email ?? "",
   };
 
   return Response.json(body, {

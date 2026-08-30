@@ -45,6 +45,13 @@
     inset 0 3px 12px rgba(0, 0, 0, 0.55),
     inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 
+  /* Dark glass for anything that floats over the ambient video/photos rather
+     than sitting on the page ground (hero CTAs, the WhatsApp/Book/Back dock).
+     day overrides this to a cream glass so those controls stop reading as a
+     leftover dark-theme element once the ground itself has gone light. */
+  --glass-bg: rgba(19, 26, 22, 0.8);
+  --glass-bg-hover: rgba(19, 26, 22, 0.88);
+
   /* the dial's inset from the corner. The spread bottom-aligns to this same
      line, so the card's bottom-right corner IS the dial's pivot — which is what
      lets the notch be a hole made for it rather than a hole near it. */
@@ -76,27 +83,6 @@
 
 * {
   box-sizing: border-box;
-}
-
-/* DialNav stamps this on <html> when the fan is out. The well is cut by the
-   page, so the state has to live above both the hero and the dial. */
-:root[data-dial-open] {
-  --notch: var(--notch-open);
-
-  /* against the well's floor now, so the dial turns up another step — same
-     cream family as the closed state, just brighter, because the floor is
-     darker than the page. No inversion: the dial is the lit thing in both
-     states, and only the amount of light changes. */
-  --dial-track: rgba(232, 229, 218, 0.09);
-  --dial-idle: rgba(232, 229, 218, 0.32);
-  --dial-hover: rgba(232, 229, 218, 0.6);
-  --dial-active: #6f9480;
-  --dial-label: rgba(232, 229, 218, 0.6);
-  --dial-label-on: #e8e5da;
-  /* still lifted off the well's floor, but a contact shadow rather than a
-     drop — at the old depth the segments read as chunky plastic tiles */
-  --dial-shadow: #000000;
-  --dial-shadow-a: 0.3;
 }
 
 /* ── Kathmandu time ─────────────────────────────────────────────────────────
@@ -135,9 +121,51 @@
   initial-value: #17201b;
 }
 
-/* `day` is the palette the site was drawn in, so it is the :root default above
-   and needs no block — which also makes it the correct fallback when the live
-   route is unreachable and no attribute is ever stamped. */
+/* Full daylight: the site's original neumorphic cream page, from before the
+   ground was inverted to dark cinematic. Real daylight is the one time a warm
+   paper page reads truer than a dark room — dawn, dusk and night keep the
+   cinematic treatment above, this is the only daypart that flips the ground
+   back to light. --nu-raised/--nu-pressed are redefined here too, since the
+   dark theme's versions are flat literals rather than built from --nu-dark —
+   every rule already using var(--nu-raised)/var(--nu-pressed) picks the soft
+   two-shadow neumorphism back up for free. */
+:root[data-daypart="day"] {
+  --green: #344e41;
+  --olive: #6b705c;
+  --alert: #8c4a3a;
+
+  --bg: #e4e2dc;
+  --surface: #ebe8e1;
+  --card: #ece4d2;
+  --ink: #2b3230;
+
+  --nu-dark: rgba(52, 78, 65, 0.22);
+  /* The original recipe's --nu-light was 95% pure white, which its own
+     comment (see .svc-card in the pre-inversion stylesheet) notes blows out
+     into a chalky halo at anything bigger than a small button. Toned to the
+     same warm off-white that fix used, since var(--nu-raised)/var(--nu-pressed)
+     here are shared by both small controls and full-size cards. */
+  --nu-raised: 10px 10px 22px rgba(52, 78, 65, 0.22), -10px -10px 22px rgba(255, 253, 247, 0.85);
+  --nu-pressed:
+    inset 7px 7px 15px rgba(52, 78, 65, 0.22),
+    inset -7px -7px 15px rgba(255, 253, 247, 0.85);
+
+  --ambient-bright: 0.85;
+  --glass-bg: rgba(236, 228, 210, 0.78);
+  --glass-bg-hover: rgba(236, 228, 210, 0.9);
+
+  /* Dark-on-cream: the collapsed dial rests on the card, so it has to be the
+     dark thing to be seen. The open dial keeps its ivory-on-well palette
+     unchanged — the well itself stays a dark recess in every daypart. */
+  --dial-track: rgba(52, 78, 65, 0.13);
+  --dial-idle: #829681;
+  --dial-hover: #647a68;
+  --dial-active: #344e41;
+  --dial-label: #6f8579;
+  --dial-label-on: #344e41;
+  --dial-shadow: #344e41;
+  --dial-shadow-a: 0.22;
+}
 
 /* Low sun, long warm light. The video comes up out of its overnight soak, and
    the ground shifts a step warmer while staying dark. */
@@ -170,6 +198,32 @@
   --nu-dark: rgba(0, 0, 0, 0.55);
   --card: #171f1b;
   --ambient-bright: 1.05;
+}
+
+/* DialNav stamps this on <html> when the fan is out. The well is cut by the
+   page, so the state has to live above both the hero and the dial. Placed
+   after every [data-daypart] block on purpose: it and "day" set the same
+   custom properties, and equal-specificity ties go to whichever rule is
+   later in the file — this must always be the one that wins, because the
+   well's floor (.dial-anchor::before) stays a dark recess in every daypart,
+   and dark-on-cream label colours over that recess would go illegible. */
+:root[data-dial-open] {
+  --notch: var(--notch-open);
+
+  /* against the well's floor now, so the dial turns up another step — same
+     cream family as the closed state, just brighter, because the floor is
+     darker than the page. No inversion: the dial is the lit thing in both
+     states, and only the amount of light changes. */
+  --dial-track: rgba(232, 229, 218, 0.09);
+  --dial-idle: rgba(232, 229, 218, 0.32);
+  --dial-hover: rgba(232, 229, 218, 0.6);
+  --dial-active: #6f9480;
+  --dial-label: rgba(232, 229, 218, 0.6);
+  --dial-label-on: #e8e5da;
+  /* still lifted off the well's floor, but a contact shadow rather than a
+     drop — at the old depth the segments read as chunky plastic tiles */
+  --dial-shadow: #000000;
+  --dial-shadow-a: 0.3;
 }
 
 html {
@@ -836,8 +890,8 @@ body {
   padding: 12px 18px;
   border-radius: 14px;
   white-space: nowrap;
-  border: 1px solid rgba(236, 228, 210, 0.14);
-  background: rgba(19, 26, 22, 0.8);
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  background: var(--glass-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow:
@@ -861,7 +915,7 @@ body {
   color: var(--brass);
   border-color: rgba(201, 152, 90, 0.45);
   transform: translateY(-1px);
-  background: rgba(19, 26, 22, 0.88);
+  background: var(--glass-bg-hover);
   box-shadow:
     0 10px 28px rgba(0, 0, 0, 0.45),
     0 0 0 1px rgba(201, 152, 90, 0.12);
@@ -1803,6 +1857,27 @@ body {
 .dock {
   position: fixed;
   z-index: 45;
+  transition: opacity 0.25s ease;
+}
+
+/* The fan and the dock are pinned to the viewport, so scrolling never carries
+   them away — including past the footer. Fade them out once the footer is on
+   screen instead of letting an open dial draw its arcs on top of it. */
+[data-footer-visible] .dial-layer,
+[data-footer-visible] .dock-back,
+[data-footer-visible] .dock {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The dial's own hit targets opt back into pointer-events with an inline
+   style (.dial-field, while open) and plain CSS (.dial-arc, .dial-seg,
+   .dial-puck) — an invisible dial staying clickable is worse than a visible
+   one, so this has to beat both. !important is the only thing that beats an
+   inline style. */
+[data-footer-visible] .dial-layer,
+[data-footer-visible] .dial-layer * {
+  pointer-events: none !important;
 }
 
 .dock-back {
@@ -1814,12 +1889,12 @@ body {
   height: 42px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid rgba(232, 229, 218, 0.14);
-  background: rgba(19, 26, 22, 0.8);
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  background: var(--glass-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  color: rgba(232, 229, 218, 0.72);
+  color: color-mix(in srgb, var(--ink) 72%, transparent);
   cursor: pointer;
   transition:
     color 0.3s ease,
@@ -1848,14 +1923,14 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 1px solid rgba(232, 229, 218, 0.14);
-  background: rgba(19, 26, 22, 0.8);
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  background: var(--glass-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   /* Monochrome, not WhatsApp's #25D366: on this ground the brand green is a
      shout, and the glyph's silhouette is what makes it recognisable anyway. */
-  color: rgba(232, 229, 218, 0.66);
+  color: color-mix(in srgb, var(--ink) 66%, transparent);
   transition:
     color 0.3s ease,
     border-color 0.3s ease,
@@ -1872,7 +1947,7 @@ body {
   padding: 13px 20px;
   border-radius: 999px;
   border: 1px solid rgba(201, 152, 90, 0.35);
-  background: rgba(19, 26, 22, 0.8);
+  background: var(--glass-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -1887,6 +1962,154 @@ body {
     border-color 0.3s ease,
     transform 0.3s var(--ease),
     box-shadow 0.3s var(--ease);
+}
+
+/* The page's last line, not floating furniture — it sits in normal flow after
+   `main`, so it only appears once a visitor scrolls past whatever full-height
+   view the page opened with. Same hairline-and-surface language as the dock. */
+.site-footer {
+  position: relative;
+  z-index: 5;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  background: var(--surface);
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.site-footer-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1.1fr;
+  gap: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 44px var(--inset, 92px) 32px;
+}
+
+.site-footer-col h2 {
+  margin: 0 0 16px;
+  font-family: var(--font-serif), serif;
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.site-footer-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.site-footer-brand strong {
+  font-family: var(--font-serif), serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.site-footer-brand p,
+.site-footer-col > p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  max-width: 32ch;
+}
+
+.site-footer-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--ink) 70%, transparent);
+}
+
+.site-footer-line svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--brass);
+}
+
+.site-footer-line a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-footer-line a:hover {
+  color: var(--brass);
+}
+
+.site-footer-socials {
+  display: flex;
+  gap: 10px;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.site-footer-social-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  background: var(--card);
+  color: color-mix(in srgb, var(--ink) 70%, transparent);
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.site-footer-social-btn:hover {
+  color: var(--brass);
+  border-color: rgba(201, 152, 90, 0.4);
+}
+
+.site-footer-bar {
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  padding: 16px var(--inset, 92px) 22px;
+  text-align: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.site-footer-bar a {
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+  text-decoration: none;
+}
+
+.site-footer-bar a:hover {
+  color: var(--brass);
+}
+
+@media (max-width: 900px) {
+  .site-footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .site-footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-footer-grid {
+    grid-template-columns: 1fr;
+    padding: 36px 20px 24px;
+  }
+  .site-footer-brand {
+    align-items: center;
+    text-align: center;
+  }
+  .site-footer-bar {
+    /* Extra room at the very bottom: the WhatsApp/Book dock is fixed to the
+       viewport and would otherwise sit on top of this line once a visitor
+       scrolls all the way down. */
+    padding: 14px 20px calc(20px + 64px);
+  }
 }
 
 .dock-book:hover {
@@ -1948,6 +2171,11 @@ body:has(.room-page[data-open]) .dock-back {
   .dock-book:hover {
     transform: none;
   }
+  .dial-layer,
+  .dock-back,
+  .dock {
+    transition: none;
+  }
 }
 
 /* ── dial ──────────────────────────────────────────────────────────── */
@@ -1958,6 +2186,7 @@ body:has(.room-page[data-open]) .dock-back {
   z-index: 50;
   overflow: hidden;
   pointer-events: none;
+  transition: opacity 0.25s ease;
 }
 
 .dial-anchor {
@@ -2024,6 +2253,13 @@ body:has(.room-page[data-open]) .dock-back {
     stroke-width 0.55s var(--ease);
 }
 
+/* A scroll-triggered close (DialNav.tsx) sets this for one frame so the fan
+   snaps shut instead of animating — animating it while the page is also
+   busy painting the scroll is what dropped frames and bumped the labels. */
+[data-dial-instant] .dial-ring {
+  transition: none;
+}
+
 .dial-arc {
   /* the svg is pointer-events:none, but the arcs opt back in so hovering the
      collapsed band opens the dial — the spokes only exist once it's open */
@@ -2031,6 +2267,10 @@ body:has(.room-page[data-open]) .dock-back {
   transition:
     stroke-width 0.55s var(--ease),
     stroke 0.3s ease;
+}
+
+[data-dial-instant] .dial-arc {
+  transition: none;
 }
 
 /* Each segment — its arc and its label — is one hit target. The painted

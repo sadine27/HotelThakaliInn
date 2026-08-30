@@ -16,6 +16,11 @@
    with one. */
 export const SITE_URL = "https://hotelthakaliinn.com";
 
+/* The one pitch, printed in four places (page metadata, the manifest, the
+   JSON-LD, the footer). One string so it can't quietly fork into four. */
+export const DESCRIPTION =
+  "Quiet rooms and a hot Thakali breakfast, five minutes from Tribhuvan International Airport, Kathmandu.";
+
 /* tel: wants no separators. Derived rather than stored twice so the dialled
    number can never drift from the printed one. */
 export const phoneHref = (phone: string) => `tel:${phone.replace(/[^+\d]/g, "")}`;
