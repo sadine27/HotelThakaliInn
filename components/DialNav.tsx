@@ -150,7 +150,20 @@ export default function DialNav() {
           <defs>
             {/* set through style, not attributes, so the vars resolve and the
                 shadow deepens with the palette as the well opens under it */}
-            <filter id="nuMatteShadow" x="-40%" y="-40%" width="180%" height="180%">
+            {/* userSpaceOnUse, not the default objectBoundingBox: a percentage
+                region is a percentage of the PATH's box, which ignores stroke
+                width. GALLERY's arc is 3.9 units tall and wears a 14-unit
+                stroke, so a 180% region clipped most of the paint off it —
+                six identical 15deg arcs rendering at six different sizes. One
+                fixed region over the whole viewBox, shared by all six. */}
+            <filter
+              id="nuMatteShadow"
+              filterUnits="userSpaceOnUse"
+              x="0"
+              y="0"
+              width="520"
+              height="520"
+            >
               <feDropShadow
                 dx="3"
                 dy="4"
