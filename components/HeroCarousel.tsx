@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Img from "@/components/Img";
 import LiveLine, { LiveNote } from "@/components/Live";
 import RainGlass from "@/components/RainGlass";
@@ -45,7 +46,41 @@ export default function HeroCarousel({
   const [prev, setPrev] = useState(-1);
   const [dir, setDir] = useState(1);
   const [paused, setPaused] = useState(false);
-  const [open, setOpen] = useState(false);
+
+  const params = useSearchParams();
+
+  /* The door is a view, not a flourish, so the address says which one you are
+     looking at — the same rule the rooms detail follows. It was plain state
+     before, and plain state is invisible to the router: pressing HOME on the
+     dial is a push to "/", the router saw a page it was already on, nothing
+     unmounted, and the door stayed open. HOME appeared to do nothing. With
+     the view in the URL, HOME and the browser's Back both shut it for free. */
+  const open = params.get("inside") !== null;
+
+  /* Whether this tab's own click opened it. If it did, closing steps back over
+     the entry we pushed, so Back does not have to be pressed twice. Somebody
+     who landed on /?inside from a shared link has no "/" behind them to step
+     back to, and gets the address rewritten instead. */
+  const pushed = useRef(false);
+
+  /* Native history rather than router.push: this page is force-dynamic, so a
+     router navigation to /?inside would go and fetch the same three D1 rows
+     again and the door would hang on the network before it opened. Next reads
+     history it did not write and useSearchParams updates from it, which is all
+     this needs — the view has not changed, only which part of it you are
+     looking at. */
+  const openDoor = () => {
+    pushed.current = true;
+    window.history.pushState(null, "", "/?inside");
+  };
+  const closeDoor = () => {
+    if (pushed.current) {
+      pushed.current = false;
+      window.history.back();
+    } else {
+      window.history.replaceState(null, "", "/");
+    }
+  };
 
   const go = (next: number, d = next > i ? 1 : -1) => {
     setPrev(i);
@@ -62,7 +97,7 @@ export default function HeroCarousel({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") return setOpen(false);
+      if (e.key === "Escape") return closeDoor();
       if (open) return;
       const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
       if (d) step(d as 1 | -1);
@@ -104,7 +139,7 @@ export default function HeroCarousel({
         <p className="beyond-eyebrow">Inside</p>
         <p className="beyond-note">Everything the stay is made of.</p>
         <ServicesCarousel open={open} cards={cards} />
-        <button className="gate-btn small" onClick={() => setOpen(false)}>
+        <button className="gate-btn small" onClick={closeDoor}>
           Back
         </button>
       </div>
@@ -244,7 +279,7 @@ export default function HeroCarousel({
       <div className="gate" aria-hidden={open || undefined}>
         <button
           className="gate-btn"
-          onClick={() => setOpen(true)}
+          onClick={openDoor}
           aria-expanded={open}
           tabIndex={open ? -1 : undefined}
         >

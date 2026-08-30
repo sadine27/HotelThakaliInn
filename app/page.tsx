@@ -6,6 +6,10 @@ import { list, section, settings } from "@/lib/content";
    does not exist, and only reads this literal in the page file itself. */
 export const dynamic = "force-dynamic";
 
+/* Opening the door writes ?inside into the address, which is a second URL over
+   identical content. One canonical says which of the two is the page. */
+export const metadata = { alternates: { canonical: "/" } };
+
 export default async function Home() {
   /* Three reads, one round trip each, single-digit ms. The services ring is
      behind the hero rather than on another route, so its cards have to come with
