@@ -148,17 +148,19 @@ export default function RoomsCarousel({
 
   useEffect(() => {
     setMounted(true);
-    /* Returning visitor: reopen the room they were reading last time. Read in
-       this effect rather than at render so the first paint stays the default
-       card (and hydration cannot disagree), and never over a ?room= that is
-       already in the address bar. Private-mode browsers can throw on storage —
-       losing the memory is fine, so it is caught and dropped. */
+    /* Returning visitor: turn the fan to the room they were reading last time,
+       with the detail shut and the address bar untouched. Pressing ROOMS is an
+       explicit request for /rooms, and a page that rewrites itself into
+       ?room=whatever a moment later reads as a bug, not as a memory. Batched
+       with setMounted above, so the fan's first painted frame is already turned
+       and nothing spins. Read here rather than at render so hydration cannot
+       disagree, and never over a ?room= that is already in the address bar.
+       Private-mode browsers can throw on storage — losing the memory is fine,
+       so it is caught and dropped. */
     if (params.get("room") === null) {
       try {
-        const saved = localStorage.getItem("ti_room");
-        if (saved && rooms.some((r) => r.slug === saved)) {
-          router.replace(`/rooms?room=${saved}`, { scroll: false });
-        }
+        const i = rooms.findIndex((r) => r.slug === localStorage.getItem("ti_room"));
+        if (i >= 0) setTurn(i);
       } catch {
         /* private mode */
       }
