@@ -176,6 +176,11 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
     if (!reduced) return;
     if (outTimer.current) clearTimeout(outTimer.current);
     outTimer.current = null;
+    /* Not derived state being resynced — this is the wall reacting to the OS
+       telling us, mid-transition, that it wants no motion. The leaving overlay
+       is already on screen at that point and has to be dropped from outside the
+       render that drew it. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOut(null);
   }, [reduced]);
 
@@ -193,7 +198,11 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
     setAnnounce(
       `Panels ${start + 1} to ${((start + VISIBLE - 1) % panels.length) + 1} of ${panels.length}`
     );
-  }, [start]);
+    /* panels.length is read above, so it belongs here. Adding it cannot cause a
+       stray announcement: manual.current is false unless a keypress or a click
+       set it a moment ago, and the effect returns on that before saying
+       anything. */
+  }, [start, panels.length]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

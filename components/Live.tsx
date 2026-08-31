@@ -104,10 +104,15 @@ const SKY: Partial<Record<SkyKey, string>> = {
    minute tick in the provider would re-render every consumer, and the hero it
    sits in is running four framer-motion carousels. */
 function useClock(seed: string | undefined) {
-  const [time, setTime] = useState(seed);
+  /* Only what this hook has ticked itself, never the seed copied into state.
+     Holding the seed as well meant re-seeding from an effect every time the
+     provider refetched, which is a cascading render to arrive at the value the
+     render already had. Falling back to `seed` at the bottom does the same job
+     with no state and no effect body, and a tick that has already happened is
+     newer than any seed that arrives after it. */
+  const [ticked, setTicked] = useState<string>();
 
   useEffect(() => {
-    setTime(seed);
     if (!seed) return;
 
     const fmt = new Intl.DateTimeFormat("en-GB", {
@@ -116,7 +121,7 @@ function useClock(seed: string | undefined) {
       minute: "2-digit",
       hour12: false,
     });
-    const tick = () => setTime(fmt.format(new Date()));
+    const tick = () => setTicked(fmt.format(new Date()));
 
     let timer: ReturnType<typeof setInterval>;
     /* Aligned to the wall clock instead of ticking every 60s from whenever the
@@ -135,7 +140,7 @@ function useClock(seed: string | undefined) {
     };
   }, [seed]);
 
-  return time;
+  return ticked ?? seed;
 }
 
 /* The facts, on the eyebrow line: hour, sky, air. Deliberately no prose — it

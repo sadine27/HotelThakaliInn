@@ -50,6 +50,11 @@ const STEP = 58;
    Both must match .room-stage's opacity transitions in globals.css. */
 const WRAP_OUT = 300;
 const WRAP_HOLD = 60; /* one certain painted frame at the repositioned angle */
+/* Unused by this file on purpose: the return is a CSS transition, not a timer,
+   so nothing here has to wait it out. It stays because .room-stage in
+   globals.css names it — "Paired with WRAP_OUT / WRAP_IN; change these
+   together" — and deleting it would leave that instruction pointing at nothing. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const WRAP_IN = 460;
 
 function RoomCard({
@@ -147,6 +152,12 @@ export default function RoomsCarousel({
   const deepLinked = useRef(open);
 
   useEffect(() => {
+    /* The rule is right in general and wrong here: this is the hydration guard,
+       and the whole point is that it cannot run during render. The server has no
+       localStorage, so reading the remembered room at render time is exactly the
+       mismatch this effect exists to avoid. One cascading render on mount is the
+       price of that, and it is paid once. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     /* Returning visitor: turn the fan to the room they were reading last time,
        with the detail shut and the address bar untouched. Pressing ROOMS is an
@@ -184,6 +195,12 @@ export default function RoomsCarousel({
   /* a shared or reloaded ?room= link has to bring the fan with it, so that closing
      the detail lands on the card it was opened from */
   useEffect(() => {
+    /* openIndex comes from ?room= in the address bar, which is a prop of the
+       page rather than a value this component owns — the fan has to follow it,
+       and it changes on back/forward as well as on open. Deriving `turn` from it
+       instead would break the ordinary case, where the fan turns freely and the
+       URL does not move until a detail is opened. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (openIndex >= 0) setTurn(openIndex);
   }, [openIndex]);
 

@@ -163,7 +163,7 @@ export default function RainGlass() {
     let w = 0;
     let h = 0;
     let drops: Drop[] = [];
-    let reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let flashStart = 0; // timestamp of the current flash, 0 = none
     let nextFlash = 0; // when the next one may strike
     let last = performance.now();

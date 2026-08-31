@@ -92,8 +92,17 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
    tuned against the real page, and it should not mean editing GLSL. */
 export default function LiquidBackground({ speed = 0.15 }: { speed?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  /* The frame loop below reads this every frame rather than closing over
+     `speed`, so a new speed does not mean tearing down the GL context.
+     Assigned in an effect and not during render: a render can be started and
+     thrown away under concurrent React, and a ref written on the discarded one
+     keeps its value — the loop would then animate at a speed that no committed
+     render ever asked for. The useRef initialiser already covers the first
+     frame, so this only ever carries a later change. */
   const speedRef = useRef(speed);
-  speedRef.current = speed;
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
