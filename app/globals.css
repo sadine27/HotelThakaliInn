@@ -926,6 +926,7 @@ body {
 .gate-btn.small {
   padding: 10px 22px;
   font-size: 11px;
+  margin-top: 12px;
 }
 
 /* ── what the page opens onto ──────────────────────────────────────── */
