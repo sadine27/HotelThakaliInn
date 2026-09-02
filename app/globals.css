@@ -5199,32 +5199,35 @@ html[data-dial-open] .dial-seg {
 .book {
   display: grid;
   grid-template-columns: 220px 1fr;
-  gap: 16px;
+  gap: 24px;
   max-width: 1180px;
   /* No .bf-head sits above the book on /cuisine, so .bf-page's own
      padding-top is the only top clearance needed — an extra margin here
-     would just stack another gap on top of it. */
-  padding: 22px;
+     would just stack another gap on top of it. The cover has to read as a
+     thick hardcover perimeter, not a hairline border, so this is deliberately
+     large — the paper must never come close to the outer edge. */
+  padding: clamp(28px, 3vw, 36px);
   border-radius: 22px;
   background: #14211b;
   border: 1px solid #0a0f0b;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 6px 14px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
   animation: room-rise 760ms var(--ease) both;
 }
 
-/* the spine is a raised panel inside the cover's padding, not a full-bleed
-   column — the cover color showing through the grid gap around it is what
-   reads as "separate physical piece", not a shadow */
+/* the spine is a raised panel inside the cover's padding, distinctly darker
+   than the cover itself — the color step + the grid gap it sits inside of is
+   what reads as "separate physical piece", not a shadow */
 .book-spine {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 28px 0;
-  background: #0e1712;
+  background: #0a120d;
   border-radius: 14px;
-  border-right: 1px solid #060907;
+  border: 1px solid #060907;
+  /* a lipped edge where the spine meets the paper: a lighter hairline just
+     inside the dark border, like a routed groove in the leather */
+  box-shadow: inset -2px 0 0 rgba(184, 183, 168, 0.08);
 }
 
 .book-brand {
@@ -5285,42 +5288,45 @@ html[data-dial-open] .dial-seg {
   min-height: 520px;
   padding: clamp(28px, 5vw, 56px);
   background: #e8e2d2;
-  border-radius: 12px;
-  border: 1px solid #b9ad93;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  border: 1px solid #a89873;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
   color: #2c2419;
 }
 
-/* a second, darker paper rectangle offset behind the front sheet — the page's
-   physical thickness, a real layer rather than a shadow standing in for one */
+/* a second, visibly darker paper rectangle offset behind the front sheet —
+   the page's physical thickness, a real layer (not a shadow standing in for
+   one), sized to read at a glance rather than as a hairline */
 .book-page::before {
   content: "";
   position: absolute;
-  inset: 3px -3px -3px 3px;
+  inset: 5px -5px -5px 5px;
   z-index: -1;
-  background: #cfc6ac;
+  background: #beb193;
+  border: 1px solid #a89873;
   border-radius: inherit;
 }
 
 /* brass corner hardware — real elements (not pseudo) so the page can keep
-   ::before for its thickness layer */
+   ::before for its thickness layer. Sized and positioned to overlap the
+   paper's corner like a mounted piece of hardware, not an inline icon. */
 .book-corner {
   position: absolute;
-  right: 0;
-  width: 36px;
-  height: 36px;
+  right: -1px;
+  width: 40px;
+  height: 40px;
   background: #a59663;
   border: 1px solid #6b5a3a;
   pointer-events: none;
 }
 
 .book-corner-tr {
-  top: 0;
+  top: -1px;
   clip-path: polygon(100% 0, 100% 100%, 45% 100%, 0 55%, 0 0);
 }
 
 .book-corner-br {
-  bottom: 0;
+  bottom: -1px;
   clip-path: polygon(100% 0, 100% 100%, 0 100%, 0 45%, 55% 0);
 }
 
@@ -5464,8 +5470,8 @@ html[data-dial-open] .dial-seg {
 @media (max-width: 900px) {
   .book {
     grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 12px;
+    gap: 16px;
+    padding: 16px;
   }
 
   .book-spine {
@@ -5474,8 +5480,8 @@ html[data-dial-open] .dial-seg {
     gap: 0;
     padding: 12px;
     overflow-x: auto;
-    border-right: 0;
     border-radius: 12px;
+    box-shadow: inset 0 -2px 0 rgba(184, 183, 168, 0.08);
   }
 
   .book-brand {
@@ -5505,7 +5511,7 @@ html[data-dial-open] .dial-seg {
   }
 
   .book-page::before {
-    inset: 2px -2px -2px 2px;
+    inset: 3px -3px -3px 3px;
   }
 
   .book-corner {
