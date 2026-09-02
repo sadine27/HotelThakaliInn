@@ -5200,7 +5200,9 @@ html[data-dial-open] .dial-seg {
   display: grid;
   grid-template-columns: 260px 1fr;
   max-width: 1180px;
-  margin-top: clamp(48px, 8vh, 88px);
+  /* No .bf-head sits above the book on /cuisine, so .bf-page's own
+     padding-top is the only top clearance needed — an extra margin here
+     would just stack another gap on top of it. */
   border-radius: 20px;
   overflow: hidden;
   box-shadow:
