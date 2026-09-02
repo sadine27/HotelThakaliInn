@@ -5207,6 +5207,7 @@ html[data-dial-open] .dial-seg {
   overflow: hidden;
   box-shadow:
     0 30px 90px rgba(0, 0, 0, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   animation: room-rise 760ms var(--ease) both;
 }
@@ -5216,7 +5217,9 @@ html[data-dial-open] .dial-seg {
   flex-direction: column;
   gap: 4px;
   padding: 28px 0;
-  background: #16211a;
+  background:
+    repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 5px),
+    linear-gradient(90deg, #1c2921 0%, #16211a 40%, #0f1712 100%);
   border-right: 4px solid #0e1712;
 }
 
@@ -5260,20 +5263,52 @@ html[data-dial-open] .dial-seg {
   color: var(--ink);
 }
 
-/* the active tab reads as a bookmark protruding onto the page */
+/* the active tab reads as a bookmark protruding onto the page — a notched
+   ribbon flag, not a pill, with a stronger cast shadow onto the paper */
 .book-tab[data-active] {
   margin-right: 0;
-  padding-right: 24px;
+  padding-right: 30px;
   color: #16211a;
   background: #efe7d5;
-  box-shadow: -6px 0 16px rgba(0, 0, 0, 0.35);
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+  box-shadow: -8px 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .book-page {
+  position: relative;
   min-height: 520px;
   padding: clamp(28px, 5vw, 56px);
-  background: #efe7d5;
+  background:
+    repeating-linear-gradient(35deg, rgba(44, 36, 25, 0.015) 0 1px, transparent 1px 3px),
+    #efe7d5;
+  box-shadow:
+    inset 12px 0 24px -20px rgba(0, 0, 0, 0.4),
+    inset 0 0 40px rgba(44, 36, 25, 0.06);
   color: #2c2419;
+}
+
+/* gold corner hardware, peeled off the page like the reference photo */
+.book-page::before,
+.book-page::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, #ecd9a6 0%, var(--brass) 45%, #7a6636 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.book-page::before {
+  top: 0;
+  clip-path: polygon(100% 0, 100% 100%, 45% 100%, 0 55%, 0 0);
+}
+
+.book-page::after {
+  bottom: 0;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%, 0 45%, 55% 0);
 }
 
 .book-cover {
@@ -5331,13 +5366,23 @@ html[data-dial-open] .dial-seg {
 }
 
 .book-category-head h2 {
+  position: relative;
   margin: 0 0 24px;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(44, 36, 25, 0.18);
   font-family: var(--font-serif), serif;
   font-size: clamp(24px, 2.6vw, 34px);
   font-weight: 400;
   color: #2c2419;
+}
+
+.book-category-head h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, var(--brass) 0%, rgba(165, 150, 99, 0.15) 45%, transparent 80%);
 }
 
 .book-group + .book-group {
@@ -5439,7 +5484,19 @@ html[data-dial-open] .dial-seg {
 
   .book-tab[data-active] {
     padding-right: 16px;
+    padding-bottom: 18px;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), 50% 100%, 0 calc(100% - 10px));
     box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  .book-page {
+    box-shadow: inset 0 12px 24px -20px rgba(0, 0, 0, 0.4), inset 0 0 40px rgba(44, 36, 25, 0.06);
+  }
+
+  .book-page::before,
+  .book-page::after {
+    width: 32px;
+    height: 32px;
   }
 
   .book-item-row {
