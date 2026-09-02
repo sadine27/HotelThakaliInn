@@ -5198,29 +5198,33 @@ html[data-dial-open] .dial-seg {
 
 .book {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
   max-width: 1180px;
   /* No .bf-head sits above the book on /cuisine, so .bf-page's own
      padding-top is the only top clearance needed — an extra margin here
      would just stack another gap on top of it. */
-  border-radius: 20px;
-  overflow: hidden;
+  padding: 22px;
+  border-radius: 22px;
+  background: #14211b;
+  border: 1px solid #0a0f0b;
   box-shadow:
-    0 30px 90px rgba(0, 0, 0, 0.5),
-    0 8px 20px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 6px 14px rgba(0, 0, 0, 0.22);
   animation: room-rise 760ms var(--ease) both;
 }
 
+/* the spine is a raised panel inside the cover's padding, not a full-bleed
+   column — the cover color showing through the grid gap around it is what
+   reads as "separate physical piece", not a shadow */
 .book-spine {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 28px 0;
-  background:
-    repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 5px),
-    linear-gradient(90deg, #1c2921 0%, #16211a 40%, #0f1712 100%);
-  border-right: 4px solid #0e1712;
+  background: #0e1712;
+  border-radius: 14px;
+  border-right: 1px solid #060907;
 }
 
 .book-brand {
@@ -5264,49 +5268,58 @@ html[data-dial-open] .dial-seg {
 }
 
 /* the active tab reads as a bookmark protruding onto the page — a notched
-   ribbon flag, not a pill, with a stronger cast shadow onto the paper */
+   ribbon flag, not a pill */
 .book-tab[data-active] {
   margin-right: 0;
   padding-right: 30px;
   color: #16211a;
-  background: #efe7d5;
+  background: #e8e2d2;
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
-  box-shadow: -8px 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: -3px 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .book-page {
   position: relative;
+  z-index: 1;
   min-height: 520px;
   padding: clamp(28px, 5vw, 56px);
-  background:
-    repeating-linear-gradient(35deg, rgba(44, 36, 25, 0.015) 0 1px, transparent 1px 3px),
-    #efe7d5;
-  box-shadow:
-    inset 12px 0 24px -20px rgba(0, 0, 0, 0.4),
-    inset 0 0 40px rgba(44, 36, 25, 0.06);
+  background: #e8e2d2;
+  border-radius: 12px;
+  border: 1px solid #b9ad93;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
   color: #2c2419;
 }
 
-/* gold corner hardware, peeled off the page like the reference photo */
-.book-page::before,
-.book-page::after {
+/* a second, darker paper rectangle offset behind the front sheet — the page's
+   physical thickness, a real layer rather than a shadow standing in for one */
+.book-page::before {
   content: "";
   position: absolute;
+  inset: 3px -3px -3px 3px;
+  z-index: -1;
+  background: #cfc6ac;
+  border-radius: inherit;
+}
+
+/* brass corner hardware — real elements (not pseudo) so the page can keep
+   ::before for its thickness layer */
+.book-corner {
+  position: absolute;
   right: 0;
-  width: 46px;
-  height: 46px;
-  background: linear-gradient(135deg, #ecd9a6 0%, var(--brass) 45%, #7a6636 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  width: 36px;
+  height: 36px;
+  background: #a59663;
+  border: 1px solid #6b5a3a;
   pointer-events: none;
 }
 
-.book-page::before {
+.book-corner-tr {
   top: 0;
   clip-path: polygon(100% 0, 100% 100%, 45% 100%, 0 55%, 0 0);
 }
 
-.book-page::after {
+.book-corner-br {
   bottom: 0;
   clip-path: polygon(100% 0, 100% 100%, 0 100%, 0 45%, 55% 0);
 }
@@ -5382,7 +5395,7 @@ html[data-dial-open] .dial-seg {
   bottom: 0;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, var(--brass) 0%, rgba(165, 150, 99, 0.15) 45%, transparent 80%);
+  background: var(--brass);
 }
 
 .book-group + .book-group {
@@ -5451,6 +5464,8 @@ html[data-dial-open] .dial-seg {
 @media (max-width: 900px) {
   .book {
     grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
   }
 
   .book-spine {
@@ -5460,7 +5475,7 @@ html[data-dial-open] .dial-seg {
     padding: 12px;
     overflow-x: auto;
     border-right: 0;
-    border-bottom: 4px solid #0e1712;
+    border-radius: 12px;
   }
 
   .book-brand {
@@ -5486,17 +5501,16 @@ html[data-dial-open] .dial-seg {
     padding-right: 16px;
     padding-bottom: 18px;
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), 50% 100%, 0 calc(100% - 10px));
-    box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.3);
   }
 
-  .book-page {
-    box-shadow: inset 0 12px 24px -20px rgba(0, 0, 0, 0.4), inset 0 0 40px rgba(44, 36, 25, 0.06);
+  .book-page::before {
+    inset: 2px -2px -2px 2px;
   }
 
-  .book-page::before,
-  .book-page::after {
-    width: 32px;
-    height: 32px;
+  .book-corner {
+    width: 24px;
+    height: 24px;
   }
 
   .book-item-row {

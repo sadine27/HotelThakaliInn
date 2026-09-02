@@ -102,6 +102,8 @@ export default function MenuBook({
       </div>
 
       <div className="book-page">
+        <span className="book-corner book-corner-tr" aria-hidden="true" />
+        <span className="book-corner book-corner-br" aria-hidden="true" />
         {activeTabDef ? (
           <div className="book-category" key={activeTabDef.id}>
             <header className="book-category-head">
