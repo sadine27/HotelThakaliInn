@@ -25,7 +25,21 @@ const MARK: Record<string, (props: { size?: number }) => React.JSX.Element> = {
 export default function SiteFooter() {
   const pathname = usePathname();
   const live = useLive();
-  const ref = useRef<HTMLElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+  /* Curtain reveal only on the home page — it's the one route whose `main` is
+     a single 100svh hero with nothing else in flow, so scrolling past it and
+     into the footer is one clean gesture. Every other page is a normal
+     scrolling read (rooms, gallery, contact...): pinning the footer there
+     would float it over that page's own content instead of closing it. */
+  const curtain = pathname === "/";
+  /* When curtained, the footer itself is position:fixed (see .site-footer),
+     so it always sits inside the viewport rectangle — watching it directly
+     would report "visible" from the first paint. This spacer is the in-flow
+     stand-in that only enters the viewport once the page has actually
+     scrolled far enough to open the curtain, so it's what both the fade and
+     the reveal hole measure against. On other pages the footer stays in
+     normal flow and is its own IO target, like before. */
+  const spacerRef = useRef<HTMLDivElement>(null);
 
   /* The dial and the dock are position:fixed to the viewport corner, so they
      never scroll away — including once the footer scrolls up underneath them.
@@ -34,7 +48,7 @@ export default function SiteFooter() {
      below the fold needs a way to leave the page it already ends. */
   useEffect(() => {
     if (pathname.startsWith("/admin")) return;
-    const el = ref.current;
+    const el = curtain ? spacerRef.current : footerRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -48,14 +62,30 @@ export default function SiteFooter() {
       io.disconnect();
       delete document.documentElement.dataset.footerVisible;
     };
-  }, [pathname]);
+  }, [pathname, curtain]);
+
+  /* Sizes the spacer to the footer's real, responsive height (it changes with
+     viewport width and how many social links load in) so the curtain opens
+     exactly as far as the footer is tall — never a gap, never a jump. */
+  useEffect(() => {
+    if (!curtain) return;
+    const el = footerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty("--footer-h", `${entry.contentRect.height}px`);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [curtain]);
 
   if (pathname.startsWith("/admin")) return null;
 
   const socials = live?.socials ?? [];
 
   return (
-    <footer className="site-footer" ref={ref}>
+    <>
+      {curtain && <div className="site-footer-spacer" ref={spacerRef} aria-hidden="true" />}
+      <footer className={`site-footer${curtain ? " site-footer--curtain" : ""}`} ref={footerRef}>
       <div className="site-footer-grid">
         <div className="site-footer-col site-footer-brand">
           <LogoMark size={44} green="#9fbcac" olive="#c9985a" title="Hotel Thakali Inn" />
@@ -113,5 +143,6 @@ export default function SiteFooter() {
         <Link href="/contact">Contact</Link>
       </div>
     </footer>
+    </>
   );
 }
