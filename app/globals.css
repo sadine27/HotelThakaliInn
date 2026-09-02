@@ -13,15 +13,19 @@
      with the lights on — a lit sage that reads as green against #0d1210 and
      still carries the plant memory of the original. It works as foreground
      text, as a border, and as a button face with dark text on it. */
-  --green: #9fbcac;
+  --green: #344e41;
   --green-ink: #1c2a22;
-  --olive: #a9ada1;
+  /* --olive is the workhorse text token (paragraphs, blurbs, eyebrows) — the
+     brand board's Muted Ivory is the closer role match than its own "olive"
+     swatch, which the codebase doesn't use as a standalone token. */
+  --olive: #b8b7a8;
+  --olive-tertiary: #8d9184;
   /* On a dark ground the old --green read as another shadow, so headings and
      accents use the lit sage above. Brass is the material memory of the city's
      temple roofs: a warm metal that does for CTAs what the old white glow did
      for buttons, but honestly. */
-  --sage: #b7cdc3;
-  --brass: #c9985a;
+  --sage: #a8b8a5;
+  --brass: #a59663;
   /* The one thing the brand palette can't say. A failed form has to read as
      wrong, and every other colour here is a shade of "fine" — so this is a fired
      clay, brightened so it still reads as an error on the dark ground. */
@@ -29,12 +33,13 @@
 
   /* dark cinematic ground — the brand green with the lights off. Not neutral
      grey, not pure black: the green undertone stays in everything. */
-  --bg: #0d1210;
-  --surface: #131a16;
+  --bg: #0f1610;
+  --surface: #202c24;
   /* the hero's cards sit on the ambient video — they are a step lighter than
      the page so they read as panels over the film, not holes in it. */
-  --card: #17201b;
-  --ink: #ece4d2;
+  --card: #1b2921;
+  --ink: #e8e6d9;
+  --border: #41483f;
 
   /* Elevation without a light halo: a hairline top rim does the job the old
      white glow did, and a deep dark shadow says "lifted". */
