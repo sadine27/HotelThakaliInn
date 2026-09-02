@@ -13,7 +13,7 @@ import { DRAG } from "@/lib/carousel";
    gets a numbered card rather than a broken image. */
 export type Slide = { title: string; line: string; src: string };
 
-const DWELL = 4200;
+const DWELL = 2100;
 /* Web derivative of the camera master (RB6998.MP4). The master is High 4:2:2
    10-bit at 47 Mbit/s with its moov atom at the end of 134 MB — a profile most
    browsers can't decode, in a layout that can't start until the whole file has

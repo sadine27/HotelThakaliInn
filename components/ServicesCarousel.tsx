@@ -16,7 +16,7 @@ export type ServiceCardData = {
   image: string;
 };
 
-const DWELL = 4200;
+const DWELL = 2100;
 const TILT = 6; /* deg of rotateX */
 
 /* The ring's geometry lives in CSS (--ring-radius on .svc-carousel) so it tracks
