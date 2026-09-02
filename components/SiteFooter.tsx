@@ -60,7 +60,7 @@ export default function SiteFooter() {
         <div className="site-footer-col site-footer-brand">
           <LogoMark size={44} green="#9fbcac" olive="#c9985a" title="Hotel Thakali Inn" />
           <strong>Hotel Thakali Inn</strong>
-          <p>Sinamangal, Kathmandu — five minutes from the runway.</p>
+          <p>Sinamangal, Kathmandu — five minutes from the airport.</p>
         </div>
 
         <div className="site-footer-col">

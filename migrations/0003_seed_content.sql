@@ -2,7 +2,7 @@
 -- seed is provably the same words the site already ships. Staff edits land on top
 -- of these rows; the migration never runs again.
 
-INSERT INTO content (section, slug, position, title, tag, body, href, image, video, extra) VALUES ('hero', 'arrival', 0, 'Five minutes from the runway', '', 'Sinamangal, Kathmandu — close enough to hear the last boarding call and still make it.', '', '/media/hero/arrival.jpg', '', '{}');
+INSERT INTO content (section, slug, position, title, tag, body, href, image, video, extra) VALUES ('hero', 'arrival', 0, 'Five minutes from the airport', '', 'Sinamangal, Kathmandu — close enough to hear the last boarding call and still make it.', '', '/media/hero/arrival.jpg', '', '{}');
 INSERT INTO content (section, slug, position, title, tag, body, href, image, video, extra) VALUES ('hero', 'rooms', 1, 'A bed built for landing days', '', 'Warm wood, thick curtains, hot water on demand — the duplex king, turned down and waiting.', '', '/media/hero/rooms.jpg', '', '{}');
 INSERT INTO content (section, slug, position, title, tag, body, href, image, video, extra) VALUES ('hero', 'breakfast', 2, 'Breakfast, the Thakali way', '', 'A full spread from seven — eggs, fruit, toast and tea, laid out for early flights and slow mornings alike.', '', '/media/hero/breakfast.jpg', '', '{}');
 INSERT INTO content (section, slug, position, title, tag, body, href, image, video, extra) VALUES ('hero', 'desk', 3, 'Someone at the desk, always', '', 'Late check-ins, early cabs — reception at Hotel Thakali Inn never goes dark.', '', '/media/hero/desk.jpg', '', '{}');

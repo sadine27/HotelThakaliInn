@@ -5673,7 +5673,7 @@ html[data-dial-open] .dial-seg {
 /* ── contact: the desk is awake ──────────────────────────────────────────────
    The page's job is to prove that somebody is there and that they are close.
    Two additions carry it: a clock reading the real hour in Kathmandu, and the
-   distance to the runway drawn as two dots and a dash. */
+   distance to the airport drawn as two dots and a dash. */
 
 .con-now {
   display: grid;

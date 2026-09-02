@@ -89,7 +89,7 @@ export default function ContactPanel({ info }: { info: ContactInfo }) {
   const socials = info.socials.filter((s) => s.href);
 
   /* The distance to the terminal, found by name rather than by position, so a
-     staff member reordering the arrival list cannot silently relabel the runway
+     staff member reordering the arrival list cannot silently relabel the airport
      as the bus park. Falls back to nothing, and the strip then just says how
      long it takes. */
   const toTerminal = info.arrival.find(([term]) => /terminal|airport|tia/i.test(term))?.[1];
@@ -157,7 +157,7 @@ export default function ContactPanel({ info }: { info: ContactInfo }) {
         <h1>Hotel Thakali Inn</h1>
         <p className="con-address">{info.address}</p>
         <p className="con-blurb">
-          Five minutes from the runway. The desk is staffed through the night — if
+          Five minutes from the airport. The desk is staffed through the night — if
           you are landing late, call ahead and we will wait up.
         </p>
 
@@ -204,14 +204,14 @@ export default function ContactPanel({ info }: { info: ContactInfo }) {
       </section>
 
       <section className="con-main">
-        {/* The whole pitch, drawn: runway, a short line, our door. Two dots and
+        {/* The whole pitch, drawn: airport, a short line, our door. Two dots and
             a dash rather than a second map — the map below already shows where
             this is, and what this has to show is how little there is between
             the two ends of it. */}
         <div className="con-route" aria-label="The airport is a few minutes away">
           <div className="con-route-stop">
             <span className="con-route-dot" aria-hidden="true" />
-            <strong>The runway</strong>
+            <strong>The airport</strong>
             <span>Tribhuvan International</span>
           </div>
           <div className="con-route-leg">
