@@ -5351,9 +5351,19 @@ html[data-dial-open] .dial-seg {
   /* one knob for how thick the paper block is; the sheets and the cast shadow
      below are all derived from it, and mobile just turns it down */
   --sheet: 6px;
+  /* the paper margin lives on the leaf inside, not here — see .book-cover */
+  --pad: clamp(28px, 5vw, 56px);
   position: relative;
   min-height: 520px;
-  padding: clamp(28px, 5vw, 56px);
+  padding: 0;
+  /* so the leaf stretches to the full height of the block even on a short tab */
+  display: flex;
+  flex-direction: column;
+  /* the depth the turning leaf rotates through, and the rounded paper edge it
+     is clipped to — a page lifts off the block, it does not swing out over the
+     leather */
+  perspective: 1600px;
+  overflow: hidden;
   background: #ede8da;
   border-radius: 10px;
   border: 1px solid rgba(168, 152, 115, 0.55);
@@ -5380,6 +5390,9 @@ html[data-dial-open] .dial-seg {
   content: "";
   position: absolute;
   inset: 0;
+  /* the grain is the first child, so without this the leaf's paper background
+     would bury it; brass (2) still sits above the grain */
+  z-index: 1;
   border-radius: inherit;
   pointer-events: none;
   opacity: 0.05;
@@ -5392,7 +5405,10 @@ html[data-dial-open] .dial-seg {
    paper's corner like a mounted piece of hardware, not an inline icon. */
 .book-corner {
   position: absolute;
-  right: -1px;
+  right: 0;
+  /* above the leaf: the corners come first in the DOM, and the leaf now carries
+     a paper background that would otherwise paint straight over the brass */
+  z-index: 2;
   width: 40px;
   height: 40px;
   /* struck brass: a bright facet up-left, dull metal falling away down-right */
@@ -5407,13 +5423,87 @@ html[data-dial-open] .dial-seg {
 }
 
 .book-corner-tr {
-  top: -1px;
+  top: 0;
   clip-path: polygon(100% 0, 100% 100%, 45% 100%, 0 55%, 0 0);
 }
 
 .book-corner-br {
-  bottom: -1px;
+  bottom: 0;
   clip-path: polygon(100% 0, 100% 100%, 0 100%, 0 45%, 55% 0);
+}
+
+/* ── the page turn ──────────────────────────────────────────────────────────
+   MenuBook keys .book-category on the tab id, so React remounts this node on
+   every tab change — and mounting is all a CSS animation needs. No JS, no
+   state: picking a tab drops a fresh leaf onto the block.
+
+   The leaf has to BE the sheet, not the ink on it. Rotating a bare text block
+   over static paper reads as spinning type, which is why the paper's margin
+   lives here as --pad rather than on .book-page: this element fills the paper
+   edge to edge, and .book-page's own #ede8da becomes the sheet underneath. */
+.book-cover,
+.book-category {
+  position: relative;
+  flex: 1;
+  padding: var(--pad);
+  background: #ede8da;
+  /* hinged at the gutter, where the real binding is */
+  transform-origin: left center;
+  backface-visibility: hidden;
+  /* --swing, not --ease: the site's snap curve puts 80% of the turn in the
+     first fifth of the time, which is a flicking card. This one is documented
+     as "a sheet with weight rather than a snap" — that is exactly the leaf. */
+  animation: leaf-turn 680ms var(--swing) both;
+}
+
+.book-cover::after,
+.book-category::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* darkest at the gutter, where a lifted page shades itself. A flat rotateY
+     with no shading on it reads as a door, not paper. */
+  background: linear-gradient(100deg, rgba(44, 36, 25, 0.6) 0%, rgba(44, 36, 25, 0.2) 55%, transparent 92%);
+  animation: leaf-shade 680ms var(--swing) both;
+}
+
+@keyframes leaf-turn {
+  from {
+    transform: rotateY(-92deg);
+    /* the raised leaf casting down onto the block, agreeing with the cover's
+       light: down and to the right */
+    box-shadow: 18px 26px 40px -12px rgba(0, 0, 0, 0.55);
+  }
+  to {
+    transform: rotateY(0deg);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+/* the same leaf hinged on its top edge — see the mobile block */
+@keyframes leaf-turn-top {
+  from {
+    transform: rotateX(92deg);
+    box-shadow: 18px 26px 40px -12px rgba(0, 0, 0, 0.55);
+  }
+  to {
+    transform: rotateX(0deg);
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+/* held near full through the middle of the turn — that is the only stretch
+   where the leaf is broadside enough for the shading to be seen at all; a
+   straight fade has already burnt off by the time it faces you */
+@keyframes leaf-shade {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .book-cover {
@@ -5422,7 +5512,7 @@ html[data-dial-open] .dial-seg {
   align-items: center;
   text-align: center;
   gap: 8px;
-  padding-top: clamp(12px, 3vh, 32px);
+  padding-top: calc(var(--pad) + clamp(12px, 3vh, 32px));
 }
 
 .book-cover-name {
@@ -5616,6 +5706,19 @@ html[data-dial-open] .dial-seg {
       inset 0 32px 26px -28px rgba(44, 36, 25, 0.6);
   }
 
+  /* the spine sits above the paper here, so the binding — and therefore the
+     hinge — runs along the top edge, matching where the gutter shading is */
+  .book-cover,
+  .book-category {
+    transform-origin: center top;
+    animation-name: leaf-turn-top;
+  }
+
+  .book-cover::after,
+  .book-category::after {
+    background: linear-gradient(190deg, rgba(44, 36, 25, 0.6) 0%, rgba(44, 36, 25, 0.2) 55%, transparent 92%);
+  }
+
   .book-corner {
     width: 24px;
     height: 24px;
@@ -5740,6 +5843,16 @@ html[data-dial-open] .dial-seg {
   }
   .bf-now[data-serving] .bf-now-dot {
     animation: none;
+  }
+  /* the leaf lands flat with no turn, and its shading layer never paints */
+  .book,
+  .book-cover,
+  .book-category {
+    animation: none;
+  }
+  .book-cover::after,
+  .book-category::after {
+    display: none;
   }
 }
 
