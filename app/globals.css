@@ -1163,30 +1163,55 @@ body {
   color: inherit;
   text-decoration: none;
   backface-visibility: hidden; /* .svc-back shows instead once the facet turns away */
-  transition: box-shadow 0.4s var(--ease);
+  border: 1px solid transparent;
+  transition:
+    box-shadow 0.4s var(--ease),
+    border-color 0.4s var(--ease),
+    filter 0.4s var(--ease);
   box-shadow: var(--nu-raised);
 }
 
+/* the frame's own light: a thin warm rim plus one soft specular catch near the
+   top, not a hairline running the whole perimeter — light hits a physical edge
+   unevenly. Only the active facet earns it; it fades out with the card. */
+.svc-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s var(--ease);
+  background: radial-gradient(
+    ellipse 60% 40% at 50% 0%,
+    rgba(238, 223, 190, 0.16),
+    transparent 70%
+  );
+}
+
 .svc-card[data-active] {
+  border-color: rgba(235, 225, 205, 0.32);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
     5px 8px 16px -5px rgba(0, 0, 0, 0.55),
     20px 26px 48px -12px rgba(0, 0, 0, 0.6);
 }
 
+.svc-card[data-active]::after {
+  opacity: 1;
+}
+
 .svc-card[data-active]:hover {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
     6px 10px 20px -6px rgba(0, 0, 0, 0.58),
     26px 34px 60px -14px rgba(0, 0, 0, 0.64);
 }
 
 /* No edge highlight on the facets turned away — just weight pulling them
-   back: a dark drop-shadow and a touch less brightness, no blur (that would
-   soften the photo/text riding on the card). */
+   back: a dark drop-shadow and a touch less brightness/saturation, no blur
+   (that would soften the photo/text riding on the card). */
 .svc-card:not([data-active]) {
   box-shadow: 8px 12px 24px -8px rgba(0, 0, 0, 0.5);
-  filter: brightness(0.82);
+  filter: brightness(0.82) saturate(0.88);
 }
 
 .svc-well {
