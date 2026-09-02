@@ -175,20 +175,20 @@
 /* Low sun, long warm light. The video comes up out of its overnight soak, and
    the ground shifts a step warmer while staying dark. */
 :root[data-daypart="dawn"] {
-  --bg: #141a11;
-  --surface: #232f24;
+  --bg: #1b2017;
+  --surface: #2b3429;
   --nu-dark: rgba(0, 0, 0, 0.44);
-  --card: #202d1f;
+  --card: #263226;
   --ambient-bright: 0.72;
 }
 
-/* The amber hour: ground pulls toward the brass, contact shadows deepen, and
-   the video is the warmest light in the room. */
+/* The amber hour: a light brass tint worked into the palette greens, not a
+   swap to brown — ground pulls warmer while staying part of the same family. */
 :root[data-daypart="dusk"] {
-  --bg: #1a1712;
-  --surface: #2a2318;
+  --bg: #262919;
+  --surface: #343c2d;
   --nu-dark: rgba(0, 0, 0, 0.5);
-  --card: #2f2618;
+  --card: #303927;
   --ambient-bright: 0.9;
 }
 
@@ -196,10 +196,10 @@
    and the page is a dark room around it. The stars come out (see .ambient-fx).
    The video is bright — it is the light source, not a distraction. */
 :root[data-daypart="night"] {
-  --bg: #0c130d;
-  --surface: #1c2820;
+  --bg: #171e17;
+  --surface: #27332a;
   --nu-dark: rgba(0, 0, 0, 0.55);
-  --card: #182420;
+  --card: #223028;
   --ambient-bright: 1.05;
 }
 
