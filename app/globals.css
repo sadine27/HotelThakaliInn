@@ -5196,7 +5196,25 @@ html[data-dial-open] .dial-seg {
    Gold hardware reuses --brass so it matches the rest of the site's metal.
    ========================================================================== */
 
+/* A shadow needs somewhere to fall. On the night ground the book's cast is
+   black on near-black and invisible, so the surface it lies on gets a soft
+   pool of light under it — the shadow bites into that. Semi-transparent white,
+   so it simply disappears on the daytime cream ground, where the cast already
+   reads on its own. */
+.cuisine-page {
+  background:
+    radial-gradient(115% 70% at 50% 40%, rgba(232, 229, 218, 0.07), transparent 62%),
+    var(--bg);
+}
+
+/* One light source for the whole prop: high and to the left. Every highlight
+   in this section sits on a top/left edge and every shadow falls down-right —
+   the moment one of them disagrees the object stops reading as solid. */
 .book {
+  position: relative;
+  /* the grain overlay below is absolute; this also keeps the book's own
+     shadow stack from interleaving with anything painted around it */
+  isolation: isolate;
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 24px;
@@ -5208,26 +5226,71 @@ html[data-dial-open] .dial-seg {
      large — the paper must never come close to the outer edge. */
   padding: clamp(28px, 3vw, 36px);
   border-radius: 22px;
-  background: #14211b;
-  border: 1px solid #0a0f0b;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+  /* dyed leather, lit from upper-left: a falloff from where the light lands,
+     over the dye. The board is not one flat colour. */
+  background:
+    radial-gradient(120% 95% at 18% -5%, rgba(232, 229, 218, 0.055), transparent 58%),
+    linear-gradient(158deg, #1b2c23 0%, #14211b 44%, #0c1611 100%);
+  border: 1px solid #070b08;
+  box-shadow:
+    /* the bevelled top edge catching the light, and the underside going dark */
+    inset 0 1px 0 rgba(232, 229, 218, 0.1),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.55),
+    /* the board's own thickness: its cut edge catches a little light, and the
+       back board sits behind it — the same trick the paper stack uses, which
+       is what stops the cover reading as a rectangle drawn on the page */
+    3px 5px 0 -1px #24352b,
+    5px 9px 0 -3px #16231c,
+    /* contact shadow — tight and dark, this is what glues it to the ground */
+    0 4px 6px rgba(0, 0, 0, 0.5),
+    /* the two soft casts that give it height above the page */
+    0 22px 38px -14px rgba(0, 0, 0, 0.7),
+    0 56px 96px -34px rgba(0, 0, 0, 0.9);
   animation: room-rise 760ms var(--ease) both;
 }
 
-/* the spine is a raised panel inside the cover's padding, distinctly darker
-   than the cover itself — the color step + the grid gap it sits inside of is
-   what reads as "separate physical piece", not a shadow */
+/* leather tooth — greyscale static laid over the board so the cover has a
+   surface instead of a gradient. Absolute (not a grid item), over the
+   background and under everything real. Painted straight rather than blended:
+   `overlay` and `soft-light` both collapse to nothing this far down the
+   value range, which is exactly how a grain layer ends up invisible. */
+.book::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* both children sit above the grain */
+.book-spine,
+.book-page {
+  z-index: 1;
+}
+
+/* the spine is a well routed into the cover: darker than the board and shaded
+   along its top and left, so the tabs read as sitting down inside it rather
+   than floating on the leather */
 .book-spine {
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 28px 0;
-  background: #0a120d;
+  background: linear-gradient(100deg, #0c1610 0%, #080e0a 70%, #0b120e 100%);
   border-radius: 14px;
   border: 1px solid #060907;
-  /* a lipped edge where the spine meets the paper: a lighter hairline just
-     inside the dark border, like a routed groove in the leather */
-  box-shadow: inset -2px 0 0 rgba(184, 183, 168, 0.08);
+  box-shadow:
+    /* a lipped edge where the spine meets the paper: a lighter hairline just
+       inside the dark border, like a routed groove in the leather */
+    inset -2px 0 0 rgba(184, 183, 168, 0.08),
+    inset 0 1px 0 rgba(232, 229, 218, 0.07),
+    /* the panel is recessed into the board — the board's edge shades it */
+    inset 5px 0 12px -6px rgba(0, 0, 0, 0.9),
+    inset 0 6px 12px -8px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .book-brand {
@@ -5276,35 +5339,52 @@ html[data-dial-open] .dial-seg {
   margin-right: 0;
   padding-right: 30px;
   color: #16211a;
-  background: #e8e2d2;
+  background: linear-gradient(180deg, #f4efe1 0%, #e8e2d2 55%, #d3cab4 100%);
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
-  box-shadow: -3px 2px 8px rgba(0, 0, 0, 0.3);
+  /* clipped, so the lift has to come from a filter — see .book-corner */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
 }
 
 .book-page {
+  /* one knob for how thick the paper block is; the sheets and the cast shadow
+     below are all derived from it, and mobile just turns it down */
+  --sheet: 6px;
   position: relative;
-  z-index: 1;
   min-height: 520px;
   padding: clamp(28px, 5vw, 56px);
-  background: #e8e2d2;
+  background: #ede8da;
   border-radius: 10px;
-  border: 1px solid #a89873;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(168, 152, 115, 0.55);
+  box-shadow:
+    /* three sheets behind the front one, each peeking a little less than the
+       last, toward the outer (right/bottom) edge — hard-edged offsets, so this
+       is real stacked paper rather than a blur pretending to be thickness */
+    var(--sheet) var(--sheet) 0 -1px #ded7c2,
+    calc(var(--sheet) * 2) calc(var(--sheet) * 2) 0 -2px #cec5a9,
+    calc(var(--sheet) * 3) calc(var(--sheet) * 3) 0 -3px #b8ac8c,
+    /* the whole block casting down onto the leather */
+    calc(var(--sheet) * 2) calc(var(--sheet) * 3 + 8px) 26px -6px rgba(0, 0, 0, 0.55),
+    /* the gutter: paper bending down into the spine, and the cut top edge
+       catching the same light the cover's bevel does */
+    inset 42px 0 34px -30px rgba(44, 36, 25, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
   color: #2c2419;
 }
 
-/* a second, visibly darker paper rectangle offset behind the front sheet —
-   the page's physical thickness, a real layer (not a shadow standing in for
-   one), sized to read at a glance rather than as a hairline */
+/* paper tooth. Rides above the text on purpose — that is what printed grain
+   does — so it is kept faint enough to texture the sheet without touching
+   legibility. */
 .book-page::before {
   content: "";
   position: absolute;
-  inset: 5px -5px -5px 5px;
-  z-index: -1;
-  background: #beb193;
-  border: 1px solid #a89873;
+  inset: 0;
   border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23p)'/%3E%3C/svg%3E");
 }
 
 /* brass corner hardware — real elements (not pseudo) so the page can keep
@@ -5315,8 +5395,14 @@ html[data-dial-open] .dial-seg {
   right: -1px;
   width: 40px;
   height: 40px;
-  background: #a59663;
+  /* struck brass: a bright facet up-left, dull metal falling away down-right */
+  background: linear-gradient(138deg, #e3d09a 0%, #b8a875 38%, #8d7b4c 72%, #6b5a3a 100%);
   border: 1px solid #6b5a3a;
+  /* drop-shadow, not box-shadow: clip-path cuts the mitre and would take an
+     outer box-shadow with it. The inset highlight is inside the shape, so it
+     survives. */
+  box-shadow: inset 1px 1px 0 rgba(255, 248, 219, 0.6);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
   pointer-events: none;
 }
 
@@ -5480,6 +5566,9 @@ html[data-dial-open] .dial-seg {
     gap: 0;
     padding: 12px;
     overflow-x: auto;
+    /* a native scrollbar is a bright grey bar straight across the leather —
+       the tabs already read as a scrollable rail from their overflow */
+    scrollbar-width: none;
     border-radius: 12px;
     box-shadow: inset 0 -2px 0 rgba(184, 183, 168, 0.08);
   }
@@ -5507,11 +5596,24 @@ html[data-dial-open] .dial-seg {
     padding-right: 16px;
     padding-bottom: 18px;
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), 50% 100%, 0 calc(100% - 10px));
-    box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.3);
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
   }
 
-  .book-page::before {
-    inset: 3px -3px -3px 3px;
+  .book-spine::-webkit-scrollbar {
+    display: none;
+  }
+
+  .book-page {
+    --sheet: 3px;
+    /* the spine is above the paper here, so the gutter runs along the top edge
+       instead of the left one — a light source that turns a corner is the
+       fastest way to lose the illusion */
+    box-shadow:
+      var(--sheet) var(--sheet) 0 -1px #ded7c2,
+      calc(var(--sheet) * 2) calc(var(--sheet) * 2) 0 -2px #cec5a9,
+      calc(var(--sheet) * 3) calc(var(--sheet) * 3) 0 -3px #b8ac8c,
+      calc(var(--sheet) * 2) calc(var(--sheet) * 3 + 6px) 18px -6px rgba(0, 0, 0, 0.55),
+      inset 0 32px 26px -28px rgba(44, 36, 25, 0.6);
   }
 
   .book-corner {

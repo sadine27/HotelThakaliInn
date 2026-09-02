@@ -30,7 +30,7 @@ export default async function Cuisine() {
   const items = [...menuBreakfast, ...menuSnacks, ...menuMains, ...menuBar].map(toMenuItem);
 
   return (
-    <div className="bf-page">
+    <div className="bf-page cuisine-page">
       {items.length > 0 && (
         <MenuBook items={items} tagline={DESCRIPTION} address={config.address ?? ""} />
       )}
