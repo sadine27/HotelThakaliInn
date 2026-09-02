@@ -1181,6 +1181,14 @@ body {
     26px 34px 60px -14px rgba(0, 0, 0, 0.64);
 }
 
+/* No edge highlight on the facets turned away — just weight pulling them
+   back: a dark drop-shadow and a touch less brightness, no blur (that would
+   soften the photo/text riding on the card). */
+.svc-card:not([data-active]) {
+  box-shadow: 8px 12px 24px -8px rgba(0, 0, 0, 0.5);
+  filter: brightness(0.82);
+}
+
 .svc-well {
   position: absolute;
   inset: 15px;
