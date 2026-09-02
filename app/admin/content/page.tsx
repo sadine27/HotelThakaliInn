@@ -35,6 +35,13 @@ const MAGIC: [string, string, number[]][] = [
   ["image/webp", "webp", [0x52, 0x49, 0x46, 0x46]], // RIFF; bytes 8-11 spell WEBP
 ];
 
+/* SVG has no fixed byte signature — it's text, optionally preceded by an XML
+   prolog or a BOM. Checked separately from MAGIC's fixed-offset byte match. */
+function isSvg(head: Uint8Array): boolean {
+  const text = new TextDecoder().decode(head).trimStart();
+  return text.startsWith("<svg") || text.startsWith("<?xml");
+}
+
 /* Comfortably above a 1600px JPEG (the seeded ones are 200-400 KB) and below
    the 3 MB Server Action body cap in next.config.mjs, so this check is the one
    that rejects rather than the transport. */
@@ -47,7 +54,7 @@ const MAX = 2 * 1024 * 1024;
 async function dropOrphan(image: string | undefined) {
   if (!image?.startsWith("/img/")) return;
   const { results } = await env.DB.prepare(
-    "SELECT 1 FROM content WHERE image = ?1 OR video = ?1 LIMIT 1",
+    "SELECT 1 FROM content WHERE image = ?1 OR video = ?1 OR icon = ?1 LIMIT 1",
   )
     .bind(image)
     .all();
@@ -130,11 +137,11 @@ export default async function Content({
        so this action serves both the blank form at the end of the list and every
        existing row above it. */
     await env.DB.prepare(
-      `INSERT INTO content (section, slug, position, title, tag, body, href, image, video, extra, published, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, datetime('now'))
+      `INSERT INTO content (section, slug, position, title, tag, body, href, image, video, icon, extra, published, paid, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, datetime('now'))
        ON CONFLICT (section, slug) DO UPDATE SET
          position = ?3, title = ?4, tag = ?5, body = ?6, href = ?7,
-         image = ?8, video = ?9, extra = ?10, published = ?11,
+         image = ?8, video = ?9, icon = ?10, extra = ?11, published = ?12, paid = ?13,
          updated_at = datetime('now')`,
     )
       .bind(
@@ -147,8 +154,10 @@ export default async function Content({
         get("href"),
         get("image"),
         get("video"),
+        get("icon"),
         extra,
         formData.get("published") ? 1 : 0,
+        formData.get("paid") ? 1 : 0,
       )
       .run();
   }
@@ -197,6 +206,52 @@ export default async function Content({
       return;
     }
     await dropOrphan(row.image);
+  }
+
+  /* Same shape as `upload`, but writes the `icon` column and also accepts
+     SVG — icons are commonly vector, photos never are. */
+  async function uploadIcon(formData: FormData) {
+    "use server";
+    await requireSession();
+
+    const file = formData.get("file");
+    const sec = String(formData.get("section") ?? "");
+    const slug = String(formData.get("slug") ?? "");
+    if (!(file instanceof File) || !file.size || file.size > MAX || !isSection(sec) || !slug) return;
+
+    const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+    const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
+    const svg = !match && isSvg(head);
+    if (!match && !svg) return;
+    if (match?.[0] === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") return;
+    const [type, ext] = svg ? ["image/svg+xml", "svg"] : match!;
+
+    /* R2 serves this back with the SVG content type, and a browser navigated
+       straight to /img/<key> runs any <script> inside it as the site's own
+       origin. Reject rather than sanitize — an icon has no legitimate reason
+       to carry one. */
+    if (svg && /<script/i.test(await file.text())) return;
+
+    const row = await env.DB.prepare(
+      "SELECT icon FROM content WHERE section = ?1 AND slug = ?2",
+    )
+      .bind(sec, slug)
+      .first<{ icon: string }>();
+    if (!row) return;
+
+    const key = `${crypto.randomUUID()}.${ext}`;
+    await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: type } });
+
+    const { meta } = await env.DB.prepare(
+      "UPDATE content SET icon = ?3, updated_at = datetime('now') WHERE section = ?1 AND slug = ?2",
+    )
+      .bind(sec, slug, `/img/${key}`)
+      .run();
+    if (!meta.changes) {
+      await env.MEDIA.delete(key);
+      return;
+    }
+    await dropOrphan(row.icon);
   }
 
   async function deleteUnused(formData: FormData) {
@@ -277,7 +332,11 @@ export default async function Content({
           <div className="adm-field">
             <label>tag</label>
             <input name="tag" defaultValue={row?.tag ?? ""} />
-            <small>The small line above or beside the title.</small>
+            <small>
+              {name === "amenity"
+                ? "Category (e.g. Bathroom, Kitchen, Safety & security)."
+                : "The small line above or beside the title."}
+            </small>
           </div>
 
           <div className="adm-field">
@@ -300,6 +359,19 @@ export default async function Content({
             <label>video</label>
             <input name="video" defaultValue={row?.video ?? ""} />
           </div>
+
+          <div className="adm-field">
+            <label>icon</label>
+            <input name="icon" defaultValue={row?.icon ?? ""} />
+            <small>A path like /img/&lt;uuid&gt;.svg — set by the icon upload below.</small>
+          </div>
+
+          {name === "amenity" && (
+            <label className="adm-check">
+              <input name="paid" type="checkbox" defaultChecked={row?.paid === 1} />
+              <span>Paid / additional charge</span>
+            </label>
+          )}
 
           <div className="adm-field">
             <label>extra (JSON)</label>
@@ -329,6 +401,17 @@ export default async function Content({
               JPEG, PNG or WebP. Big photos are resized in your browser before they are sent, so
               a photo straight off a phone or camera is fine. It replaces the image path above.
             </small>
+          </form>
+        )}
+
+        {row && (
+          <form action={uploadIcon} encType="multipart/form-data" className="adm-upload">
+            <input type="hidden" name="section" value={name} />
+            <input type="hidden" name="slug" value={row.slug} />
+            <label>icon</label>
+            <input type="file" name="file" accept="image/svg+xml,image/png,image/webp,image/jpeg" required />
+            <button type="submit">Upload icon</button>
+            <small>SVG, PNG, WebP or JPEG. It replaces the icon path above.</small>
           </form>
         )}
         </div>

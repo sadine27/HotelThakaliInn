@@ -15,6 +15,8 @@ export type Item<E = Record<string, never>> = {
   href: string;
   image: string;
   video: string;
+  icon: string;
+  paid: number;
   extra: E;
   /* Only ever anything but 1 when section() was called with includeHidden — the
      admin editor needs it to draw the "Show on the site" checkbox. Public pages
@@ -34,7 +36,7 @@ export async function section<E = Record<string, never>>(
   includeHidden = false,
 ): Promise<Item<E>[]> {
   const { results } = await env.DB.prepare(
-    "SELECT slug, title, tag, body, href, image, video, extra, published FROM content WHERE section = ?1 AND (published = 1 OR ?2 = 1) ORDER BY position",
+    "SELECT slug, title, tag, body, href, image, video, icon, paid, extra, published FROM content WHERE section = ?1 AND (published = 1 OR ?2 = 1) ORDER BY position",
   )
     .bind(name, includeHidden ? 1 : 0)
     .all<Omit<Item, "extra"> & { extra: string; published: number }>();
@@ -58,7 +60,7 @@ export async function settings(): Promise<Record<string, string>> {
    image/video only if content ever grows enough to matter. */
 export async function mediaReferences(): Promise<Map<string, { section: string; slug: string }[]>> {
   const { results } = await env.DB.prepare(
-    "SELECT image AS file, section, slug FROM content WHERE image <> '' UNION ALL SELECT video AS file, section, slug FROM content WHERE video <> ''",
+    "SELECT image AS file, section, slug FROM content WHERE image <> '' UNION ALL SELECT video AS file, section, slug FROM content WHERE video <> '' UNION ALL SELECT icon AS file, section, slug FROM content WHERE icon <> ''",
   ).all<{ file: string; section: string; slug: string }>();
   const refs = new Map<string, { section: string; slug: string }[]>();
   for (const r of results) {
