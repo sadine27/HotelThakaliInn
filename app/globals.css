@@ -136,7 +136,6 @@
    two-shadow neumorphism back up for free. */
 :root[data-daypart="day"] {
   --green: #344e41;
-  --olive: #6b705c;
   --alert: #8c4a3a;
 
   --bg: #e4e2dc;
