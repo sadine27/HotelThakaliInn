@@ -125,41 +125,12 @@
   initial-value: #17201b;
 }
 
-/* Daylight used to flip the ground back to a cream neumorphic page here.
-   The site now keeps a single dark cinematic palette at every hour — the one
-   that renders on load — so this daypart intentionally sets nothing and
-   falls through to the root dark values, same as dawn/dusk/night below. */
-
-/* Low sun, long warm light. The video comes up out of its overnight soak, and
-   the ground shifts a step warmer while staying dark. */
-:root[data-daypart="dawn"] {
-  --bg: #1b2017;
-  --surface: #2b3429;
-  --nu-dark: rgba(0, 0, 0, 0.44);
-  --card: #263226;
-  --ambient-bright: 0.72;
-}
-
-/* The amber hour: a light brass tint worked into the palette greens, not a
-   swap to brown — ground pulls warmer while staying part of the same family. */
-:root[data-daypart="dusk"] {
-  --bg: #262919;
-  --surface: #343c2d;
-  --nu-dark: rgba(0, 0, 0, 0.5);
-  --card: #303927;
-  --ambient-bright: 0.9;
-}
-
-/* Genuinely night: the video is the most cinematic state — the film takes over
-   and the page is a dark room around it. The stars come out (see .ambient-fx).
-   The video is bright — it is the light source, not a distraction. */
-:root[data-daypart="night"] {
-  --bg: #171e17;
-  --surface: #27332a;
-  --nu-dark: rgba(0, 0, 0, 0.55);
-  --card: #223028;
-  --ambient-bright: 1.05;
-}
+/* Every daypart (day/dawn/dusk/night) used to nudge --bg/--card/--ambient-bright
+   its own way. That meant the palette visibly shifted a few seconds after load,
+   once Live.tsx stamped the real hour onto <html> — the single dark green the
+   page opens with never actually stayed. All four blocks now intentionally set
+   nothing and fall through to the root dark values, so the palette never
+   changes after first paint regardless of the hour in Kathmandu. */
 
 /* DialNav stamps this on <html> when the fan is out. The well is cut by the
    page, so the state has to live above both the hero and the dial. Placed
