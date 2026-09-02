@@ -9,7 +9,18 @@ export const dynamic = "force-dynamic";
 /* The vocabulary of the `content` table. It is a whitelist, not a label list:
    every write below checks against it, so a hand-crafted POST cannot invent a
    section and park rows in the table that nothing renders and nobody sees. */
-const SECTIONS = ["hero", "service", "room", "gallery", "breakfast", "amenity"] as const;
+const SECTIONS = [
+  "hero",
+  "service",
+  "room",
+  "gallery",
+  "breakfast",
+  "amenity",
+  "menu_breakfast",
+  "menu_snacks",
+  "menu_mains",
+  "menu_bar",
+] as const;
 type Section = (typeof SECTIONS)[number];
 
 const isSection = (value: string): value is Section => SECTIONS.includes(value as Section);
@@ -76,6 +87,10 @@ const TITLES: Record<Section, string> = {
   gallery: "Gallery photos",
   breakfast: "Breakfast",
   amenity: "Amenities",
+  menu_breakfast: "Menu — Breakfast",
+  menu_snacks: "Menu — Snacks & Starters",
+  menu_mains: "Menu — Mains",
+  menu_bar: "Menu — Bar & Drinks",
 };
 
 export default async function Content({

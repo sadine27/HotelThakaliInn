@@ -5189,6 +5189,267 @@ html[data-dial-open] .dial-seg {
 }
 
 /* ==========================================================================
+   CUISINE — the à la carte menu, rendered as a leather-bound book
+   Deliberately its own small palette rather than --card/--surface: those are
+   the site's dark-mode tokens, and this is a physical prop (paper, leather)
+   that has to read the same regardless of what the ground around it does.
+   Gold hardware reuses --brass so it matches the rest of the site's metal.
+   ========================================================================== */
+
+.book {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  max-width: 1180px;
+  margin-top: clamp(48px, 8vh, 88px);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: room-rise 760ms var(--ease) both;
+}
+
+.book-spine {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 28px 0;
+  background: #16211a;
+  border-right: 4px solid #0e1712;
+}
+
+.book-brand {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 24px;
+  margin: 0 0 8px;
+  border: 0;
+  border-bottom: 1px solid rgba(232, 229, 218, 0.12);
+  background: transparent;
+  cursor: pointer;
+}
+
+.book-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.book-tab {
+  padding: 12px 16px 12px 22px;
+  border: 0;
+  border-radius: 0 999px 999px 0;
+  margin-right: 22px;
+  text-align: left;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--olive);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.3s var(--ease),
+    color 0.3s var(--ease),
+    margin-right 0.3s var(--ease);
+}
+
+.book-tab:hover {
+  color: var(--ink);
+}
+
+/* the active tab reads as a bookmark protruding onto the page */
+.book-tab[data-active] {
+  margin-right: 0;
+  padding-right: 24px;
+  color: #16211a;
+  background: #efe7d5;
+  box-shadow: -6px 0 16px rgba(0, 0, 0, 0.35);
+}
+
+.book-page {
+  min-height: 520px;
+  padding: clamp(28px, 5vw, 56px);
+  background: #efe7d5;
+  color: #2c2419;
+}
+
+.book-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding-top: clamp(12px, 3vh, 32px);
+}
+
+.book-cover-name {
+  margin: 12px 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #6b5a3a;
+}
+
+.book-cover-title {
+  margin: 4px 0 20px;
+  font-family: var(--font-serif), serif;
+  font-size: clamp(34px, 5vw, 52px);
+  font-weight: 400;
+  color: #2c2419;
+}
+
+.book-cover-sketch {
+  position: relative;
+  width: min(80%, 320px);
+  aspect-ratio: 4 / 3;
+  margin-bottom: 20px;
+}
+
+.book-cover-sketch img {
+  object-fit: contain;
+}
+
+.book-cover-tagline {
+  max-width: 40ch;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #4a4030;
+}
+
+.book-cover-address {
+  margin: 16px 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6b5a3a;
+}
+
+.book-category-head h2 {
+  margin: 0 0 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(44, 36, 25, 0.18);
+  font-family: var(--font-serif), serif;
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 400;
+  color: #2c2419;
+}
+
+.book-group + .book-group {
+  margin-top: 28px;
+}
+
+.book-group-tag {
+  margin: 0 0 12px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.book-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.book-item-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.book-item-row h3 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: #2c2419;
+  white-space: nowrap;
+}
+
+/* the dotted price leader — a border rather than a repeated character, so it
+   stretches to fill exactly the gap between title and price at any width */
+.book-item-row::after {
+  content: "";
+  flex: 1;
+  align-self: end;
+  height: 0;
+  margin-bottom: 6px;
+  border-bottom: 1px dotted rgba(44, 36, 25, 0.35);
+}
+
+.book-item-price {
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  color: #6b5a3a;
+  white-space: nowrap;
+}
+
+.book-item-body {
+  margin: 4px 0 0;
+  max-width: 60ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #4a4030;
+}
+
+@media (max-width: 900px) {
+  .book {
+    grid-template-columns: 1fr;
+  }
+
+  .book-spine {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 12px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 4px solid #0e1712;
+  }
+
+  .book-brand {
+    padding: 0 12px 0 0;
+    margin: 0 12px 0 0;
+    border-bottom: 0;
+    border-right: 1px solid rgba(232, 229, 218, 0.12);
+    flex-shrink: 0;
+  }
+
+  .book-tabs {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+
+  .book-tab {
+    border-radius: 999px;
+    margin-right: 0;
+    white-space: nowrap;
+  }
+
+  .book-tab[data-active] {
+    padding-right: 16px;
+    box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  .book-item-row {
+    flex-wrap: wrap;
+  }
+
+  .book-item-row::after {
+    display: none;
+  }
+}
+
+/* ==========================================================================
    AMENITIES — the list the front desk reads out on the phone
    ========================================================================== */
 

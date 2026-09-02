@@ -9,7 +9,7 @@ import LogoMark from "./LogoMark";
 const ITEMS = [
   { label: "HOME", href: "/" },
   { label: "ROOMS", href: "/rooms" },
-  { label: "BREAKFAST", href: "/breakfast" },
+  { label: "CUISINE", href: "/cuisine" },
   { label: "AMENITIES", href: "/amenities" },
   { label: "GALLERY", href: "/gallery" },
   { label: "CONTACT", href: "/contact" },
