@@ -5534,7 +5534,7 @@ html[data-dial-open] .dial-seg {
 
 .book-cover-sketch {
   position: relative;
-  width: min(80%, 320px);
+  width: min(92%, 460px);
   aspect-ratio: 4 / 3;
   margin-bottom: 20px;
 }

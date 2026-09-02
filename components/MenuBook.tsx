@@ -138,7 +138,7 @@ export default function MenuBook({
                 src="/media/menu/hotel-sketch.png"
                 alt="Hotel Thakali Inn, illustrated"
                 fill
-                sizes="(max-width: 900px) 60vw, 320px"
+                sizes="(max-width: 900px) 85vw, 460px"
               />
             </div>
             {tagline && <p className="book-cover-tagline">{tagline}</p>}
