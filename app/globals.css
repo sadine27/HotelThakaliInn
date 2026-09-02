@@ -52,8 +52,7 @@
 
   /* Dark glass for anything that floats over the ambient video/photos rather
      than sitting on the page ground (hero CTAs, the WhatsApp/Book/Back dock).
-     day overrides this to a cream glass so those controls stop reading as a
-     leftover dark-theme element once the ground itself has gone light. */
+     Unchanged across dayparts now that the ground stays dark at every hour. */
   --glass-bg: rgba(19, 26, 22, 0.8);
   --glass-bg-hover: rgba(19, 26, 22, 0.88);
 
@@ -126,50 +125,10 @@
   initial-value: #17201b;
 }
 
-/* Full daylight: the site's original neumorphic cream page, from before the
-   ground was inverted to dark cinematic. Real daylight is the one time a warm
-   paper page reads truer than a dark room — dawn, dusk and night keep the
-   cinematic treatment above, this is the only daypart that flips the ground
-   back to light. --nu-raised/--nu-pressed are redefined here too, since the
-   dark theme's versions are flat literals rather than built from --nu-dark —
-   every rule already using var(--nu-raised)/var(--nu-pressed) picks the soft
-   two-shadow neumorphism back up for free. */
-:root[data-daypart="day"] {
-  --green: #344e41;
-  --alert: #8c4a3a;
-
-  --bg: #e4e2dc;
-  --surface: #ebe8e1;
-  --card: #ece4d2;
-  --ink: #2b3230;
-
-  --nu-dark: rgba(52, 78, 65, 0.22);
-  /* The original recipe's --nu-light was 95% pure white, which its own
-     comment (see .svc-card in the pre-inversion stylesheet) notes blows out
-     into a chalky halo at anything bigger than a small button. Toned to the
-     same warm off-white that fix used, since var(--nu-raised)/var(--nu-pressed)
-     here are shared by both small controls and full-size cards. */
-  --nu-raised: 10px 10px 22px rgba(52, 78, 65, 0.22), -10px -10px 22px rgba(255, 253, 247, 0.85);
-  --nu-pressed:
-    inset 7px 7px 15px rgba(52, 78, 65, 0.22),
-    inset -7px -7px 15px rgba(255, 253, 247, 0.85);
-
-  --ambient-bright: 0.85;
-  --glass-bg: rgba(236, 228, 210, 0.78);
-  --glass-bg-hover: rgba(236, 228, 210, 0.9);
-
-  /* Dark-on-cream: the collapsed dial rests on the card, so it has to be the
-     dark thing to be seen. The open dial keeps its ivory-on-well palette
-     unchanged — the well itself stays a dark recess in every daypart. */
-  --dial-track: rgba(52, 78, 65, 0.13);
-  --dial-idle: #829681;
-  --dial-hover: #647a68;
-  --dial-active: #344e41;
-  --dial-label: #6f8579;
-  --dial-label-on: #344e41;
-  --dial-shadow: #344e41;
-  --dial-shadow-a: 0.22;
-}
+/* Daylight used to flip the ground back to a cream neumorphic page here.
+   The site now keeps a single dark cinematic palette at every hour — the one
+   that renders on load — so this daypart intentionally sets nothing and
+   falls through to the root dark values, same as dawn/dusk/night below. */
 
 /* Low sun, long warm light. The video comes up out of its overnight soak, and
    the ground shifts a step warmer while staying dark. */
