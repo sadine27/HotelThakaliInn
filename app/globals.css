@@ -248,10 +248,10 @@ body {
 }
 
 .ambient-video {
-  /* absolute, not fixed: it has to be contained by .hero's own height (via
-     the relatively-positioned <main>) so it scrolls away with the hero
-     instead of permanently blocking the footer curtain reveal beneath it. */
-  position: absolute;
+  /* fixed, sitting behind the sticky .hero: it has no scroll position of its
+     own to track, so it just stays put as backdrop while the footer scrolls
+     up and over both of them. */
+  position: fixed;
   inset: -18px;
   z-index: 0;
   overflow: hidden;
@@ -323,7 +323,11 @@ body {
     var(--card-min-h),
     calc(100svh - var(--pad-y) - var(--inset) - 2px)
   ); /* 2px = the leaf's own top+bottom hairline */
-  position: relative;
+  /* sticky, not relative: pinning it to the top of the viewport is what makes
+     the footer scrolling up from below read as a curtain closing over it,
+     instead of the two just trading places in a normal scroll. */
+  position: sticky;
+  top: 0;
   z-index: 1;
   display: grid;
   /* even halves — the seam between them is the one the page opens along */
@@ -2002,33 +2006,16 @@ body {
 
 /* The page's last line, in normal flow after `main`, so it only appears once
    a visitor scrolls past whatever content the page holds. Same
-   hairline-and-surface language as the dock. On the home page (see
-   .site-footer--curtain) it's pinned instead, for the curtain reveal. */
+   hairline-and-surface language as the dock. On the home page, .hero is
+   position:sticky (see .hero), so this normal-flow footer scrolling up from
+   below draws over it like a curtain closing — no fixed positioning needed
+   on the footer itself. */
 .site-footer {
   position: relative;
   z-index: 5;
   border-top: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
   background: var(--bg);
   color: color-mix(in srgb, var(--ink) 60%, transparent);
-}
-
-/* Curtain reveal: pinned to the bottom of the screen, behind the hero's own
-   z-index:1 but *above* the page's z-index:0 background layer — negative
-   z-index looks like the obvious choice here but Chromium paints a fixed,
-   negative-z-index element BEHIND the opaque canvas background that html/body
-   set, i.e. it never shows at all. z-index:0 sits correctly between the two:
-   the hero (z:1) draws over it like a curtain while scrolling past it, and
-   once past the hero there's nothing left in flow but the transparent
-   .site-footer-spacer, so the footer shows through. */
-.site-footer--curtain {
-  position: fixed;
-  inset: auto 0 0 0;
-  z-index: 0;
-}
-
-.site-footer-spacer {
-  display: block;
-  height: var(--footer-h, 420px);
 }
 
 .site-footer-grid {

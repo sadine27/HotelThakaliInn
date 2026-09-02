@@ -49,7 +49,7 @@ export default function RootLayout({
         <LiveProvider>
           {/* The dial lives here, not per page, so every route gets the same one
               and it keeps its open state across client-side navigation. */}
-          <main style={{ minHeight: "100svh", position: "relative" }}>{children}</main>
+          <main style={{ minHeight: "100svh" }}>{children}</main>
           <SiteFooter />
           <DialNav />
           {/* The other two corners: back, WhatsApp, book. Same reasoning as the
