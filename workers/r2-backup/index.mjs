@@ -21,6 +21,16 @@ async function mirror(env) {
   return { copied, skipped };
 }
 
+async function restore(env, key) {
+  const src = await env.MEDIA_BACKUP.get(key);
+  if (!src) return { restored: false, reason: "not found in backup" };
+  await env.MEDIA.put(key, src.body, {
+    httpMetadata: src.httpMetadata,
+    customMetadata: src.customMetadata,
+  });
+  return { restored: true, key };
+}
+
 function timingSafeEqual(a, b) {
   const enc = new TextEncoder();
   const bufA = enc.encode(a ?? "");
@@ -39,6 +49,12 @@ export default {
     const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     if (!token || !timingSafeEqual(token, env.BACKUP_TOKEN)) {
       return new Response("forbidden", { status: 403 });
+    }
+    const url = new URL(request.url);
+    const restoreMatch = url.pathname.match(/^\/restore\/(.+)$/);
+    if (restoreMatch) {
+      const result = await restore(env, decodeURIComponent(restoreMatch[1]));
+      return Response.json(result);
     }
     const result = await mirror(env);
     return Response.json(result);
