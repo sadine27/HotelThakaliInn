@@ -21,13 +21,25 @@ async function mirror(env) {
   return { copied, skipped };
 }
 
+function timingSafeEqual(a, b) {
+  const enc = new TextEncoder();
+  const bufA = enc.encode(a ?? "");
+  const bufB = enc.encode(b ?? "");
+  if (bufA.length !== bufB.length) return false;
+  let diff = 0;
+  for (let i = 0; i < bufA.length; i++) diff |= bufA[i] ^ bufB[i];
+  return diff === 0;
+}
+
 export default {
   async scheduled(_event, env) {
     await mirror(env);
   },
   async fetch(request, env) {
-    const token = new URL(request.url).searchParams.get("token");
-    if (token !== env.BACKUP_TOKEN) return new Response("forbidden", { status: 403 });
+    const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+    if (!token || !timingSafeEqual(token, env.BACKUP_TOKEN)) {
+      return new Response("forbidden", { status: 403 });
+    }
     const result = await mirror(env);
     return Response.json(result);
   },
