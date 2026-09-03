@@ -33,7 +33,7 @@
 
   /* dark cinematic ground — the brand green with the lights off. Not neutral
      grey, not pure black: the green undertone stays in everything. */
-  --bg: #0f1610;
+  --bg: #182015;
   --surface: #202c24;
   /* the hero's cards sit on the ambient video — they are a step lighter than
      the page so they read as panels over the film, not holes in it. */
@@ -1750,13 +1750,14 @@ body {
     transform: rotateX(-104deg);
   }
   .hero-frame {
-    /* height-led here: half the screen, less the padding and the seam gutter */
+    /* width-led here, matching .hero-copy's full-width footprint, capped to
+       what's left of the row so it doesn't push past the seam */
     aspect-ratio: 3 / 4;
-    height: calc(50svh - 116px);
-    width: auto;
-    max-width: 100%;
+    width: 100%;
+    height: auto;
+    max-height: calc(50svh - 116px);
     min-height: 0; /* the desktop floor exists for the well, which isn't cut here */
-    justify-self: center; /* the seam runs across here, so both cards centre on it */
+    justify-self: stretch; /* matches .hero-copy so the two share one footprint */
   }
   /* stacked, so the facing page wraps its text instead of matching a footprint */
   /* stacked, and the dial no longer lands on the card's corner — the leaf's

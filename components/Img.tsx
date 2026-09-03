@@ -6,9 +6,10 @@ import Image, { type ImageProps } from "next/image";
    next/image cannot serve R2: /_next/image fetches only through the ASSETS
    binding and rejects anything that binding does not hold. Seeded photos live
    in public/media and go through the optimizer (measured 635 KB → 40 KB at
-   640w); uploaded ones live in R2 behind /img/, so they are served as-is with
-   native lazy loading. The upload script already resizes to 1600px, which is
-   what keeps "as-is" from meaning "7 MB". */
+   640w) at quality 90 — the 75 default looked visibly soft next to the
+   gallery's uncompressed <img>s; uploaded ones live in R2 behind /img/, so
+   they are served as-is with native lazy loading. The upload script already
+   resizes to 1600px, which is what keeps "as-is" from meaning "7 MB". */
 export default function Img({
   src,
   alt,
@@ -17,6 +18,7 @@ export default function Img({
   priority,
   className,
   style,
+  quality = 90,
   ...rest
 }: ImageProps & { src: string }) {
   if (src.startsWith("/img/")) {
@@ -54,6 +56,7 @@ export default function Img({
       priority={priority}
       className={className}
       style={style}
+      quality={quality}
       {...rest}
     />
   );
