@@ -117,7 +117,7 @@ export default async function Admin() {
   const prevFrom = kathmanduDayBefore(13, now);
   const prevTo = kathmanduDayBefore(7, now);
 
-  const [requestsUpcoming, requestsLast7, messagesTotal, messagesLast7, settingsCount, contentPublished, contentHidden, nextArrival, daily, topPages, topRefs, viewSpan, direct] = await Promise.all([
+  const [requestsUpcoming, requestsLast7, messagesTotal, messagesLast7, settingsCount, contentPublished, contentHidden, auditLast7, nextArrival, daily, topPages, topRefs, viewSpan, direct] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as count FROM booking_requests WHERE check_in >= ?`).bind(kathmanduToday).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT COUNT(*) as count FROM booking_requests WHERE substr(created_at, 1, 10) >= ?`).bind(kathmanduSevenDaysAgo).first<{ count: number }>()
@@ -131,6 +131,8 @@ export default async function Admin() {
     env.DB.prepare(`SELECT COUNT(*) as count FROM content WHERE published = 1`).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT COUNT(*) as count FROM content WHERE published = 0`).first<{ count: number }>()
+      .then(r => r?.count ?? 0).catch(() => null),
+    env.DB.prepare(`SELECT COUNT(*) as count FROM audit_log WHERE substr(created_at, 1, 10) >= ?`).bind(kathmanduSevenDaysAgo).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT name, check_in FROM booking_requests WHERE check_in >= ? ORDER BY check_in ASC LIMIT 1`).bind(kathmanduToday).first<{ name: string; check_in: string }>()
       .then(r => r ?? null).catch(() => null),
@@ -211,6 +213,12 @@ export default async function Admin() {
             primary={contentPublished}
             secondaryLabel="hidden"
             secondary={contentHidden}
+          />
+          <Tile
+            href="/admin/audit"
+            label="Audit log"
+            description="Every admin write, last 7 days — who, what, when"
+            primary={auditLast7}
           />
         </div>
         <div className="adm-next-arrival">

@@ -4064,6 +4064,38 @@ html[data-dial-open] .dial-seg {
   background: #000;
 }
 
+/* Press feedback. Every control here fires an instant action — a save, a
+   filter, a page turn — and the page re-renders on the way, so the only moment
+   a press can be seen is while it is held. A quick sink and a dim of the
+   control's own fill say "got it" before the result lands. No new colours, no
+   shadows: the dim rides each control's existing fill, so this stays the flat
+   black/white/grey tool rather than borrowing the guest site's look. */
+.adm button,
+.adm .adm-tabs a,
+.adm .adm-pager a,
+.adm .adm-sort a,
+.adm .adm-tile,
+.adm .adm-hub a,
+.adm .adm-summary {
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    transform 90ms ease,
+    filter 90ms ease;
+}
+
+.adm button:active,
+.adm .adm-tabs a:active,
+.adm .adm-pager a:active,
+.adm .adm-sort a:active,
+.adm .adm-tile:active,
+.adm .adm-hub a:active,
+.adm .adm-summary:active {
+  transform: translateY(1px);
+  filter: brightness(0.92);
+}
+
 .adm-error {
   margin: 0;
   font-size: 14px;
@@ -4402,6 +4434,44 @@ html[data-dial-open] .dial-seg {
   margin: 0 0 12px;
   font-size: 12px;
   color: #555;
+}
+
+.adm-audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.adm-audit-table th,
+.adm-audit-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  vertical-align: top;
+}
+
+.adm-audit-table pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  margin: 4px 0;
+}
+
+.adm-pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+  font-size: 12px;
+  color: #555;
+}
+
+.adm-pager a {
+  padding: 4px 10px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  color: #333;
+  text-decoration: none;
 }
 
 /* Small state pill, used in the row summary for "shown/hidden" and inline for
@@ -4874,6 +4944,124 @@ html[data-dial-open] .dial-seg {
 .adm-past {
   font-size: 11px;
   color: #b00020;
+}
+
+/* Result popup — the "Saved" / "could not save" toast after a write. Fixed to
+   the corner so it is visible no matter where the Save button was. It borrows
+   the tool's grey-and-white language, with the two badge colours the admin
+   already uses (green for on, clay red for errors) carrying the tone. */
+.adm-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(380px, calc(100vw - 32px));
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-left: 3px solid #999;
+  border-radius: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #111;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  animation: adm-notice-in 200ms ease;
+}
+
+@keyframes adm-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.adm-notice[data-tone="ok"] {
+  border-left-color: #2a7a2a;
+}
+
+.adm-notice[data-tone="err"] {
+  border-left-color: #b00020;
+}
+
+.adm-notice-mark {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.adm-notice[data-tone="ok"] .adm-notice-mark {
+  background: #2a7a2a;
+}
+
+.adm-notice[data-tone="err"] .adm-notice-mark {
+  background: #b00020;
+}
+
+.adm-notice-msg {
+  margin: 0;
+  padding: 1px 0 0;
+}
+
+.adm .adm-notice-close {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: -2px -4px 0 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  color: #777;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.adm .adm-notice-close:hover {
+  background: #eee;
+  color: #000;
+}
+
+/* Reduced motion in the admin: the press animation is cut, not shortened —
+   the same as the rest of this file. Someone who asked for less motion does
+   not get it back as a quick favour. */
+@media (prefers-reduced-motion: reduce) {
+  .adm button,
+  .adm .adm-tabs a,
+  .adm .adm-pager a,
+  .adm .adm-sort a,
+  .adm .adm-tile,
+  .adm .adm-hub a,
+  .adm .adm-summary {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
+
+  .adm button:active,
+  .adm .adm-tabs a:active,
+  .adm .adm-pager a:active,
+  .adm .adm-sort a:active,
+  .adm .adm-tile:active,
+  .adm .adm-hub a:active,
+  .adm .adm-summary:active {
+    transform: none;
+    filter: none;
+  }
+
+  .adm-notice {
+    animation: none;
+  }
 }
 
 /* ── Page transition ──────────────────────────────────────────────────────── */
