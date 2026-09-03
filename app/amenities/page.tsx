@@ -226,22 +226,12 @@ export default async function Amenities() {
             )}
 
             <ul className="am-grid">
-              {group.items.map(({ row: r, n }) => (
-                <li
-                  className="am-card"
-                  key={r.slug}
-                  /* Capped: the stagger reads as one wave down the page at a
-                     dozen cards and as a page that will not finish loading at
-                     sixty-eight. */
-                  style={{ animationDelay: `${100 + Math.min(n, 24) * 30}ms` }}
-                >
-                  <AmenityGlyph category={group.tag} size={22} />
+              {group.items.map(({ row: r }) => (
+                <li className="am-card" key={r.slug}>
+                  <AmenityGlyph category={group.tag} size={20} />
                   <h3 className="am-title">{r.title}</h3>
-                  {r.paid === 1 ? (
-                    <span className="am-paid">Additional charge</span>
-                  ) : (
-                    r.body && <p className="am-body">{r.body}</p>
-                  )}
+                  {r.body && <p className="am-body">{r.body}</p>}
+                  {r.paid === 1 && <span className="am-paid">Paid</span>}
                 </li>
               ))}
             </ul>

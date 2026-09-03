@@ -6076,31 +6076,26 @@ html[data-dial-open] .dial-seg {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
-  max-width: 1180px;
-}
-
-/* Matte extrusion, not a bordered box: the card and the page ground are the
-   same material, so the edge comes from the dual shadow in --nu-raised
-   rather than a drawn line. --card is one step lighter than --surface,
-   which is what keeps 68 of these from reading as one grey field.
-   Fixed height + clamped body, so a one-word row ("Shower") and a
-   three-sentence one (the restaurant's) still occupy an identical cell —
-   the grid is a checklist, and a checklist reads wrong if its rows don't
-   line up. */
-.am-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  height: 152px;
-  padding: 18px 20px;
+  max-width: 720px;
   border-radius: 18px;
   background: var(--card);
   box-shadow: var(--nu-raised);
-  animation: room-rise 700ms var(--ease) both;
+  overflow: hidden;
+}
+
+/* A checklist, not a shelf of cards — every row the same height regardless
+   of body length, divided by a hairline rather than each getting its own
+   shadow. --card stays the one raised surface; the rows inside it are flat. */
+.am-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.am-card:last-child {
+  border-bottom: none;
 }
 
 .am-card svg {
@@ -6110,21 +6105,20 @@ html[data-dial-open] .dial-seg {
 
 .am-title {
   margin: 0;
-  font-size: 16px;
+  flex: 0 0 auto;
+  width: 190px;
+  font-size: 15px;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.3;
   color: var(--ink);
 }
 
 .am-body {
   margin: 0;
+  flex: 1 1 auto;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.4;
   color: var(--olive);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
 }
 
 /* One section per category: the icon and the photo (where a real one exists)
@@ -6158,7 +6152,8 @@ html[data-dial-open] .dial-seg {
 }
 
 .am-paid {
-  margin: 0;
+  margin: 0 0 0 auto;
+  flex-shrink: 0;
   font-family: var(--font-mono), monospace;
   font-size: 9px;
   letter-spacing: 0.14em;
@@ -6185,8 +6180,15 @@ html[data-dial-open] .dial-seg {
   .bf-item:nth-child(even) {
     direction: ltr;
   }
-  .am-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  .am-card {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .am-title {
+    width: auto;
+  }
+  .am-body {
+    flex-basis: 100%;
   }
   .am-experience-grid {
     grid-auto-flow: column;
