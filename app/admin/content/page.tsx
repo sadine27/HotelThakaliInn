@@ -14,7 +14,10 @@ const SECTIONS = [
   "service",
   "room",
   "gallery",
-  "breakfast",
+  /* No "breakfast": /breakfast is now a redirect to /cuisine and nothing calls
+     section("breakfast") any more, so its tab let staff edit rows at length for
+     no effect on the site. The three dead rows are left in D1 — they point only
+     at repo photos under /media/, so they pin nothing in R2 and cost nothing. */
   "amenity",
   "menu_breakfast",
   "menu_snacks",
@@ -85,7 +88,6 @@ const TITLES: Record<Section, string> = {
   service: "Home — the small cards",
   room: "Rooms",
   gallery: "Gallery photos",
-  breakfast: "Breakfast",
   amenity: "Amenities",
   menu_breakfast: "Menu — Breakfast",
   menu_snacks: "Menu — Snacks & Starters",
@@ -108,6 +110,13 @@ export default async function Content({
   /* Not per-section: an unused photo belongs to no section by definition. */
   const unused = await findUnused().catch(() => []);
 
+  /* Ten past the last row, not `rows.length`. Positions are sparse on purpose —
+     the amenity seed leaves gaps between categories, running to 181 across 68
+     rows — so a count would drop every new amenity into the middle of the list
+     instead of the end. The gap of ten also leaves room to slot a row between
+     two others by hand without renumbering anything. */
+  const nextPosition = (rows.at(-1)?.position ?? -10) + 10;
+
   async function saveItem(formData: FormData) {
     "use server";
     await requireSession();
@@ -120,21 +129,37 @@ export default async function Content({
     /* A malformed `extra` makes every page in this section throw on JSON.parse.
        Reject the write; keep the row. */
     const extra = get("extra") || "{}";
+    let parsed: unknown;
     try {
-      JSON.parse(extra);
+      parsed = JSON.parse(extra);
     } catch {
+      return;
+    }
+
+    /* Every menu row's price lives in `extra`, and /cuisine reads it straight
+       out — a row without one renders as a bare "Rs." with nothing after it.
+       Parseable is not enough here, so the shape is checked too. Optional
+       chaining covers `null` and `7`, both of which parse fine and have no
+       `.price` to read. */
+    if (sec.startsWith("menu_") && typeof (parsed as { price?: unknown })?.price !== "number") {
       return;
     }
 
     /* Insert-or-update in one statement: there is no separate "new row" screen,
        so this action serves both the blank form at the end of the list and every
        existing row above it. */
+    /* `paid` is COALESCEd, not written flat: its checkbox only renders for
+       amenities, and an unchecked box and an absent one look identical in a
+       FormData. Binding the usual `? 1 : 0` would therefore have every save of a
+       hero slide or a menu row quietly stamp 0 over whatever the column held.
+       Null means "no opinion" — keep the stored value, and 0 on insert. */
     await env.DB.prepare(
       `INSERT INTO content (section, slug, position, title, tag, body, href, image, video, icon, extra, published, paid, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, datetime('now'))
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, COALESCE(?13, 0), datetime('now'))
        ON CONFLICT (section, slug) DO UPDATE SET
          position = ?3, title = ?4, tag = ?5, body = ?6, href = ?7,
-         image = ?8, video = ?9, icon = ?10, extra = ?11, published = ?12, paid = ?13,
+         image = ?8, video = ?9, icon = ?10, extra = ?11, published = ?12,
+         paid = COALESCE(?13, paid),
          updated_at = datetime('now')`,
     )
       .bind(
@@ -150,7 +175,9 @@ export default async function Content({
         get("icon"),
         extra,
         formData.get("published") ? 1 : 0,
-        formData.get("paid") ? 1 : 0,
+        /* Mirrors the render condition on the checkbox below. If a second
+           section ever grows a paid flag, both have to change together. */
+        sec === "amenity" ? (formData.get("paid") ? 1 : 0) : null,
       )
       .run();
   }
@@ -201,12 +228,12 @@ export default async function Content({
     await dropOrphan(row.image);
   }
 
-  /* Same shape as `upload`, but writes the `icon` column and also accepts
-     but not SVG: it's markup, not pixels, and R2 would serve it back with an
-     image/svg+xml content type that runs any embedded <script> (or onload=,
-     or an <a xlink:href="javascript:">) as the site's own origin if opened
-     directly. A regex blocklist can't cover every vector, so it's simplest to
-     not accept the format at all — a small PNG covers the same use case. */
+  /* Same shape as `upload`, but writes the `icon` column — and raster only, no
+     SVG. SVG is markup rather than pixels, and R2 would serve it back as
+     image/svg+xml, so any embedded <script> (or onload=, or an
+     <a xlink:href="javascript:">) runs as this site's own origin the moment the
+     file is opened directly. A regex blocklist cannot cover every vector, so the
+     format is simply not accepted — a small PNG covers the same use case. */
   async function uploadIcon(formData: FormData) {
     "use server";
     await requireSession();
@@ -263,12 +290,19 @@ export default async function Content({
     const sec = String(formData.get("section") ?? "");
     const slug = String(formData.get("slug") ?? "");
     if (!isSection(sec) || !slug) return;
+    /* All three upload columns, not just `image`. A deleted amenity can be
+       carrying an uploaded icon and a row can carry a video, and neither was
+       being freed — the manual sweep below would eventually catch them, but
+       "eventually, if someone remembers" is not a cleanup. */
     const row = await env.DB.prepare(
-      "DELETE FROM content WHERE section = ?1 AND slug = ?2 RETURNING image",
+      "DELETE FROM content WHERE section = ?1 AND slug = ?2 RETURNING image, icon, video",
     )
       .bind(sec, slug)
-      .first<{ image: string }>();
-    await dropOrphan(row?.image);
+      .first<{ image: string; icon: string; video: string }>();
+    if (!row) return;
+    /* dropOrphan is a no-op for anything not under /img/, so the empty columns
+       and the seeded /media/ paths cost a string check each and nothing more. */
+    for (const file of [row.image, row.icon, row.video]) await dropOrphan(file);
   }
 
   return (
@@ -291,7 +325,7 @@ export default async function Content({
         ))}
       </nav>
 
-      {[...rows, null].map((row, i) => (
+      {[...rows, null].map((row) => (
         /* The upload is a sibling form, not a nested one — a <form> inside a
            <form> is invalid HTML and browsers silently drop the inner one. */
         <div key={row?.slug ?? "new"} className="adm-row">
@@ -310,7 +344,12 @@ export default async function Content({
 
           <div className="adm-field">
             <label>order</label>
-            <input name="position" type="number" defaultValue={i} />
+            {/* The row's stored position, never its index in this list. They
+                agree only while a section is numbered densely; the amenity seed
+                is not, so an index here meant that saving a row — with no edit
+                to this box at all — rewrote its place in the list and moved the
+                card. A new row goes ten past the last, i.e. at the end. */}
+            <input name="position" type="number" defaultValue={row?.position ?? nextPosition} />
             <small>Lowest first.</small>
           </div>
 
@@ -365,8 +404,21 @@ export default async function Content({
 
           <div className="adm-field">
             <label>extra (JSON)</label>
-            <textarea name="extra" rows={2} defaultValue={JSON.stringify(row?.extra ?? {})} />
-            <small>Keep the braces and quotes. If they are wrong, nothing is saved.</small>
+            {/* A blank menu row starts with a price rather than {}, because a
+                menu row without one is refused by saveItem — and a form that
+                pre-fills the thing it will then reject is a trap. */}
+            <textarea
+              name="extra"
+              rows={2}
+              defaultValue={JSON.stringify(
+                row?.extra ?? (name.startsWith("menu_") ? { price: 0 } : {}),
+              )}
+            />
+            <small>
+              {name.startsWith("menu_")
+                ? "Keep the braces and quotes, and keep a number in price — a menu row without one is not saved."
+                : "Keep the braces and quotes. If they are wrong, nothing is saved."}
+            </small>
           </div>
 
           <label className="adm-check">

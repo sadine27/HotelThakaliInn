@@ -15,6 +15,18 @@ export default async function Amenities() {
   const rows = await section("amenity");
   if (!rows.length) return null;
 
+  /* `tag` is the category heading, and rows sharing one are already adjacent
+     because they are ordered by `position` — so grouping is one pass with no
+     sort and no lookup table, and the order stays entirely the editor's to set.
+     A row whose tag is blank opens its own unheaded group rather than being
+     filed under whichever category happened to precede it. */
+  const groups: { tag: string; items: { row: (typeof rows)[number]; n: number }[] }[] = [];
+  rows.forEach((row, n) => {
+    const last = groups.at(-1);
+    if (last && last.tag === row.tag && row.tag) last.items.push({ row, n });
+    else groups.push({ tag: row.tag, items: [{ row, n }] });
+  });
+
   return (
     <div className="am-page">
       <header className="am-head">
@@ -22,35 +34,44 @@ export default async function Amenities() {
         <h1>What every room has, and what is just outside the door</h1>
       </header>
 
-      {/* One grid rather than two ("in the room" / "on the property"). The rows
-          are one section in D1, ordered by `position`, and the two groups are
-          not a column — splitting them here would mean guessing from the tag
-          text, and a staff edit that reworded "Every room" would silently move
-          a card into the wrong half. Order is the editor's to set. */}
-      <ul className="am-grid">
-        {rows.map((r, i) => (
-          <li
-            className="am-card"
-            key={r.slug}
-            data-shot={r.image ? "" : undefined}
-            style={{ animationDelay: `${100 + i * 40}ms` }}
-          >
-            {r.image && (
-              <div className="am-shot">
-                <Img
-                  src={r.image}
-                  alt={r.title}
-                  fill
-                  sizes="(max-width: 900px) 100vw, 33vw"
-                />
-              </div>
-            )}
-            {r.tag && <p className="am-tag">{r.tag}</p>}
-            <h2 className="am-title">{r.title}</h2>
-            {r.body && <p className="am-body">{r.body}</p>}
-          </li>
-        ))}
-      </ul>
+      {groups.map((group, gi) => (
+        <section className="am-group" key={group.tag || `untagged-${gi}`}>
+          {group.tag && <h2 className="am-group-head">{group.tag}</h2>}
+
+          <ul className="am-grid">
+            {group.items.map(({ row: r, n }) => (
+              <li
+                className="am-card"
+                key={r.slug}
+                data-shot={r.image ? "" : undefined}
+                /* Capped: the stagger reads as one wave down the page at a
+                   dozen cards and as a page that will not finish loading at
+                   sixty-eight. */
+                style={{ animationDelay: `${100 + Math.min(n, 24) * 30}ms` }}
+              >
+                {r.image && (
+                  <div className="am-shot">
+                    <Img
+                      src={r.image}
+                      alt={r.title}
+                      fill
+                      sizes="(max-width: 900px) 100vw, 33vw"
+                    />
+                  </div>
+                )}
+                {/* Decorative: the title beside it already says the same thing,
+                    so an alt would only make a screen reader say it twice. */}
+                {r.icon && (
+                  <Img src={r.icon} alt="" width={28} height={28} className="am-icon" />
+                )}
+                <h3 className="am-title">{r.title}</h3>
+                {r.paid === 1 && <p className="am-paid">Additional charge</p>}
+                {r.body && <p className="am-body">{r.body}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

@@ -10,6 +10,10 @@ import { env } from "cloudflare:workers";
 export type Item<E = Record<string, never>> = {
   slug: string;
   title: string;
+  /* Selected for the admin editor's "order" box, which has to show the row's
+     real place rather than guess it from the array index — positions are
+     sparse on purpose (the amenity list leaves gaps between categories). */
+  position: number;
   tag: string;
   body: string;
   href: string;
@@ -36,11 +40,24 @@ export async function section<E = Record<string, never>>(
   includeHidden = false,
 ): Promise<Item<E>[]> {
   const { results } = await env.DB.prepare(
-    "SELECT slug, title, tag, body, href, image, video, icon, paid, extra, published FROM content WHERE section = ?1 AND (published = 1 OR ?2 = 1) ORDER BY position",
+    "SELECT slug, title, position, tag, body, href, image, video, icon, paid, extra, published FROM content WHERE section = ?1 AND (published = 1 OR ?2 = 1) ORDER BY position",
   )
     .bind(name, includeHidden ? 1 : 0)
     .all<Omit<Item, "extra"> & { extra: string; published: number }>();
-  return results.map((r) => ({ ...r, extra: JSON.parse(r.extra) as E }));
+  return results.map((r) => ({ ...r, extra: parseExtra<E>(r.extra) }));
+}
+
+/* A row whose `extra` is not valid JSON used to throw right here, which took
+   down the public page *and* the admin editor — the only screen where the bad
+   row could be fixed. The editor's own guard makes this unreachable through the
+   UI; a hand-edited row in D1, or one written before that guard existed, is not.
+   Same trade as `list()` below: fall back to empty and keep the page up. */
+function parseExtra<E>(value: string): E {
+  try {
+    return JSON.parse(value) as E;
+  } catch {
+    return {} as E;
+  }
 }
 
 /* Thirteen rows. Reading them all is one round trip; reading them one key at a
@@ -54,8 +71,9 @@ export async function settings(): Promise<Record<string, string>> {
 }
 
 /* Every filename the content table points at, mapped to the rows that point.
-   Both columns in one UNION ALL, so a blob referenced only by `video` still
-   reads as used — the admin photo sweep and orphan guard build on this.
+   All three columns in one UNION ALL, so a blob referenced only by `video` or
+   `icon` still reads as used — the admin photo sweep and orphan guard build on
+   this, and a missed column here means a live photo swept as unused.
    `ponytail:` unindexed scan of a table with a few dozen rows; add an index on
    image/video only if content ever grows enough to matter. */
 export async function mediaReferences(): Promise<Map<string, { section: string; slug: string }[]>> {
