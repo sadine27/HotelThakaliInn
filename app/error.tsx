@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 
 /* Every page here is force-dynamic and reads D1, so "the database blinked" is
@@ -18,6 +19,14 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  /* The comment above says the message "stays server-side in the Worker log" —
+     it only does if something actually logs it. Next.js's error boundary
+     already SSRs this component once on the way to the browser, so this runs
+     there too and is what makes that true. */
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <div className="stop">
       <p className="stop-code stop-code--bad">Error</p>
