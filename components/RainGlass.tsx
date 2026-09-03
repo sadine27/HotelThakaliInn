@@ -157,6 +157,9 @@ export default function RainGlass() {
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
+    /* Admin-controlled per daypart (rain_glass_day / rain_glass_night in
+       settings), resolved server-side into this one flag by /api/live. */
+    if (!live?.rainGlass) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -273,7 +276,9 @@ export default function RainGlass() {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, []);
+    /* live starts null and resolves after the first /api/live fetch, so this
+       has to re-run once rainGlass flips true rather than only on mount. */
+  }, [live?.rainGlass]);
 
   return <canvas ref={ref} className="rain-glass" aria-hidden="true" />;
 }

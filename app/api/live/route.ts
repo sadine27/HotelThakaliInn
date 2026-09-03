@@ -124,12 +124,14 @@ export async function GET() {
   const aqi = quality?.current?.us_aqi;
   const s = typeof code === "number" ? sky(code) : null;
 
+  /* No sun times means no honest dawn/dusk, and guessing them is how the site
+     ends up lit for a sunrise that already happened. Day is the neutral
+     fallback: it is the palette the whole design was drawn in. */
+  const dp: Live["daypart"] = sunrise && sunset ? daypart(mins(now), mins(sunrise), mins(sunset)) : "day";
+
   const body: Live = {
     time: now,
-    /* No sun times means no honest dawn/dusk, and guessing them is how the site
-       ends up lit for a sunrise that already happened. Day is the neutral
-       fallback: it is the palette the whole design was drawn in. */
-    daypart: sunrise && sunset ? daypart(mins(now), mins(sunrise), mins(sunset)) : "day",
+    daypart: dp,
     temp: typeof temp === "number" ? Math.round(temp) : null,
     sky: s?.label ?? null,
     skyKey: s?.key ?? null,
@@ -139,6 +141,7 @@ export async function GET() {
     socials: list<{ label: string; href: string }>(config.socials).filter((s) => s.href),
     address: config.address ?? "",
     email: config.email ?? "",
+    rainGlass: (dp === "day" ? config.rain_glass_day : config.rain_glass_night) === "1",
   };
 
   return Response.json(body, {

@@ -37,6 +37,10 @@ export type Live = {
   socials: { label: string; href: string }[];
   address: string;
   email: string;
+  /* Resolved server-side from the two rain_glass_day/rain_glass_night settings
+     rows against the daypart just computed, so RainGlass only has to check one
+     flag instead of also knowing which of the two rows applies right now. */
+  rainGlass: boolean;
 };
 
 /* "YYYY-MM-DD" in Kathmandu. Everything that has to agree on what "today" means
