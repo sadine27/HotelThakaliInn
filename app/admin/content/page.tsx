@@ -35,13 +35,6 @@ const MAGIC: [string, string, number[]][] = [
   ["image/webp", "webp", [0x52, 0x49, 0x46, 0x46]], // RIFF; bytes 8-11 spell WEBP
 ];
 
-/* SVG has no fixed byte signature — it's text, optionally preceded by an XML
-   prolog or a BOM. Checked separately from MAGIC's fixed-offset byte match. */
-function isSvg(head: Uint8Array): boolean {
-  const text = new TextDecoder().decode(head).trimStart();
-  return text.startsWith("<svg") || text.startsWith("<?xml");
-}
-
 /* Comfortably above a 1600px JPEG (the seeded ones are 200-400 KB) and below
    the 3 MB Server Action body cap in next.config.mjs, so this check is the one
    that rejects rather than the transport. */
@@ -209,7 +202,11 @@ export default async function Content({
   }
 
   /* Same shape as `upload`, but writes the `icon` column and also accepts
-     SVG — icons are commonly vector, photos never are. */
+     but not SVG: it's markup, not pixels, and R2 would serve it back with an
+     image/svg+xml content type that runs any embedded <script> (or onload=,
+     or an <a xlink:href="javascript:">) as the site's own origin if opened
+     directly. A regex blocklist can't cover every vector, so it's simplest to
+     not accept the format at all — a small PNG covers the same use case. */
   async function uploadIcon(formData: FormData) {
     "use server";
     await requireSession();
@@ -219,18 +216,11 @@ export default async function Content({
     const slug = String(formData.get("slug") ?? "");
     if (!(file instanceof File) || !file.size || file.size > MAX || !isSection(sec) || !slug) return;
 
-    const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+    const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
     const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
-    const svg = !match && isSvg(head);
-    if (!match && !svg) return;
-    if (match?.[0] === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") return;
-    const [type, ext] = svg ? ["image/svg+xml", "svg"] : match!;
-
-    /* R2 serves this back with the SVG content type, and a browser navigated
-       straight to /img/<key> runs any <script> inside it as the site's own
-       origin. Reject rather than sanitize — an icon has no legitimate reason
-       to carry one. */
-    if (svg && /<script/i.test(await file.text())) return;
+    if (!match) return;
+    const [type, ext] = match;
+    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") return;
 
     const row = await env.DB.prepare(
       "SELECT icon FROM content WHERE section = ?1 AND slug = ?2",
@@ -363,7 +353,7 @@ export default async function Content({
           <div className="adm-field">
             <label>icon</label>
             <input name="icon" defaultValue={row?.icon ?? ""} />
-            <small>A path like /img/&lt;uuid&gt;.svg — set by the icon upload below.</small>
+            <small>A path like /img/&lt;uuid&gt;.png — set by the icon upload below.</small>
           </div>
 
           {name === "amenity" && (
@@ -409,9 +399,9 @@ export default async function Content({
             <input type="hidden" name="section" value={name} />
             <input type="hidden" name="slug" value={row.slug} />
             <label>icon</label>
-            <input type="file" name="file" accept="image/svg+xml,image/png,image/webp,image/jpeg" required />
+            <input type="file" name="file" accept="image/png,image/webp,image/jpeg" required />
             <button type="submit">Upload icon</button>
-            <small>SVG, PNG, WebP or JPEG. It replaces the icon path above.</small>
+            <small>PNG, WebP or JPEG (no SVG — see the comment in this file). It replaces the icon path above.</small>
           </form>
         )}
         </div>
