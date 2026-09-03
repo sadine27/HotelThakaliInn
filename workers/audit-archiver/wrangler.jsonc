@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "thakali-inn-audit-archiver",
+  "main": "index.mjs",
+  "compatibility_date": "2026-08-29",
+  // Copies unarchived audit_log rows to the WORM bucket every 5 minutes.
+  // Deliberately decoupled from the admin write itself (lib/audit.ts) — an
+  // inline write-then-archive call would be a dual-write with no way to roll
+  // the D1 commit back if the R2 call failed. This retries forever until it
+  // succeeds instead.
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "thakali-inn-contact",
+      "database_id": "62a811d5-4f4b-4268-9b3d-6ea35a08d7e1"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "ARCHIVE", "bucket_name": "thakali-inn-audit-archive" }
+  ]
+}
