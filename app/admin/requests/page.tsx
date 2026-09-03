@@ -18,17 +18,28 @@ type Request = {
   created_at: string;
 };
 
-export default async function Requests() {
+export default async function Requests({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   await requireSession();
+  const { q } = await searchParams;
+  const query = (q ?? "").trim();
 
   /* A booking request is read differently from an enquiry: staff scan dates and
      rooms, not prose. Ordered by arrival date, not by submission — the useful
      question is "who is coming next", and a request for next week matters more
      than one that came in five minutes ago for March. */
-  const { results } = await env.DB.prepare(
+  const { results: all } = await env.DB.prepare(
     `SELECT id, name, email, phone, room, guests, check_in, check_out, notes, created_at
      FROM booking_requests ORDER BY check_in ASC, id DESC LIMIT 200`,
   ).all<Request>();
+
+  const needle = query.toLowerCase();
+  const results = needle
+    ? all.filter((r) => [r.name, r.email, r.room, r.notes].some((v) => v.toLowerCase().includes(needle)))
+    : all;
 
   /* Today in Kathmandu, string-compared — the dates are stored as YYYY-MM-DD
      Kathmandu days by the endpoint, so this marks exactly the rows whose stay
@@ -42,15 +53,26 @@ export default async function Requests() {
       </Link>
       <h1>Booking requests</h1>
       <p className="adm-sub">
-        {results.length === 0
+        {all.length === 0
           ? "Nothing yet"
-          : `${results.length} request${results.length > 1 ? "s" : ""}, by arrival date`}
+          : `${all.length} request${all.length > 1 ? "s" : ""}, by arrival date`}
       </p>
 
-      {results.length === 0 && (
+      {all.length > 0 && (
+        <form className="adm-search" action="/admin/requests">
+          <input type="search" name="q" placeholder="Search name, email or room…" defaultValue={query} />
+          <button type="submit">Search</button>
+        </form>
+      )}
+
+      {all.length === 0 && (
         <p className="adm-empty">
           When someone fills in the form on the booking page, it appears here.
         </p>
+      )}
+
+      {all.length > 0 && results.length === 0 && (
+        <p className="adm-empty">Nothing matches “{query}”.</p>
       )}
 
       <ul className="adm-messages">

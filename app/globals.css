@@ -4264,13 +4264,31 @@ html[data-dial-open] .dial-seg {
   margin-top: 8px;
 }
 
+/* Groups the settings form into named sections, so "the phone number" is a
+   jump to a heading rather than a scan of thirteen unlabelled boxes. */
+.adm-fieldset {
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+}
+
+.adm-fieldset legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #777;
+}
+
 /* ── Admin: the content editor ── */
 
 .adm-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .adm-tabs a {
@@ -4288,11 +4306,194 @@ html[data-dial-open] .dial-seg {
   color: #fff;
 }
 
-.adm-item {
-  margin-bottom: 12px;
-  padding: 16px;
+/* Search + sort, side by side and wrapping on narrow screens. Both are plain
+   GET links/forms — no client JS, so they work with back/forward and can be
+   bookmarked. */
+.adm-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.adm-search {
+  display: flex;
+  gap: 6px;
+  flex: 1 1 260px;
+  margin-bottom: 16px;
+}
+
+.adm-toolbar .adm-search {
+  margin-bottom: 0;
+}
+
+.adm-search input[type="search"] {
+  flex: 1 1 auto;
+}
+
+.adm-search button {
+  padding: 8px 14px;
+}
+
+.adm-sort {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: #555;
+}
+
+.adm-sort a {
+  padding: 4px 10px;
   border: 1px solid #ccc;
   border-radius: 2px;
+  color: #333;
+  text-decoration: none;
+}
+
+.adm-sort a[aria-current="page"] {
+  background: #333;
+  border-color: #333;
+  color: #fff;
+}
+
+.adm-count {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #555;
+}
+
+/* Small state pill, used in the row summary for "shown/hidden" and inline for
+   a row's tag. Text carries the meaning; color is a secondary cue only. */
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #555;
+  white-space: nowrap;
+}
+
+.badge--on {
+  border-color: #2a7a2a;
+  color: #2a7a2a;
+}
+
+.badge--off {
+  border-color: #b00020;
+  color: #b00020;
+}
+
+/* Each row is a native <details> — collapsed by default, so the screen is a
+   scannable list first and a form only on demand, not every form unrolled at
+   once. No JS: the browser owns open/closed state. */
+.adm-row {
+  margin-bottom: 8px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+}
+
+.adm-row--new {
+  margin-top: 20px;
+  border-color: #333;
+  border-style: dashed;
+}
+
+.adm-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style-position: outside;
+  font-size: 14px;
+}
+
+.adm-summary::marker {
+  color: #999;
+}
+
+.adm-row--new > .adm-summary {
+  font-weight: 600;
+}
+
+.adm-thumb {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 2px;
+  object-fit: cover;
+  background: #eee;
+}
+
+.adm-thumb--empty {
+  border: 1px dashed #ccc;
+}
+
+.adm-summary-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.adm-summary-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-summary-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #777;
+}
+
+.adm-summary-updated {
+  flex: none;
+  font-size: 11px;
+  color: #999;
+}
+
+.adm-item {
+  margin: 0;
+  padding: 12px;
+  border-top: 1px solid #ccc;
+}
+
+/* Compact row for the three boxes staff barely ever change — slug, order and
+   the published toggle — so they cost one line instead of three. */
+.adm-row3 {
+  display: grid;
+  grid-template-columns: 1fr 96px auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.adm-row3 .adm-field {
+  margin-bottom: 0;
+}
+
+.adm-check--inline {
+  margin-bottom: 2px;
+}
+
+@media (max-width: 560px) {
+  .adm-row3 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .adm-row3 .adm-check--inline {
+    grid-column: 1 / -1;
+  }
 }
 
 .adm-item .adm-field:last-of-type {
@@ -4363,24 +4564,13 @@ html[data-dial-open] .dial-seg {
 
 /* --- admin: photo upload ------------------------------------------------- */
 
-.adm-row {
-  margin-bottom: 12px;
-}
-
-.adm-row .adm-item {
-  margin-bottom: 0;
-  border-radius: 2px 2px 0 0;
-}
-
 .adm-upload {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px 12px;
-  border: 1px solid #ccc;
-  border-top: 0;
-  border-radius: 0 0 2px 2px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid #ccc;
   background: #f5f5f5;
 }
 

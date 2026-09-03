@@ -72,7 +72,7 @@ function ServiceCard({ card, front }: { card: ServiceCardData; front: boolean })
   return (
     <Link href={card.href} className="svc-card" data-active={front || undefined} tabIndex={front ? undefined : -1}>
       <div className="svc-well">
-        <Img src={card.image} alt="" fill sizes="(max-width: 820px) 90vw, 740px" className="svc-media" priority={front} />
+        <Img src={card.image} alt={card.title} fill sizes="(max-width: 820px) 90vw, 740px" className="svc-media" priority={front} />
         <div className="svc-scrim" />
       </div>
       <div className="svc-content">

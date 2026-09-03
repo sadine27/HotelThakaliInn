@@ -26,6 +26,9 @@ export type Item<E = Record<string, never>> = {
      admin editor needs it to draw the "Show on the site" checkbox. Public pages
      never see a 0 here, because the query already filtered those out. */
   published: number;
+  /* Admin-only: the "updated" column on the content editor's row list. Public
+     pages never read it. */
+  updated_at: string;
 };
 
 /* `extra` is JSON in the column and is parsed here, so no caller has to remember
@@ -40,7 +43,7 @@ export async function section<E = Record<string, never>>(
   includeHidden = false,
 ): Promise<Item<E>[]> {
   const { results } = await env.DB.prepare(
-    "SELECT slug, title, position, tag, body, href, image, video, icon, paid, extra, published FROM content WHERE section = ?1 AND (published = 1 OR ?2 = 1) ORDER BY position",
+    "SELECT slug, title, position, tag, body, href, image, video, icon, paid, extra, published, updated_at FROM content WHERE section = ?1 AND (published = 1 OR ?2 = 1) ORDER BY position",
   )
     .bind(name, includeHidden ? 1 : 0)
     .all<Omit<Item, "extra"> & { extra: string; published: number }>();

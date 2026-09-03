@@ -158,7 +158,7 @@ export default async function Amenities() {
           {EXPERIENCES.map((e) => (
             <li className="am-experience-card" key={e.label}>
               <div className="am-experience-photo">
-                <Img src={e.photo} alt="" fill sizes="(max-width: 900px) 45vw, 16vw" />
+                <Img src={e.photo} alt={`${e.label} at Hotel Thakali Inn`} fill sizes="(max-width: 900px) 45vw, 16vw" />
               </div>
               <div className="am-experience-body">
                 <span className="am-experience-icon">

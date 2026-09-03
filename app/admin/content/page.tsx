@@ -95,18 +95,47 @@ const TITLES: Record<Section, string> = {
   menu_bar: "Menu — Bar & Drinks",
 };
 
+/* Which of the generic columns a section's own page actually reads — checked
+   against every page in app/ that calls section(). A field no page reads is a
+   blank box on this screen for every single row, so it is left off the form
+   entirely rather than shown empty: href only feeds the home page's small
+   cards, video only the gallery, icon and paid only amenities, and extra only
+   rooms (count/meta/specs) and the four menus (price). */
+const FIELDS: Record<
+  Section,
+  { image?: true; href?: true; video?: true; icon?: true; paid?: true; extra?: true }
+> = {
+  hero: { image: true },
+  service: { image: true, href: true },
+  room: { image: true, extra: true },
+  gallery: { image: true, video: true },
+  amenity: { icon: true, paid: true },
+  menu_breakfast: { extra: true },
+  menu_snacks: { extra: true },
+  menu_mains: { extra: true },
+  menu_bar: { extra: true },
+};
+
+const SORTS = ["position", "title", "updated"] as const;
+type Sort = (typeof SORTS)[number];
+const isSort = (value: string): value is Sort => (SORTS as readonly string[]).includes(value);
+const SORT_LABEL: Record<Sort, string> = { position: "Order", title: "Title", updated: "Recently updated" };
+
 export default async function Content({
   searchParams,
 }: {
-  searchParams: Promise<{ s?: string }>;
+  searchParams: Promise<{ s?: string; q?: string; sort?: string }>;
 }) {
   await requireSession();
-  const { s } = await searchParams;
+  const { s, q, sort: sortParam } = await searchParams;
   const name: Section = s && isSection(s) ? s : "hero";
+  const query = (q ?? "").trim();
+  const sort: Sort = sortParam && isSort(sortParam) ? sortParam : "position";
+  const fields = FIELDS[name];
 
   /* true = include unpublished. Without it the "Show on the site" checkbox is a
      one-way door: unticking a row drops it out of this list too. */
-  const rows = await section(name, true);
+  const allRows = await section(name, true);
   /* Not per-section: an unused photo belongs to no section by definition. */
   const unused = await findUnused().catch(() => []);
 
@@ -115,7 +144,23 @@ export default async function Content({
      rows — so a count would drop every new amenity into the middle of the list
      instead of the end. The gap of ten also leaves room to slot a row between
      two others by hand without renumbering anything. */
-  const nextPosition = (rows.at(-1)?.position ?? -10) + 10;
+  const nextPosition = (allRows.at(-1)?.position ?? -10) + 10;
+
+  /* Search matches what a row is found by, not the whole record — the body text
+     of an amenity is often longer than its title and would swamp a match on
+     "wifi" with unrelated hits on "network cable" three rows down. */
+  const needle = query.toLowerCase();
+  const rows = (
+    needle
+      ? allRows.filter((r) =>
+          [r.title, r.slug, r.tag].some((v) => v.toLowerCase().includes(needle)),
+        )
+      : allRows
+  ).slice().sort((a, b) => {
+    if (sort === "title") return a.title.localeCompare(b.title);
+    if (sort === "updated") return b.updated_at.localeCompare(a.updated_at);
+    return a.position - b.position;
+  });
 
   async function saveItem(formData: FormData) {
     "use server";
@@ -325,42 +370,238 @@ export default async function Content({
         ))}
       </nav>
 
-      {[...rows, null].map((row) => (
-        /* The upload is a sibling form, not a nested one — a <form> inside a
-           <form> is invalid HTML and browsers silently drop the inner one. */
-        <div key={row?.slug ?? "new"} className="adm-row">
+      <div className="adm-toolbar">
+        {/* Plain GET, no JS: typing a term and pressing Enter (or the button)
+            reloads this page filtered. It works with the browser back button
+            and a bookmarked search, which a client-side filter would not. */}
+        <form className="adm-search" action="/admin/content">
+          <input type="hidden" name="s" value={name} />
+          <input
+            type="search"
+            name="q"
+            placeholder="Search title, slug or tag…"
+            defaultValue={query}
+          />
+          {sort !== "position" && <input type="hidden" name="sort" value={sort} />}
+          <button type="submit">Search</button>
+        </form>
+        <div className="adm-sort">
+          <span>Sort:</span>
+          {SORTS.map((sv) => (
+            <Link
+              key={sv}
+              href={`/admin/content?s=${name}${query ? `&q=${encodeURIComponent(query)}` : ""}&sort=${sv}`}
+              aria-current={sv === sort ? "page" : undefined}
+            >
+              {SORT_LABEL[sv]}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <p className="adm-count">
+        {rows.length} {rows.length === 1 ? "item" : "items"}
+        {query && <> matching “{query}”</>}
+      </p>
+
+      {rows.map((row) => (
+        /* Collapsed by default: a summary line carries enough to recognise the
+           row without opening it, so this screen is a scannable list first and
+           a form only on demand — not every form unrolled at once. */
+        <details key={row.slug} className="adm-row">
+          <summary className="adm-summary">
+            {row.image ? (
+              <img className="adm-thumb" src={row.image} alt="" loading="lazy" />
+            ) : (
+              <span className="adm-thumb adm-thumb--empty" aria-hidden="true" />
+            )}
+            <span className="adm-summary-main">
+              <span className="adm-summary-title">{row.title || row.slug}</span>
+              <span className="adm-summary-meta">
+                {row.slug}
+                {row.tag && <span className="badge">{row.tag}</span>}
+              </span>
+            </span>
+            <span className={`badge ${row.published ? "badge--on" : "badge--off"}`}>
+              {row.published ? "shown" : "hidden"}
+            </span>
+            <span className="adm-summary-updated">
+              {row.updated_at ? row.updated_at.slice(0, 10) : ""}
+            </span>
+          </summary>
+
+          {/* The upload is a sibling form, not a nested one — a <form> inside a
+              <form> is invalid HTML and browsers silently drop the inner one. */}
+          <form className="adm-item" action={saveItem}>
+            <input type="hidden" name="section" value={name} />
+
+            <div className="adm-row3">
+              <div className="adm-field">
+                <label>slug</label>
+                {/* Read-only on an existing row: (section, slug) is the primary
+                    key, so editing it here would silently create a duplicate
+                    rather than rename. Renaming is delete-then-add, which is
+                    also what makes an orphaned image obvious. */}
+                <input name="slug" defaultValue={row.slug} required readOnly />
+              </div>
+
+              <div className="adm-field">
+                <label>order</label>
+                {/* The row's stored position, never its index in this list.
+                    They agree only while a section is numbered densely; the
+                    amenity seed is not, so an index here meant that saving a
+                    row — with no edit to this box at all — rewrote its place
+                    in the list and moved the card. */}
+                <input name="position" type="number" defaultValue={row.position} />
+              </div>
+
+              <label className="adm-check adm-check--inline">
+                <input name="published" type="checkbox" defaultChecked={row.published === 1} />
+                <span>Show on the site</span>
+              </label>
+            </div>
+
+            <div className="adm-field">
+              <label>title</label>
+              <input name="title" defaultValue={row.title} />
+            </div>
+
+            <div className="adm-field">
+              <label>tag</label>
+              <input name="tag" defaultValue={row.tag} />
+              <small>
+                {name === "amenity"
+                  ? "Category (e.g. Bathroom, Kitchen, Safety & security)."
+                  : "The small line above or beside the title."}
+              </small>
+            </div>
+
+            <div className="adm-field">
+              <label>body</label>
+              <textarea name="body" rows={3} defaultValue={row.body} />
+            </div>
+
+            {fields.href && (
+              <div className="adm-field">
+                <label>href</label>
+                <input name="href" defaultValue={row.href} />
+              </div>
+            )}
+
+            {fields.image && (
+              <div className="adm-field">
+                <label>image</label>
+                <input name="image" defaultValue={row.image} />
+                <small>A path like /media/rooms/deluxe-king.jpg</small>
+              </div>
+            )}
+
+            {fields.video && (
+              <div className="adm-field">
+                <label>video</label>
+                <input name="video" defaultValue={row.video} />
+              </div>
+            )}
+
+            {fields.icon && (
+              <div className="adm-field">
+                <label>icon</label>
+                <input name="icon" defaultValue={row.icon} />
+                <small>A path like /img/&lt;uuid&gt;.png — set by the icon upload below.</small>
+              </div>
+            )}
+
+            {fields.paid && (
+              <label className="adm-check">
+                <input name="paid" type="checkbox" defaultChecked={row.paid === 1} />
+                <span>Paid / additional charge</span>
+              </label>
+            )}
+
+            {fields.extra && (
+              <div className="adm-field">
+                <label>extra (JSON)</label>
+                <textarea name="extra" rows={2} defaultValue={JSON.stringify(row.extra)} />
+                <small>
+                  {name.startsWith("menu_")
+                    ? "Keep the braces and quotes, and keep a number in price — a menu row without one is not saved."
+                    : "Keep the braces and quotes. If they are wrong, nothing is saved."}
+                </small>
+              </div>
+            )}
+
+            {/* Not shown when the section has no such field, but still written
+                on every save so a row created before FIELDS existed keeps
+                whatever it already had rather than being blanked. */}
+            {!fields.image && <input type="hidden" name="image" value={row.image} />}
+            {!fields.href && <input type="hidden" name="href" value={row.href} />}
+            {!fields.video && <input type="hidden" name="video" value={row.video} />}
+            {!fields.icon && <input type="hidden" name="icon" value={row.icon} />}
+            {!fields.extra && <input type="hidden" name="extra" value={JSON.stringify(row.extra)} />}
+
+            <button type="submit">Save</button>
+          </form>
+
+          {fields.image && (
+            <form action={upload} encType="multipart/form-data" className="adm-upload">
+              <input type="hidden" name="section" value={name} />
+              <input type="hidden" name="slug" value={row.slug} />
+              <label>photo</label>
+              <PhotoField />
+              <button type="submit">Upload photo</button>
+              <small>
+                JPEG, PNG or WebP. Big photos are resized in your browser before they are sent, so
+                a photo straight off a phone or camera is fine. It replaces the image path above.
+              </small>
+            </form>
+          )}
+
+          {fields.icon && (
+            <form action={uploadIcon} encType="multipart/form-data" className="adm-upload">
+              <input type="hidden" name="section" value={name} />
+              <input type="hidden" name="slug" value={row.slug} />
+              <label>icon</label>
+              <input type="file" name="file" accept="image/png,image/webp,image/jpeg" required />
+              <button type="submit">Upload icon</button>
+              <small>PNG, WebP or JPEG (no SVG — see the comment in this file). It replaces the icon path above.</small>
+            </form>
+          )}
+        </details>
+      ))}
+
+      {/* The blank row that adds a new item. Always open, and separate from the
+          list above it, so it reads as "start something new" rather than as one
+          more collapsed card to notice among the rest. */}
+      <details className="adm-row adm-row--new" open>
+        <summary className="adm-summary">+ Add new</summary>
         <form className="adm-item" action={saveItem}>
           <input type="hidden" name="section" value={name} />
 
-          <div className="adm-field">
-            <label>slug</label>
-            {/* Read-only on an existing row: (section, slug) is the primary key,
-                so editing it here would silently create a duplicate rather than
-                rename. Renaming is delete-then-add, which is also what makes an
-                orphaned image obvious. */}
-            <input name="slug" defaultValue={row?.slug ?? ""} required readOnly={!!row} />
-            {!row && <small>A short name, lowercase, no spaces. It cannot be changed later.</small>}
-          </div>
-
-          <div className="adm-field">
-            <label>order</label>
-            {/* The row's stored position, never its index in this list. They
-                agree only while a section is numbered densely; the amenity seed
-                is not, so an index here meant that saving a row — with no edit
-                to this box at all — rewrote its place in the list and moved the
-                card. A new row goes ten past the last, i.e. at the end. */}
-            <input name="position" type="number" defaultValue={row?.position ?? nextPosition} />
-            <small>Lowest first.</small>
+          <div className="adm-row3">
+            <div className="adm-field">
+              <label>slug</label>
+              <input name="slug" required />
+              <small>A short name, lowercase, no spaces. It cannot be changed later.</small>
+            </div>
+            <div className="adm-field">
+              <label>order</label>
+              <input name="position" type="number" defaultValue={nextPosition} />
+              <small>Lowest first.</small>
+            </div>
+            <label className="adm-check adm-check--inline">
+              <input name="published" type="checkbox" defaultChecked />
+              <span>Show on the site</span>
+            </label>
           </div>
 
           <div className="adm-field">
             <label>title</label>
-            <input name="title" defaultValue={row?.title ?? ""} />
+            <input name="title" />
           </div>
 
           <div className="adm-field">
             <label>tag</label>
-            <input name="tag" defaultValue={row?.tag ?? ""} />
+            <input name="tag" />
             <small>
               {name === "amenity"
                 ? "Category (e.g. Bathroom, Kitchen, Safety & security)."
@@ -370,94 +611,73 @@ export default async function Content({
 
           <div className="adm-field">
             <label>body</label>
-            <textarea name="body" rows={3} defaultValue={row?.body ?? ""} />
+            <textarea name="body" rows={3} />
           </div>
 
-          <div className="adm-field">
-            <label>href</label>
-            <input name="href" defaultValue={row?.href ?? ""} />
-          </div>
+          {fields.href && (
+            <div className="adm-field">
+              <label>href</label>
+              <input name="href" />
+            </div>
+          )}
 
-          <div className="adm-field">
-            <label>image</label>
-            <input name="image" defaultValue={row?.image ?? ""} />
-            <small>A path like /media/rooms/deluxe-king.jpg</small>
-          </div>
+          {fields.image && (
+            <div className="adm-field">
+              <label>image</label>
+              <input name="image" />
+              <small>A path like /media/rooms/deluxe-king.jpg. Photo upload happens after adding.</small>
+            </div>
+          )}
 
-          <div className="adm-field">
-            <label>video</label>
-            <input name="video" defaultValue={row?.video ?? ""} />
-          </div>
+          {fields.video && (
+            <div className="adm-field">
+              <label>video</label>
+              <input name="video" />
+            </div>
+          )}
 
-          <div className="adm-field">
-            <label>icon</label>
-            <input name="icon" defaultValue={row?.icon ?? ""} />
-            <small>A path like /img/&lt;uuid&gt;.png — set by the icon upload below.</small>
-          </div>
+          {fields.icon && (
+            <div className="adm-field">
+              <label>icon</label>
+              <input name="icon" />
+            </div>
+          )}
 
-          {name === "amenity" && (
+          {fields.paid && (
             <label className="adm-check">
-              <input name="paid" type="checkbox" defaultChecked={row?.paid === 1} />
+              <input name="paid" type="checkbox" />
               <span>Paid / additional charge</span>
             </label>
           )}
 
-          <div className="adm-field">
-            <label>extra (JSON)</label>
-            {/* A blank menu row starts with a price rather than {}, because a
-                menu row without one is refused by saveItem — and a form that
-                pre-fills the thing it will then reject is a trap. */}
-            <textarea
-              name="extra"
-              rows={2}
-              defaultValue={JSON.stringify(
-                row?.extra ?? (name.startsWith("menu_") ? { price: 0 } : {}),
-              )}
-            />
-            <small>
-              {name.startsWith("menu_")
-                ? "Keep the braces and quotes, and keep a number in price — a menu row without one is not saved."
-                : "Keep the braces and quotes. If they are wrong, nothing is saved."}
-            </small>
-          </div>
+          {fields.extra && (
+            <div className="adm-field">
+              <label>extra (JSON)</label>
+              {/* A blank menu row starts with a price rather than {}, because a
+                  menu row without one is refused by saveItem — and a form that
+                  pre-fills the thing it will then reject is a trap. */}
+              <textarea
+                name="extra"
+                rows={2}
+                defaultValue={JSON.stringify(name.startsWith("menu_") ? { price: 0 } : {})}
+              />
+              <small>
+                {name.startsWith("menu_")
+                  ? "Keep the braces and quotes, and keep a number in price — a menu row without one is not saved."
+                  : "Keep the braces and quotes. If they are wrong, nothing is saved."}
+              </small>
+            </div>
+          )}
 
-          <label className="adm-check">
-            <input name="published" type="checkbox" defaultChecked={row ? row.published === 1 : true} />
-            <span>Show on the site</span>
-          </label>
+          {!fields.image && <input type="hidden" name="image" value="" />}
+          {!fields.href && <input type="hidden" name="href" value="" />}
+          {!fields.video && <input type="hidden" name="video" value="" />}
+          {!fields.icon && <input type="hidden" name="icon" value="" />}
+          {!fields.extra && <input type="hidden" name="extra" value="{}" />}
 
-          <button type="submit">{row ? "Save" : "Add"}</button>
+          <button type="submit">Add</button>
         </form>
-
-        {/* Only on an existing row: the action writes to a row identified by
-            (section, slug), so there is nothing to attach a photo to until the
-            row has been added. */}
-        {row && (
-          <form action={upload} encType="multipart/form-data" className="adm-upload">
-            <input type="hidden" name="section" value={name} />
-            <input type="hidden" name="slug" value={row.slug} />
-            <label>photo</label>
-            <PhotoField />
-            <button type="submit">Upload photo</button>
-            <small>
-              JPEG, PNG or WebP. Big photos are resized in your browser before they are sent, so
-              a photo straight off a phone or camera is fine. It replaces the image path above.
-            </small>
-          </form>
-        )}
-
-        {row && (
-          <form action={uploadIcon} encType="multipart/form-data" className="adm-upload">
-            <input type="hidden" name="section" value={name} />
-            <input type="hidden" name="slug" value={row.slug} />
-            <label>icon</label>
-            <input type="file" name="file" accept="image/png,image/webp,image/jpeg" required />
-            <button type="submit">Upload icon</button>
-            <small>PNG, WebP or JPEG (no SVG — see the comment in this file). It replaces the icon path above.</small>
-          </form>
-        )}
-        </div>
-      ))}
+      </details>
 
       {unused.length > 0 && (
         <div className="adm-unused">

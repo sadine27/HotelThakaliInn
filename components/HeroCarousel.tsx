@@ -166,7 +166,7 @@ export default function HeroCarousel({
                  slide is priority; the other three are off-stage at load. */
               <Img
                 src={s.src}
-                alt=""
+                alt={s.title}
                 fill
                 sizes="(max-width: 900px) 70vw, 45vw"
                 priority={n === 0}
@@ -185,7 +185,7 @@ export default function HeroCarousel({
             the strip says what it is like there right now. Whoever is reading
             this at 3am from another timezone is asking the second question. */}
         <div className="hero-eyebrow">
-          <p className="hero-brand">Hotel Thakali Inn</p>
+          <h1 className="hero-brand">Hotel Thakali Inn</h1>
           <LiveLine />
         </div>
 

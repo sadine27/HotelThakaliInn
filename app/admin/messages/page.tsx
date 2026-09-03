@@ -12,15 +12,26 @@ type Message = {
   created_at: string;
 };
 
-export default async function Messages() {
+export default async function Messages({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   await requireSession();
+  const { q } = await searchParams;
+  const query = (q ?? "").trim();
 
   /* Newest first, capped. No pagination, because an 18-room hotel will not have
      a thousand of these — and the LIMIT is what stops one runaway bot filling
      the page instead of the screen. */
-  const { results } = await env.DB.prepare(
+  const { results: all } = await env.DB.prepare(
     "SELECT id, name, email, message, created_at FROM messages ORDER BY id DESC LIMIT 200",
   ).all<Message>();
+
+  const needle = query.toLowerCase();
+  const results = needle
+    ? all.filter((m) => [m.name, m.email, m.message].some((v) => v.toLowerCase().includes(needle)))
+    : all;
 
   return (
     <div className="adm-page">
@@ -29,15 +40,26 @@ export default async function Messages() {
       </Link>
       <h1>Enquiries</h1>
       <p className="adm-sub">
-        {results.length === 0
+        {all.length === 0
           ? "Nothing yet"
-          : `${results.length} message${results.length > 1 ? "s" : ""}, newest first`}
+          : `${all.length} message${all.length > 1 ? "s" : ""}, newest first`}
       </p>
 
-      {results.length === 0 && (
+      {all.length > 0 && (
+        <form className="adm-search" action="/admin/messages">
+          <input type="search" name="q" placeholder="Search name, email or message…" defaultValue={query} />
+          <button type="submit">Search</button>
+        </form>
+      )}
+
+      {all.length === 0 && (
         <p className="adm-empty">
           When someone fills in the form on the contact page, it appears here.
         </p>
+      )}
+
+      {all.length > 0 && results.length === 0 && (
+        <p className="adm-empty">Nothing matches “{query}”.</p>
       )}
 
       <ul className="adm-messages">

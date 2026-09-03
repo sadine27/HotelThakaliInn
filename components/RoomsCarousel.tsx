@@ -85,7 +85,7 @@ function RoomCard({
       }
     >
       <div className="svc-well">
-        <Img src={room.image} alt="" fill sizes="(max-width: 900px) 88vw, 46vw" className="svc-media" priority={front} />
+        <Img src={room.image} alt={`${room.name} at Hotel Thakali Inn`} fill sizes="(max-width: 900px) 88vw, 46vw" className="svc-media" priority={front} />
         <div className="svc-scrim" />
       </div>
       <div className="svc-content">

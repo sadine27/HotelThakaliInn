@@ -46,10 +46,21 @@ const HINTS: Record<string, string> = {
   lng: "Only change these with the map link. They place the pin.",
 };
 
+/* Grouped for scanning, not alphabetical — thirteen fields in one flat list
+   reads as a wall with no way to jump to "the phone number". Any key not
+   listed here (there should be none) falls into its own "Other" group rather
+   than silently vanishing. */
+const GROUPS: { label: string; keys: string[] }[] = [
+  { label: "Contact", keys: ["phone", "email", "booking_url", "socials"] },
+  { label: "Location", keys: ["address", "maps_url", "lat", "lng", "plus_code", "arrival"] },
+  { label: "Rooms", keys: ["rooms_shared", "rooms_size", "rooms_good_to_know"] },
+];
+
 export default async function Settings() {
   await requireSession();
   const config = await settings();
-  const keys = Object.keys(config).sort();
+  const known = new Set(GROUPS.flatMap((g) => g.keys));
+  const groups = [...GROUPS, { label: "Other", keys: Object.keys(config).filter((k) => !known.has(k)).sort() }];
 
   async function save(formData: FormData) {
     "use server";
@@ -94,20 +105,28 @@ export default async function Settings() {
       <h1>Contact details &amp; property facts</h1>
       <p className="adm-sub">Saved straight to the live site</p>
 
-      {keys.map((key) => (
-        <div className="adm-field" key={key}>
-          <label htmlFor={`s.${key}`}>{LABELS[key] ?? key.replace(/_/g, " ")}</label>
-          {LONG.has(key) ? (
-            <textarea id={`s.${key}`} name={`s.${key}`} defaultValue={config[key]} rows={3} />
-          ) : (
-            <input id={`s.${key}`} name={`s.${key}`} defaultValue={config[key]} />
-          )}
-          {HINTS[key] && <small>{HINTS[key]}</small>}
-          {JSON_ROWS.has(key) && (
-            <small>Keep the brackets and quotes. If they are wrong, this row is left as it was.</small>
-          )}
-        </div>
-      ))}
+      {groups.map(
+        (group) =>
+          group.keys.length > 0 && (
+            <fieldset className="adm-fieldset" key={group.label}>
+              <legend>{group.label}</legend>
+              {group.keys.map((key) => (
+                <div className="adm-field" key={key}>
+                  <label htmlFor={`s.${key}`}>{LABELS[key] ?? key.replace(/_/g, " ")}</label>
+                  {LONG.has(key) ? (
+                    <textarea id={`s.${key}`} name={`s.${key}`} defaultValue={config[key]} rows={3} />
+                  ) : (
+                    <input id={`s.${key}`} name={`s.${key}`} defaultValue={config[key]} />
+                  )}
+                  {HINTS[key] && <small>{HINTS[key]}</small>}
+                  {JSON_ROWS.has(key) && (
+                    <small>Keep the brackets and quotes. If they are wrong, this row is left as it was.</small>
+                  )}
+                </div>
+              ))}
+            </fieldset>
+          ),
+      )}
 
       <button type="submit">Save</button>
     </form>
