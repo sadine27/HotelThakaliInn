@@ -3315,6 +3315,44 @@ html[data-dial-open] .dial-seg {
   transform: translateX(3px);
 }
 
+/* Same scrim/stroke language as .gal-nav, in the open stripe's bottom-right
+   corner rather than the wall's edges — this one only ever exists over
+   footage that is already playing. */
+.gal-pause {
+  position: absolute;
+  z-index: 5;
+  right: var(--gal-pad);
+  bottom: var(--gal-pad);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #f2eee4;
+  background: rgba(13, 20, 16, 0.66);
+  box-shadow: inset 0 0 0 1px rgba(242, 238, 228, 0.14);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.25s var(--ease);
+}
+
+.gal-pause:hover {
+  background: rgba(13, 20, 16, 0.84);
+}
+
+.gal-pause:focus-visible {
+  outline: 2px solid #f2eee4;
+  outline-offset: -6px;
+}
+
+.gal-pause svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Announcements only, and only for window moves a person asked for. */
 .gal-sr {
   position: absolute;

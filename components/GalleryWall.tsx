@@ -62,6 +62,11 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
   const [start, setStart] = useState(0);
   const [active, setActive] = useState<number | null>(null);
   const [announce, setAnnounce] = useState("");
+  /* A guest's own pause, distinct from every other reason a clip isn't
+     playing (closed, reduced motion, window shift). Reset whenever a
+     different stripe opens, so pausing one clip never carries into the
+     next. */
+  const [videoPaused, setVideoPaused] = useState(false);
   /* The window that just left, kept alive on top of the one that replaced it
      for the length of the cross. `turn` only exists to re-key it, so two moves
      in quick succession restart the animation instead of continuing the first. */
@@ -160,7 +165,7 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
   useEffect(() => {
     videos.current.forEach((v, i) => {
       if (!v) return;
-      if (i === active && (!reduced || deliberate.current)) {
+      if (i === active && (!reduced || deliberate.current) && !videoPaused) {
         /* play() rejects when a pause lands on top of it — normal when the
            pointer crosses two stripes quickly, not an error worth surfacing */
         v.play().catch(() => {});
@@ -168,7 +173,13 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
         v.pause();
       }
     });
-  }, [active, start, reduced]);
+  }, [active, start, reduced, videoPaused]);
+
+  /* A pause is scoped to the stripe it was pressed on — opening a different
+     one, or reopening this one, starts from playing again. */
+  useEffect(() => {
+    setVideoPaused(false);
+  }, [active]);
 
   /* moveWindow captures the leaving window before `start` changes. Reduced
      motion clears any overlay so the wall cuts cleanly to the next set. */
@@ -325,6 +336,25 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
               {p.title}
             </span>
 
+            {/* Motion a guest didn't ask to keep looking at, without closing
+                the stripe to escape it. Own element, not folded into .gal-hit,
+                for the same reason .gal-hit is its own element over the blurb:
+                a click here must not also mean open/close. */}
+            {i === active && (
+              <button
+                type="button"
+                className="gal-pause"
+                aria-label={videoPaused ? "Play video" : "Pause video"}
+                aria-pressed={videoPaused}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setVideoPaused((v) => !v);
+                }}
+              >
+                <PauseIcon playing={!videoPaused} />
+              </button>
+            )}
+
             {/* The stripe this slot showed a moment ago, crossing out over the
                 one that took its place. A copy of the column rather than just
                 its frame — see .gal-out — and inert to both the pointer and a
@@ -396,6 +426,23 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
 /* Square caps and a heavy stroke rather than a rounded icon-set chevron — the
    page is set in Manrope 800 caps and a soft arrow would be the one apologetic
    thing on it. Two glyphs do not justify an icon dependency. */
+/* Two bars / one triangle, same square-capped stroke as Chevron — one more
+   glyph still doesn't justify an icon dependency. */
+function PauseIcon({ playing }: { playing: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {playing ? (
+        <>
+          <path d="M9 4 L9 20" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="square" />
+          <path d="M15 4 L15 20" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="square" />
+        </>
+      ) : (
+        <path d="M6 4 L19 12 L6 20 Z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+      )}
+    </svg>
+  );
+}
+
 function Chevron({ dir }: { dir: "prev" | "next" }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
