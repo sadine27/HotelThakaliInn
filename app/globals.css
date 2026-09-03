@@ -1701,6 +1701,12 @@ body {
   }
   .leaf-l {
     padding: var(--pad-y) var(--pad-x) var(--gutter);
+    /* a real row track, not an auto one: .hero-frame's children are all
+       position: absolute, so it has no intrinsic content height of its own
+       to size an auto row from — an auto track here collapses to 0 and the
+       card vanishes. 1fr gives the row leaf-l's own (definite) height, which
+       .hero-frame's height: 100% can then resolve against. */
+    grid-template-rows: 1fr;
     align-content: end;
     transform-origin: center top;
   }
