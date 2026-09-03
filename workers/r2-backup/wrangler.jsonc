@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "thakali-inn-r2-backup",
+  "main": "index.mjs",
+  "compatibility_date": "2026-08-29",
+  // Nightly mirror: MEDIA -> MEDIA_BACKUP. Never runs the other direction,
+  // so a delete or overwrite in the live bucket can't touch the backup.
+  "triggers": { "crons": ["0 3 * * *"] },
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "thakali-inn-media" },
+    { "binding": "MEDIA_BACKUP", "bucket_name": "thakali-inn-media-backup" }
+  ]
+}
