@@ -37,8 +37,16 @@ export default async function Rooms() {
   }));
 
   /* The fan indexes into this list from the first render. An empty table is a
-     seed that never ran, not a state worth drawing. */
-  if (!rooms.length) return null;
+     seed that never ran, not a state worth drawing — but a blank page with no
+     explanation is worse than a short line if staff ever unpublish every row. */
+  if (!rooms.length) {
+    return (
+      <div className="stop">
+        <h1 className="stop-line">Rooms aren&rsquo;t listed right now.</h1>
+        <p>Call us and we&rsquo;ll help you book directly.</p>
+      </div>
+    );
+  }
 
   return (
     /* The carousel reads ?room= to decide whether the detail is open, and

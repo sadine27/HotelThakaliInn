@@ -31,8 +31,13 @@ export default async function Cuisine() {
 
   return (
     <div className="bf-page cuisine-page">
-      {items.length > 0 && (
+      {items.length > 0 ? (
         <MenuBook items={items} tagline={DESCRIPTION} address={config.address ?? ""} />
+      ) : (
+        <div className="stop">
+          <h1 className="stop-line">The menu isn&rsquo;t listed right now.</h1>
+          <p>Call us and we&rsquo;ll tell you what&rsquo;s on today.</p>
+        </div>
       )}
     </div>
   );
