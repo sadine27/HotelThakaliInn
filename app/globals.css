@@ -1750,12 +1750,13 @@ body {
     transform: rotateX(-104deg);
   }
   .hero-frame {
-    /* width-led here, matching .hero-copy's full-width footprint, capped to
-       what's left of the row so it doesn't push past the seam */
-    aspect-ratio: 3 / 4;
+    /* fills its whole grid row — no aspect-ratio to fall short of it and
+       leave a gap above, since .leaf-l anchors its content to the row's
+       bottom. The photo inside is object-fit: cover, so it crops to fit. */
+    aspect-ratio: auto;
     width: 100%;
-    height: auto;
-    max-height: calc(55svh - 90px); /* matches the row split above */
+    height: 100%;
+    max-height: none;
     min-height: 0; /* the desktop floor exists for the well, which isn't cut here */
     justify-self: stretch; /* matches .hero-copy so the two share one footprint */
   }
