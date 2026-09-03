@@ -1,13 +1,21 @@
 import { env } from "cloudflare:workers";
 import Link from "next/link";
-import { requireSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getActor, requireSession } from "@/lib/auth";
+import { auditedWrite } from "@/lib/audit";
 import { settings } from "@/lib/content";
+import AdminNotice from "@/components/AdminNotice";
 
 export const dynamic = "force-dynamic";
 
 /* Which rows are JSON lists, so the form can say so instead of letting someone
    paste prose into a field a page will try to JSON.parse. */
 const JSON_ROWS = new Set(["socials", "arrival", "rooms_good_to_know"]);
+
+/* Stored as "1"/"0" rather than text. Checkboxes don't appear in FormData at
+   all when unchecked, so these are handled as their own branch below rather
+   than through the generic input/textarea loop. */
+const BOOLEAN_ROWS = new Set(["rain_glass_day", "rain_glass_night"]);
 
 /* Long values get a textarea; everything else is one line. */
 const LONG = new Set(["address", "maps_url", "rooms_shared", "rooms_size", ...JSON_ROWS]);
@@ -25,6 +33,8 @@ const LABELS: Record<string, string> = {
   maps_url: "Google Maps link",
   phone: "Phone number",
   plus_code: "Google Plus Code",
+  rain_glass_day: "Rain on glass — day",
+  rain_glass_night: "Rain on glass — night",
   rooms_good_to_know: "Rooms — good to know",
   rooms_shared: "What every room has",
   rooms_size: "Room size",
@@ -44,6 +54,8 @@ const HINTS: Record<string, string> = {
   rooms_shared: "Separated by · — this is one line of text, not a list.",
   lat: "Only change these with the map link. They place the pin.",
   lng: "Only change these with the map link. They place the pin.",
+  rain_glass_day: "Droplets on the homepage hero, daytime only.",
+  rain_glass_night: "Droplets on the homepage hero, night (and dawn/dusk) only.",
 };
 
 /* Grouped for scanning, not alphabetical — thirteen fields in one flat list
@@ -54,11 +66,32 @@ const GROUPS: { label: string; keys: string[] }[] = [
   { label: "Contact", keys: ["phone", "email", "booking_url", "socials"] },
   { label: "Location", keys: ["address", "maps_url", "lat", "lng", "plus_code", "arrival"] },
   { label: "Rooms", keys: ["rooms_shared", "rooms_size", "rooms_good_to_know"] },
+  { label: "Effects", keys: ["rain_glass_day", "rain_glass_night"] },
 ];
 
-export default async function Settings() {
+export default async function Settings({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; err?: string }>;
+}) {
   await requireSession();
   const config = await settings();
+  const { ok, err } = await searchParams;
+
+  /* The save action below redirects back here with a code; this turns the code
+     into the popup's copy. No code, no popup. */
+  let noticeTone: "ok" | "err" | undefined;
+  let noticeMessage: string | undefined;
+  if (err === "json") {
+    noticeTone = "err";
+    noticeMessage = "Nothing was saved — a value wouldn't parse as JSON.";
+  } else if (ok === "partial") {
+    noticeTone = "ok";
+    noticeMessage = "Saved — fields with broken JSON were left as they were.";
+  } else if (ok === "saved") {
+    noticeTone = "ok";
+    noticeMessage = "Saved — the site now shows the new details.";
+  }
   const known = new Set(GROUPS.flatMap((g) => g.keys));
   const groups = [...GROUPS, { label: "Other", keys: Object.keys(config).filter((k) => !known.has(k)).sort() }];
 
@@ -66,11 +99,17 @@ export default async function Settings() {
     "use server";
     await requireSession();
 
+    /* How many JSON rows the check below threw out, so the redirect can say
+       whether the batch saved whole or left the broken rows standing. */
+    let droppedJson = 0;
+
     const rows = [...formData.entries()]
       /* Only the keys we prefixed ourselves. A Server Action's FormData also
          carries the framework's own fields, and an UPDATE loop over all of them
-         writes junk. */
-      .filter(([k]) => k.startsWith("s."))
+         writes junk. Booleans are handled separately below — an unchecked
+         checkbox never appears in FormData at all, so this loop can't see
+         "off" for them. */
+      .filter(([k]) => k.startsWith("s.") && !BOOLEAN_ROWS.has(k.slice(2)))
       .map(([k, v]) => [k.slice(2), String(v)] as const)
       /* A broken JSON row would blank a whole section of the public site, so a
          value that will not parse is dropped from the batch and the old one
@@ -85,16 +124,47 @@ export default async function Settings() {
           JSON.parse(value);
           return true;
         } catch {
+          droppedJson++;
           return false;
         }
       });
 
-    if (!rows.length) return;
+    for (const key of BOOLEAN_ROWS) rows.push([key, formData.has(`s.${key}`) ? "1" : "0"]);
+
+    /* Nothing survived the JSON check — the whole save would be a no-op, and
+       "Saved" would be a lie. Say what actually happened instead. */
+    if (!rows.length) {
+      redirect(droppedJson ? "/admin/settings?err=json" : "/admin/settings");
+    }
+
+    /* Resolved before the write, same reason as every other auditedWrite call
+       site: a D1 batch can't feed one statement's output into another's
+       bindings, so "before" has to come from its own SELECT first. */
+    const keys = rows.map(([k]) => k);
+    const placeholders = keys.map((_, i) => `?${i + 1}`).join(", ");
+    const { results: existing } = await env.DB.prepare(
+      `SELECT key, value FROM settings WHERE key IN (${placeholders})`,
+    )
+      .bind(...keys)
+      .all<{ key: string; value: string }>();
+    const before = Object.fromEntries(existing.map((r) => [r.key, r.value]));
+    const after = Object.fromEntries(rows);
 
     /* UPDATE, never INSERT: the thirteen keys are a fixed vocabulary that pages
        read by name, so a new row would be a value nothing renders. */
     const stmt = env.DB.prepare("UPDATE settings SET value = ?2 WHERE key = ?1");
-    await env.DB.batch(rows.map(([k, v]) => stmt.bind(k, v)));
+    await auditedWrite(
+      rows.map(([k, v]) => stmt.bind(k, v)),
+      {
+        actor: await getActor(),
+        action: "settings.update",
+        before,
+        after,
+      },
+    );
+    /* Back to the form with the outcome in the URL; the popup reads it from
+       there. */
+    redirect(droppedJson ? "/admin/settings?ok=partial" : "/admin/settings?ok=saved");
   }
 
   return (
@@ -104,6 +174,7 @@ export default async function Settings() {
       </Link>
       <h1>Contact details &amp; property facts</h1>
       <p className="adm-sub">Saved straight to the live site</p>
+      <AdminNotice tone={noticeTone} message={noticeMessage} />
 
       {groups.map(
         (group) =>
@@ -113,7 +184,9 @@ export default async function Settings() {
               {group.keys.map((key) => (
                 <div className="adm-field" key={key}>
                   <label htmlFor={`s.${key}`}>{LABELS[key] ?? key.replace(/_/g, " ")}</label>
-                  {LONG.has(key) ? (
+                  {BOOLEAN_ROWS.has(key) ? (
+                    <input type="checkbox" id={`s.${key}`} name={`s.${key}`} defaultChecked={config[key] === "1"} />
+                  ) : LONG.has(key) ? (
                     <textarea id={`s.${key}`} name={`s.${key}`} defaultValue={config[key]} rows={3} />
                   ) : (
                     <input id={`s.${key}`} name={`s.${key}`} defaultValue={config[key]} />

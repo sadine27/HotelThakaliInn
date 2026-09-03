@@ -1,7 +1,10 @@
 import { env } from "cloudflare:workers";
 import Link from "next/link";
-import { requireSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getActor, requireSession } from "@/lib/auth";
+import { auditedWrite } from "@/lib/audit";
 import PhotoField from "@/components/PhotoField";
+import AdminNotice from "@/components/AdminNotice";
 import { mediaReferences, section } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
@@ -67,16 +70,26 @@ async function dropOrphan(image: string | undefined) {
  * paying rent for nothing. Only /img/ keys are considered — the seeded /media/
  * paths are files in the repo, not uploads, and are not ours to delete. */
 async function findUnused() {
-  const [objects, refs] = await Promise.all([
-    env.MEDIA.list({ limit: 1000 }),
-    mediaReferences(),
-  ]);
+  /* R2's list() caps at 1000 keys a call and says so via `truncated`/`cursor` —
+     a single call silently stopped seeing (and thus never flagged) anything
+     uploaded past the first 1000. Looping the cursor is what keeps a bucket
+     that outgrows one page from quietly hiding its own orphans. */
+  const refsPromise = mediaReferences();
+  const objects: { key: string; size: number; uploaded: Date }[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await env.MEDIA.list({ limit: 1000, cursor });
+    objects.push(...page.objects);
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+
+  const refs = await refsPromise;
   /* Only /img/ keys are uploads — the seeded /media/ paths are repo files, and a
      video column can hold an external URL that never starts with /img/. */
   const referenced = new Set(
     [...refs.keys()].filter((k) => k.startsWith("/img/")).map((k) => k.slice(5)),
   );
-  return objects.objects
+  return objects
     .filter((o) => !referenced.has(o.key))
     .map((o) => ({ key: o.key, size: o.size, uploaded: o.uploaded }));
 }
@@ -121,13 +134,19 @@ type Sort = (typeof SORTS)[number];
 const isSort = (value: string): value is Sort => (SORTS as readonly string[]).includes(value);
 const SORT_LABEL: Record<Sort, string> = { position: "Order", title: "Title", updated: "Recently updated" };
 
+/* menu_bar alone seeds past 120 rows — a <details> per row is a full <form>
+   with a dozen fields, and rendering all of them unconditionally is what
+   makes that tab heavy to load and scroll. Paged the same way search and sort
+   already are: through the URL, no client state. */
+const PAGE_SIZE = 40;
+
 export default async function Content({
   searchParams,
 }: {
-  searchParams: Promise<{ s?: string; q?: string; sort?: string }>;
+  searchParams: Promise<{ s?: string; q?: string; sort?: string; page?: string; ok?: string; err?: string }>;
 }) {
   await requireSession();
-  const { s, q, sort: sortParam } = await searchParams;
+  const { s, q, sort: sortParam, page: pageParam, ok, err } = await searchParams;
   const name: Section = s && isSection(s) ? s : "hero";
   const query = (q ?? "").trim();
   const sort: Sort = sortParam && isSort(sortParam) ? sortParam : "position";
@@ -162,6 +181,60 @@ export default async function Content({
     return a.position - b.position;
   });
 
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const page = Math.min(totalPages, Math.max(1, Number(pageParam) || 1));
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageHref = (p: number) =>
+    `/admin/content?s=${name}${query ? `&q=${encodeURIComponent(query)}` : ""}${sort !== "position" ? `&sort=${sort}` : ""}&page=${p}`;
+
+  /* Every write action below ends with notify(...): it redirects back to the
+     tab, search and page the staff member was on, tagging the outcome with an
+     ok/err code that the popup below turns into plain words. Keeping the place
+     matters — a Save on page 3 of menu_bar should land back on page 3, not on
+     a collapsed list from the top. */
+  function notify(kind: "ok" | "err", code: string): never {
+    const p = new URLSearchParams();
+    p.set("s", name);
+    if (query) p.set("q", query);
+    if (sort !== "position") p.set("sort", sort);
+    if (page > 1) p.set("page", String(page));
+    p.set(kind, code);
+    redirect(`/admin/content?${p.toString()}`);
+  }
+
+  /* The reverse of notify(): a code sitting in the URL becomes the popup's
+     copy. No code, no popup. */
+  let noticeTone: "ok" | "err" | undefined;
+  let noticeMessage: string | undefined;
+  if (err === "json") {
+    noticeTone = "err";
+    noticeMessage = "Nothing was saved — that JSON wouldn't parse. Keep the braces and quotes.";
+  } else if (err === "menu") {
+    noticeTone = "err";
+    noticeMessage = "Nothing was saved — a menu row needs a price (a number).";
+  } else if (err === "upload") {
+    noticeTone = "err";
+    noticeMessage = "Not uploaded — only JPEG, PNG or WebP, and under 2 MB.";
+  } else if (err === "inuse") {
+    noticeTone = "err";
+    noticeMessage = "Not deleted — a row on the site uses that photo.";
+  } else if (ok === "saved") {
+    noticeTone = "ok";
+    noticeMessage = "Saved.";
+  } else if (ok === "added") {
+    noticeTone = "ok";
+    noticeMessage = "Added — it is live on the site.";
+  } else if (ok === "uploaded") {
+    noticeTone = "ok";
+    noticeMessage = "Uploaded — the live site shows the new file.";
+  } else if (ok === "deleted") {
+    noticeTone = "ok";
+    noticeMessage = "Row deleted — it is gone from the site.";
+  } else if (ok === "purged") {
+    noticeTone = "ok";
+    noticeMessage = "Photo deleted.";
+  }
+
   async function saveItem(formData: FormData) {
     "use server";
     await requireSession();
@@ -178,7 +251,7 @@ export default async function Content({
     try {
       parsed = JSON.parse(extra);
     } catch {
-      return;
+      notify("err", "json");
     }
 
     /* Every menu row's price lives in `extra`, and /cuisine reads it straight
@@ -187,8 +260,23 @@ export default async function Content({
        chaining covers `null` and `7`, both of which parse fine and have no
        `.price` to read. */
     if (sec.startsWith("menu_") && typeof (parsed as { price?: unknown })?.price !== "number") {
-      return;
+      notify("err", "menu");
     }
+
+    /* Resolved before the write, not fed from a RETURNING clause: auditedWrite
+       batches the write and its audit row as one D1 transaction, and a batch
+       cannot pass one statement's output into another's bindings. Also what
+       tells "before" apart from "after" — no row means this is a create. */
+    const existing = await env.DB.prepare(
+      "SELECT * FROM content WHERE section = ?1 AND slug = ?2",
+    )
+      .bind(sec, slug)
+      .first();
+
+    /* Mirrors the render condition on the checkbox below. If a second section
+       ever grows a paid flag, both have to change together. */
+    const paidValue = sec === "amenity" ? (formData.get("paid") ? 1 : 0) : null;
+    const published = formData.get("published") ? 1 : 0;
 
     /* Insert-or-update in one statement: there is no separate "new row" screen,
        so this action serves both the blank form at the end of the list and every
@@ -198,7 +286,7 @@ export default async function Content({
        FormData. Binding the usual `? 1 : 0` would therefore have every save of a
        hero slide or a menu row quietly stamp 0 over whatever the column held.
        Null means "no opinion" — keep the stored value, and 0 on insert. */
-    await env.DB.prepare(
+    const write = env.DB.prepare(
       `INSERT INTO content (section, slug, position, title, tag, body, href, image, video, icon, extra, published, paid, updated_at)
        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, COALESCE(?13, 0), datetime('now'))
        ON CONFLICT (section, slug) DO UPDATE SET
@@ -206,25 +294,43 @@ export default async function Content({
          image = ?8, video = ?9, icon = ?10, extra = ?11, published = ?12,
          paid = COALESCE(?13, paid),
          updated_at = datetime('now')`,
-    )
-      .bind(
-        sec,
-        slug,
-        Number(get("position")) || 0,
-        get("title"),
-        get("tag"),
-        get("body"),
-        get("href"),
-        get("image"),
-        get("video"),
-        get("icon"),
+    ).bind(
+      sec,
+      slug,
+      Number(get("position")) || 0,
+      get("title"),
+      get("tag"),
+      get("body"),
+      get("href"),
+      get("image"),
+      get("video"),
+      get("icon"),
+      extra,
+      published,
+      paidValue,
+    );
+
+    await auditedWrite(write, {
+      actor: await getActor(),
+      action: existing ? "content.update" : "content.create",
+      section: sec,
+      slug,
+      before: existing ?? null,
+      after: {
+        position: Number(get("position")) || 0,
+        title: get("title"),
+        tag: get("tag"),
+        body: get("body"),
+        href: get("href"),
+        image: get("image"),
+        video: get("video"),
+        icon: get("icon"),
         extra,
-        formData.get("published") ? 1 : 0,
-        /* Mirrors the render condition on the checkbox below. If a second
-           section ever grows a paid flag, both have to change together. */
-        sec === "amenity" ? (formData.get("paid") ? 1 : 0) : null,
-      )
-      .run();
+        published,
+        paid: paidValue,
+      },
+    });
+    notify("ok", existing ? "saved" : "added");
   }
 
   async function upload(formData: FormData) {
@@ -234,14 +340,17 @@ export default async function Content({
     const file = formData.get("file");
     const sec = String(formData.get("section") ?? "");
     const slug = String(formData.get("slug") ?? "");
-    if (!(file instanceof File) || !file.size || file.size > MAX || !isSection(sec) || !slug) return;
+    /* The file itself failed its checks — say so rather than doing nothing.
+       Section/slug failures are defensive and stay silent. */
+    if (!(file instanceof File) || !file.size || file.size > MAX) notify("err", "upload");
+    if (!isSection(sec) || !slug) return;
 
     const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
     const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
-    if (!match) return;
+    if (!match) notify("err", "upload");
     const [type, ext] = match;
     /* RIFF is also AVI and WAV. Only the WEBP fourcc makes it an image. */
-    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") return;
+    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") notify("err", "upload");
 
     /* The row is fetched before anything is written. The upload form only exists
        on saved rows, so a miss means the row was deleted from another tab — and
@@ -259,11 +368,17 @@ export default async function Content({
     const key = `${crypto.randomUUID()}.${ext}`;
     await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: type } });
 
-    const { meta } = await env.DB.prepare(
+    const write = env.DB.prepare(
       "UPDATE content SET image = ?3, updated_at = datetime('now') WHERE section = ?1 AND slug = ?2",
-    )
-      .bind(sec, slug, `/img/${key}`)
-      .run();
+    ).bind(sec, slug, `/img/${key}`);
+    const { meta } = await auditedWrite(write, {
+      actor: await getActor(),
+      action: "content.update",
+      section: sec,
+      slug,
+      before: { image: row.image },
+      after: { image: `/img/${key}` },
+    });
     /* The row vanished between the SELECT and the UPDATE: take the new blob
        back out, or it sits in the bucket forever with no row pointing at it. */
     if (!meta.changes) {
@@ -271,6 +386,7 @@ export default async function Content({
       return;
     }
     await dropOrphan(row.image);
+    notify("ok", "uploaded");
   }
 
   /* Same shape as `upload`, but writes the `icon` column — and raster only, no
@@ -286,13 +402,16 @@ export default async function Content({
     const file = formData.get("file");
     const sec = String(formData.get("section") ?? "");
     const slug = String(formData.get("slug") ?? "");
-    if (!(file instanceof File) || !file.size || file.size > MAX || !isSection(sec) || !slug) return;
+    /* The file itself failed its checks — say so rather than doing nothing.
+       Section/slug failures are defensive and stay silent. */
+    if (!(file instanceof File) || !file.size || file.size > MAX) notify("err", "upload");
+    if (!isSection(sec) || !slug) return;
 
     const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
     const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
-    if (!match) return;
+    if (!match) notify("err", "upload");
     const [type, ext] = match;
-    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") return;
+    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") notify("err", "upload");
 
     const row = await env.DB.prepare(
       "SELECT icon FROM content WHERE section = ?1 AND slug = ?2",
@@ -304,16 +423,23 @@ export default async function Content({
     const key = `${crypto.randomUUID()}.${ext}`;
     await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: type } });
 
-    const { meta } = await env.DB.prepare(
+    const write = env.DB.prepare(
       "UPDATE content SET icon = ?3, updated_at = datetime('now') WHERE section = ?1 AND slug = ?2",
-    )
-      .bind(sec, slug, `/img/${key}`)
-      .run();
+    ).bind(sec, slug, `/img/${key}`);
+    const { meta } = await auditedWrite(write, {
+      actor: await getActor(),
+      action: "content.update",
+      section: sec,
+      slug,
+      before: { icon: row.icon },
+      after: { icon: `/img/${key}` },
+    });
     if (!meta.changes) {
       await env.MEDIA.delete(key);
       return;
     }
     await dropOrphan(row.icon);
+    notify("ok", "uploaded");
   }
 
   async function deleteUnused(formData: FormData) {
@@ -325,8 +451,19 @@ export default async function Content({
        pointed a row at exactly this file. Deleting it then would blank a photo
        on the live site. */
     const stillUnused = await findUnused();
-    if (!stillUnused.some((o) => o.key === key)) return;
+    if (!stillUnused.some((o) => o.key === key)) notify("err", "inuse");
     await env.MEDIA.delete(key);
+    /* No D1 row involved — logAudit-only, no auditedWrite batch to pair it
+       with. content.delete_unused still gets an alert like every other
+       delete, since it is still a destructive action on real storage. */
+    const actor = await getActor();
+    await env.DB.prepare(
+      `INSERT INTO audit_log (actor, action, section, slug, before, after)
+       VALUES (?1, 'content.delete_unused', NULL, ?2, NULL, NULL)`,
+    )
+      .bind(actor, key)
+      .run();
+    notify("ok", "purged");
   }
 
   async function removeItem(formData: FormData) {
@@ -335,19 +472,33 @@ export default async function Content({
     const sec = String(formData.get("section") ?? "");
     const slug = String(formData.get("slug") ?? "");
     if (!isSection(sec) || !slug) return;
-    /* All three upload columns, not just `image`. A deleted amenity can be
-       carrying an uploaded icon and a row can carry a video, and neither was
-       being freed — the manual sweep below would eventually catch them, but
-       "eventually, if someone remembers" is not a cleanup. */
+
+    /* Resolved before the write, same reason as saveItem: a D1 batch can't
+       feed a DELETE ... RETURNING's output into the audit-log INSERT that
+       rides along with it in the same transaction. */
     const row = await env.DB.prepare(
-      "DELETE FROM content WHERE section = ?1 AND slug = ?2 RETURNING image, icon, video",
+      "SELECT * FROM content WHERE section = ?1 AND slug = ?2",
     )
       .bind(sec, slug)
       .first<{ image: string; icon: string; video: string }>();
     if (!row) return;
+
+    const write = env.DB.prepare(
+      "DELETE FROM content WHERE section = ?1 AND slug = ?2",
+    ).bind(sec, slug);
+    await auditedWrite(write, {
+      actor: await getActor(),
+      action: "content.delete",
+      section: sec,
+      slug,
+      before: row,
+      after: null,
+    });
+
     /* dropOrphan is a no-op for anything not under /img/, so the empty columns
        and the seeded /media/ paths cost a string check each and nothing more. */
     for (const file of [row.image, row.icon, row.video]) await dropOrphan(file);
+    notify("ok", "deleted");
   }
 
   return (
@@ -357,6 +508,7 @@ export default async function Content({
       </Link>
       <h1>Pages, rooms &amp; photos</h1>
       <p className="adm-sub">{TITLES[name]}</p>
+      <AdminNotice tone={noticeTone} message={noticeMessage} />
 
       <nav className="adm-tabs">
         {SECTIONS.map((x) => (
@@ -402,9 +554,10 @@ export default async function Content({
       <p className="adm-count">
         {rows.length} {rows.length === 1 ? "item" : "items"}
         {query && <> matching “{query}”</>}
+        {totalPages > 1 && <> — page {page} of {totalPages}</>}
       </p>
 
-      {rows.map((row) => (
+      {pageRows.map((row) => (
         /* Collapsed by default: a summary line carries enough to recognise the
            row without opening it, so this screen is a scannable list first and
            a form only on demand — not every form unrolled at once. */
@@ -569,6 +722,16 @@ export default async function Content({
         </details>
       ))}
 
+      {totalPages > 1 && (
+        <nav className="adm-pager">
+          {page > 1 && <Link href={pageHref(page - 1)}>← Previous</Link>}
+          <span>
+            Page {page} of {totalPages}
+          </span>
+          {page < totalPages && <Link href={pageHref(page + 1)}>Next →</Link>}
+        </nav>
+      )}
+
       {/* The blank row that adds a new item. Always open, and separate from the
           list above it, so it reads as "start something new" rather than as one
           more collapsed card to notice among the rest. */}
@@ -712,11 +875,11 @@ export default async function Content({
         </div>
       )}
 
-      {rows.length > 0 && (
+      {pageRows.length > 0 && (
         <div className="adm-danger">
           <h2>Delete</h2>
           <p>There is no undo. A deleted row is gone from the site immediately.</p>
-          {rows.map((row) => (
+          {pageRows.map((row) => (
             <form key={`rm-${row.slug}`} action={removeItem} className="adm-remove">
               <input type="hidden" name="section" value={name} />
               <input type="hidden" name="slug" value={row.slug} />
