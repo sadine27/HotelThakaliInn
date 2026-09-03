@@ -23,8 +23,19 @@ const CATEGORY_ICONS: Record<string, string> = {
   "Languages Spoken": "globe",
 };
 
-export default function AmenityGlyph({ category, size = 20 }: { category: string; size?: number }) {
-  const name = CATEGORY_ICONS[category];
+/* `icon` bypasses the category lookup for callers that already know which
+   glyph they want by name (the numbered experience strip reuses "bell",
+   "food", "wifi" etc. without pretending they're a `content.tag`). */
+export default function AmenityGlyph({
+  category,
+  icon,
+  size = 20,
+}: {
+  category?: string;
+  icon?: string;
+  size?: number;
+}) {
+  const name = icon ?? CATEGORY_ICONS[category ?? ""];
   const props = {
     width: size,
     height: size,
@@ -83,9 +94,9 @@ export default function AmenityGlyph({ category, size = 20 }: { category: string
     case "bed":
       return (
         <svg {...props}>
-          <path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6" />
+          <rect x="3" y="11" width="18" height="7" rx="2" />
+          <rect x="5" y="8" width="6" height="4" rx="1.5" />
           <path d="M3 18v2M21 18v2" />
-          <path d="M3 12V8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
         </svg>
       );
     case "pets":
@@ -137,10 +148,8 @@ export default function AmenityGlyph({ category, size = 20 }: { category: string
     case "bell":
       return (
         <svg {...props}>
-          <path d="M4 17h16" />
-          <path d="M6 17a6 6 0 0 1 12 0" />
-          <path d="M12 7v3" />
-          <circle cx="12" cy="6" r="1.3" fill="currentColor" stroke="none" />
+          <path d="M12 3.5c-2.8 0-4 2.2-4 5v2.5c0 1.6-.7 2.7-1.5 3.5h11c-.8-.8-1.5-1.9-1.5-3.5V8.5c0-2.8-1.2-5-4-5z" />
+          <path d="M9.5 17.5a2.5 2.5 0 0 0 5 0" />
         </svg>
       );
     case "sparkle":
