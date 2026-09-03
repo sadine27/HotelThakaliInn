@@ -5737,121 +5737,120 @@ html[data-dial-open] .dial-seg {
    AMENITIES — the list the front desk reads out on the phone
    ========================================================================== */
 
+/* A plain sentence fragment per pill, not a stat-card — these are facts
+   pulled straight from settings/content (airport distance, front-desk hours,
+   the restaurant's own body text), so the wording is real, not invented. */
+.am-highlights {
+  list-style: none;
+  margin: 0 0 clamp(32px, 5vh, 56px);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 1180px;
+  animation: room-rise 760ms var(--ease) both;
+}
+
+.am-highlights li {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--nu-raised);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .am-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
-  /* Without this the row containing the photo card stretches every one-line
-     fact beside it to the photo's height. */
-  align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 14px;
   max-width: 1180px;
 }
 
+/* Matte extrusion, not a bordered box: the card and the page ground are the
+   same material, so the edge comes from the dual shadow in --nu-raised
+   rather than a drawn line. --card is one step lighter than --surface,
+   which is what keeps 68 of these from reading as one grey field.
+   Fixed height + clamped body, so a one-word row ("Shower") and a
+   three-sentence one (the restaurant's) still occupy an identical cell —
+   the grid is a checklist, and a checklist reads wrong if its rows don't
+   line up. */
 .am-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 20px 22px;
-  border-radius: 16px;
-  border: 1px solid rgba(232, 229, 218, 0.07);
+  gap: 8px;
+  height: 152px;
+  padding: 18px 20px;
+  border-radius: 18px;
   background: var(--card);
+  box-shadow: var(--nu-raised);
   animation: room-rise 700ms var(--ease) both;
 }
 
-/* The four rows that carry a photo are the ones about the property rather than
-   the room, and they are the ones worth stopping on — so they take two tracks
-   and lead with the picture. */
-.am-card[data-shot] {
-  padding: 0;
-  overflow: hidden;
-}
-
-.am-card[data-shot] > :not(.am-shot) {
-  padding-left: 22px;
-  padding-right: 22px;
-}
-/* Whatever follows the photo, whichever field the row happens to fill first. */
-.am-card[data-shot] > .am-shot + * {
-  padding-top: 18px;
-}
-.am-card[data-shot] > :last-child {
-  padding-bottom: 20px;
-}
-
-.am-shot {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  background: var(--surface);
-}
-
-.am-shot img {
-  object-fit: cover;
-}
-
-.am-tag {
-  margin: 0;
-  font-family: var(--font-mono), monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--olive);
+.am-card svg {
+  color: var(--brass);
+  flex-shrink: 0;
 }
 
 .am-title {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 500;
   line-height: 1.25;
   color: var(--ink);
 }
 
 .am-body {
-  margin: 2px 0 0;
-  font-size: 14px;
-  line-height: 1.6;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--olive);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
-/* One section per category. The grid inside is the same grid as before —
-   grouping is a wrapper around it, not a second kind of card. */
+/* One section per category: the icon and the photo (where a real one exists)
+   both belong to the category, not to any one row in it. */
 .am-group {
-  margin: 0 0 38px;
+  margin: 0 0 44px;
 }
 
 .am-group:last-of-type {
   margin-bottom: 0;
 }
 
-/* Reads as the label `.am-tag` used to put on every card in the group, moved
-   out to be said once. */
 .am-group-head {
-  margin: 0 0 14px;
-  font-family: var(--font-mono), monospace;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--olive);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
 }
 
-/* Staff-uploaded, so any aspect ratio can arrive. Boxed to a fixed square with
-   `contain` so a wide one cannot set the height of the card's first line. */
-.am-icon {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+.am-group-head svg {
+  color: var(--brass);
+  flex-shrink: 0;
+}
+
+.am-group-head h2 {
+  margin: 0;
+  font-family: var(--font-serif), serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink);
 }
 
 .am-paid {
   margin: 0;
   font-family: var(--font-mono), monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
+  font-size: 9px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--brass);
 }
@@ -5867,16 +5866,14 @@ html[data-dial-open] .dial-seg {
     direction: ltr;
   }
   .am-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  }
-  .am-card[data-shot] {
-    grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bf-head,
   .am-head,
+  .am-highlights,
   .bf-item,
   .am-card {
     animation: none;
