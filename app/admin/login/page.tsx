@@ -41,11 +41,12 @@ export default async function Login({
     ]);
     if (!byIp.success || !global.success) redirect("/admin/login?e=slow");
 
-    if (!(await checkPassword(String(formData.get("password") ?? "")))) {
+    const username = String(formData.get("username") ?? "").trim();
+    if (!username || !(await checkPassword(username, String(formData.get("password") ?? "")))) {
       redirect("/admin/login?e=1");
     }
 
-    await startSession();
+    await startSession(username);
     redirect("/admin");
   }
 
@@ -54,13 +55,15 @@ export default async function Login({
       <h1>Hotel Thakali Inn</h1>
       <p className="adm-sub">Staff sign in</p>
 
+      <label htmlFor="username">Username</label>
+      <input id="username" name="username" type="text" required autoFocus autoComplete="username" />
+
       <label htmlFor="password">Password</label>
       <input
         id="password"
         name="password"
         type="password"
         required
-        autoFocus
         autoComplete="current-password"
       />
 
