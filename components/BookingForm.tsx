@@ -30,6 +30,16 @@ export default function BookingForm({
      endpoint, so the strings the two compare are the same shape. */
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
 
+  /* One calendar day after an "YYYY-MM-DD" string. The endpoint requires at
+     least one night (departure strictly after arrival) — this is what makes
+     the date picker refuse the same mistake instead of the guest finding out
+     after submit. */
+  const dayAfter = (iso: string) => {
+    const d = new Date(`${iso}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().slice(0, 10);
+  };
+
   /* ?room= carries a slug (the carousel links use it); the select's values are
      room titles, so the match has to go through the slug. */
   const wanted = rooms.find((r) => r.slug === params.get("room"))?.name ?? rooms[0]?.name;
@@ -92,7 +102,7 @@ export default function BookingForm({
             </label>
             <label className="bk-field">
               <span>Departure</span>
-              <input name="check_out" type="date" required min={checkIn || today} />
+              <input name="check_out" type="date" required min={dayAfter(checkIn || today)} />
             </label>
             <label className="bk-field">
               <span>Room</span>
