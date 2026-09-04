@@ -49,7 +49,10 @@ export async function POST(request: Request) {
 
   /* CF-Connecting-IP is set by the edge and cannot be spoofed by the client. */
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-  const { success } = await env.FORM_IP.limit({ key: ip });
+  /* Prefixed so the two forms get one counter each rather than sharing a
+     single per-IP budget: a guest who sends a message and then books within
+     the same minute must not be turned away by their own earlier request. */
+  const { success } = await env.FORM_IP.limit({ key: `booking:${ip}` });
   if (!success) return Response.json({ ok: false, error: "Too many requests." }, { status: 429 });
 
   const name = clean(body.name, LIMITS.name);

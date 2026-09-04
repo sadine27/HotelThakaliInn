@@ -196,15 +196,17 @@ body {
   height: 100%;
   display: block;
   object-fit: cover;
-  /* Follows the daypart too, and it is the loudest part of the effect: at
-     Kathmandu midnight the video becomes the most cinematic light in the room —
-     the night is the show, not the dimmest state. The --sky-* factors are the
-     weather axis from the appended sky section: they MULTIPLY the daypart's
-     values, so the hour and the sky compose instead of competing. The clamp
-     floor keeps any combination of daypart and weather from crushing the
+  /* The loudest part of the effect: at Kathmandu midnight the video becomes the
+     most cinematic light in the room. It no longer follows the daypart — the
+     daypart blocks were emptied so the palette stops shifting after first paint
+     (see the note above --card), which took --ambient-bright with them. Its old
+     fallback is inlined as the 0.85 base rather than left as a var() pointing at
+     nothing. The --sky-* factors are the weather axis from the appended sky
+     section and still multiply that base, so the sky moves the light even though
+     the hour doesn't. The clamp floor keeps any combination from crushing the
      video into black. */
   filter: blur(8px)
-    brightness(max(0.5, calc(var(--ambient-bright, 0.85) * var(--sky-dim, 1))))
+    brightness(max(0.5, calc(0.85 * var(--sky-dim, 1))))
     saturate(calc(1.12 * var(--sky-sat, 1)));
   transition: filter 1.4s var(--ease);
   transform: scale(1.025);
