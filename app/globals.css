@@ -4169,8 +4169,66 @@ html[data-dial-open] .dial-seg {
 
 .adm-page {
   width: 100%;
-  max-width: 720px;
+  max-width: 1100px;
   margin: 0 auto;
+}
+
+/* Persistent nav, present on every admin page. Sticky so a long content or
+   audit list can scroll under it without losing the way back to anywhere
+   else — the "hard to navigate" complaint was every page having only a
+   single "← Back" link to the hub. */
+.adm-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  background: #222;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.adm-nav a {
+  padding: 6px 10px;
+  border-radius: 2px;
+  font-size: 12px;
+  color: #ccc;
+  text-decoration: none;
+}
+
+.adm-nav a:hover {
+  color: #fff;
+  background: #333;
+}
+
+.adm-nav a[aria-current="page"] {
+  background: var(--green);
+  color: #fff;
+}
+
+/* The technical fields (raw paths/URLs) staff rarely touch, folded away so
+   the common case — title, description, order — reads as one clean form. */
+.adm-advanced {
+  margin: 12px 0;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  padding: 0 12px;
+}
+
+.adm-advanced summary {
+  padding: 8px 0;
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+}
+
+.adm-advanced[open] summary {
+  border-bottom: 1px solid #eee;
+}
+
+.adm-advanced .adm-field:last-of-type {
+  margin-bottom: 12px;
 }
 
 .adm-back {
@@ -4216,14 +4274,14 @@ html[data-dial-open] .dial-seg {
 
 .adm-tiles {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
 
 .adm-tile {
   display: block;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid #ccc;
   border-radius: 2px;
   background: #fff;
@@ -4356,7 +4414,7 @@ html[data-dial-open] .dial-seg {
 /* ── Admin: forms ── */
 
 .adm-field {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .adm-field small {
@@ -6718,12 +6776,13 @@ html[data-dial-open] .dial-seg {
 }
 
 .adm-delta--up {
-  color: #111;
+  color: var(--green);
 }
 
-/* Not red. A quiet week is information, not an alarm, and a hotel site's
-   traffic falls every low season without anything being wrong. */
-.adm-delta--down,
+.adm-delta--down {
+  color: var(--alert);
+}
+
 .adm-delta--flat {
   color: #777;
 }
@@ -6751,6 +6810,21 @@ html[data-dial-open] .dial-seg {
 .adm-spark-fill {
   fill: #eee;
   stroke: none;
+}
+
+/* Colored by the same week-over-week trend the Delta line above it reports —
+   one signal, read the same way in both places. */
+.adm-spark[data-trend="up"] .adm-spark-line {
+  stroke: var(--green);
+}
+.adm-spark[data-trend="up"] .adm-spark-fill {
+  fill: color-mix(in srgb, var(--green) 12%, #eee);
+}
+.adm-spark[data-trend="down"] .adm-spark-line {
+  stroke: var(--alert);
+}
+.adm-spark[data-trend="down"] .adm-spark-fill {
+  fill: color-mix(in srgb, var(--alert) 12%, #eee);
 }
 
 .adm-spark-wrap figcaption {

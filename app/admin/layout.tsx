@@ -3,6 +3,8 @@
  * handler — which is the middleware-auth footgun in a different costume. So the
  * check lives where the work happens, and there is exactly one rule to remember:
  * requireSession() is the first line of every admin page and every action. */
+import AdminNav from "@/components/AdminNav";
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -14,5 +16,10 @@ export const metadata = {
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <div className="adm">{children}</div>;
+  return (
+    <div className="adm">
+      <AdminNav />
+      {children}
+    </div>
+  );
 }

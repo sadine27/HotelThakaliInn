@@ -49,7 +49,7 @@ const pageName = (path: string) => PAGE_NAMES[path] ?? path;
    library: it is a dozen lines of arithmetic and no dependency, where the
    library would be the largest thing in the bundle for one drawing on one page
    nobody but staff ever loads. */
-function Sparkline({ series }: { series: { day: string; count: number }[] }) {
+function Sparkline({ series, trend }: { series: { day: string; count: number }[]; trend: "up" | "down" | "flat" }) {
   const W = 640;
   const H = 56;
   const peak = Math.max(1, ...series.map((d) => d.count));
@@ -57,6 +57,7 @@ function Sparkline({ series }: { series: { day: string; count: number }[] }) {
   return (
     <svg
       className="adm-spark"
+      data-trend={trend}
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
       role="img"
@@ -156,6 +157,8 @@ export default async function Admin() {
   const viewsAll = viewSpan?.total ?? 0;
 
   const series = sparklineSeries(byDay, 30, now);
+  const sparkPct = weekDelta(views7, viewsPrev7);
+  const sparkTrend: "up" | "down" | "flat" = sparkPct === null || sparkPct === 0 ? "flat" : sparkPct > 0 ? "up" : "down";
 
   const busiest = Math.max(0, ...series.map((s) => s.count));
   const firstDay = viewSpan?.first ?? null;
@@ -284,7 +287,7 @@ export default async function Admin() {
             </div>
 
             <figure className="adm-spark-wrap">
-              <Sparkline series={series} />
+              <Sparkline series={series} trend={sparkTrend} />
               <figcaption>
                 <span>{series[0].day}</span>
                 <span className="adm-spark-peak">

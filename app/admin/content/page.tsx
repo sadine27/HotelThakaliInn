@@ -108,6 +108,23 @@ const TITLES: Record<Section, string> = {
   menu_bar: "Menu — Bar & Drinks",
 };
 
+/* Short enough to sit in a row of tabs — TITLES above is the full sentence
+   shown once, under the heading. */
+const TAB_LABEL: Record<Section, string> = {
+  hero: "Home slides",
+  service: "Home cards",
+  room: "Rooms",
+  gallery: "Gallery",
+  amenity: "Amenities",
+  menu_breakfast: "Breakfast menu",
+  menu_snacks: "Snacks menu",
+  menu_mains: "Mains menu",
+  menu_bar: "Bar menu",
+};
+
+/* What travels in `extra` for the room section — mirrors app/rooms/page.tsx. */
+type RoomExtra = { count: string; meta: string[]; specs: [string, string][] };
+
 /* Which of the generic columns a section's own page actually reads — checked
    against every page in app/ that calls section(). A field no page reads is a
    blank box on this screen for every single row, so it is left off the form
@@ -143,10 +160,18 @@ const PAGE_SIZE = 40;
 export default async function Content({
   searchParams,
 }: {
-  searchParams: Promise<{ s?: string; q?: string; sort?: string; page?: string; ok?: string; err?: string }>;
+  searchParams: Promise<{
+    s?: string;
+    q?: string;
+    sort?: string;
+    page?: string;
+    ok?: string;
+    err?: string;
+    unused?: string;
+  }>;
 }) {
   await requireSession();
-  const { s, q, sort: sortParam, page: pageParam, ok, err } = await searchParams;
+  const { s, q, sort: sortParam, page: pageParam, ok, err, unused: unusedParam } = await searchParams;
   const name: Section = s && isSection(s) ? s : "hero";
   const query = (q ?? "").trim();
   const sort: Sort = sortParam && isSort(sortParam) ? sortParam : "position";
@@ -155,8 +180,11 @@ export default async function Content({
   /* true = include unpublished. Without it the "Show on the site" checkbox is a
      one-way door: unticking a row drops it out of this list too. */
   const allRows = await section(name, true);
-  /* Not per-section: an unused photo belongs to no section by definition. */
-  const unused = await findUnused().catch(() => []);
+  /* findUnused() lists the ENTIRE R2 bucket, page by page — real cost on a
+     bucket with hundreds of uploads. It ran on every single page load; now it
+     only runs when staff actually asks, via the link rendered below. */
+  const showUnused = unusedParam === "1";
+  const unused = showUnused ? await findUnused().catch(() => []) : [];
 
   /* Ten past the last row, not `rows.length`. Positions are sparse on purpose —
      the amenity seed leaves gaps between categories, running to 181 across 68
@@ -244,23 +272,39 @@ export default async function Content({
     const slug = get("slug");
     if (!isSection(sec) || !slug) return;
 
-    /* A malformed `extra` makes every page in this section throw on JSON.parse.
-       Reject the write; keep the row. */
-    const extra = get("extra") || "{}";
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(extra);
-    } catch {
-      notify("err", "json");
-    }
-
-    /* Every menu row's price lives in `extra`, and /cuisine reads it straight
-       out — a row without one renders as a bare "Rs." with nothing after it.
-       Parseable is not enough here, so the shape is checked too. Optional
-       chaining covers `null` and `7`, both of which parse fine and have no
-       `.price` to read. */
-    if (sec.startsWith("menu_") && typeof (parsed as { price?: unknown })?.price !== "number") {
-      notify("err", "menu");
+    /* menu_* and room are the only sections FIELDS marks extra:true for, and
+       both now have their own plain-language inputs below rather than a raw
+       JSON textarea — this builds the same column from them. Every other
+       section carries its existing `extra` forward unedited via a hidden
+       field, still JSON-checked since that hidden value is still attacker-
+       reachable through a hand-crafted POST to this action. */
+    let extra: string;
+    if (sec.startsWith("menu_")) {
+      const price = Number(get("price"));
+      if (!Number.isFinite(price)) notify("err", "menu");
+      extra = JSON.stringify({ price });
+    } else if (sec === "room") {
+      const meta = get("meta")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const specs = get("specs")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((line): [string, string] => {
+          const i = line.indexOf(":");
+          return i < 0 ? [line, ""] : [line.slice(0, i).trim(), line.slice(i + 1).trim()];
+        });
+      extra = JSON.stringify({ count: get("count"), meta, specs });
+    } else {
+      const raw = get("extra") || "{}";
+      try {
+        JSON.parse(raw);
+      } catch {
+        notify("err", "json");
+      }
+      extra = raw;
     }
 
     /* Resolved before the write, not fed from a RETURNING clause: auditedWrite
@@ -529,7 +573,7 @@ export default async function Content({
             href={`/admin/content?s=${x}`}
             aria-current={x === name ? "page" : undefined}
           >
-            {x}
+            {TAB_LABEL[x]}
           </Link>
         ))}
       </nav>
@@ -567,6 +611,12 @@ export default async function Content({
         {rows.length} {rows.length === 1 ? "item" : "items"}
         {query && <> matching “{query}”</>}
         {totalPages > 1 && <> — page {page} of {totalPages}</>}
+        {!showUnused && (
+          <>
+            {" · "}
+            <Link href={`/admin/content?s=${name}&unused=1`}>Check for unused photos</Link>
+          </>
+        )}
       </p>
 
       {pageRows.map((row) => (
@@ -602,7 +652,7 @@ export default async function Content({
 
             <div className="adm-row3">
               <div className="adm-field">
-                <label>slug</label>
+                <label>Short name</label>
                 {/* Read-only on an existing row: (section, slug) is the primary
                     key, so editing it here would silently create a duplicate
                     rather than rename. Renaming is delete-then-add, which is
@@ -611,7 +661,7 @@ export default async function Content({
               </div>
 
               <div className="adm-field">
-                <label>order</label>
+                <label>Order</label>
                 {/* The row's stored position, never its index in this list.
                     They agree only while a section is numbered densely; the
                     amenity seed is not, so an index here meant that saving a
@@ -627,12 +677,12 @@ export default async function Content({
             </div>
 
             <div className="adm-field">
-              <label>title</label>
+              <label>Title</label>
               <input name="title" defaultValue={row.title} />
             </div>
 
             <div className="adm-field">
-              <label>tag</label>
+              <label>Label</label>
               <input name="tag" defaultValue={row.tag} />
               <small>
                 {name === "amenity"
@@ -642,38 +692,51 @@ export default async function Content({
             </div>
 
             <div className="adm-field">
-              <label>body</label>
+              <label>Description</label>
               <textarea name="body" rows={3} defaultValue={row.body} />
             </div>
 
-            {fields.href && (
+            {fields.extra && name.startsWith("menu_") && (
               <div className="adm-field">
-                <label>href</label>
-                <input name="href" defaultValue={row.href} />
+                <label>Price (Rs.)</label>
+                <input
+                  name="price"
+                  type="number"
+                  min="0"
+                  step="1"
+                  required
+                  defaultValue={(row.extra as { price?: number } | null)?.price ?? 0}
+                />
               </div>
             )}
 
-            {fields.image && (
-              <div className="adm-field">
-                <label>image</label>
-                <input name="image" defaultValue={row.image} />
-                <small>A path like /media/rooms/deluxe-king.jpg</small>
-              </div>
-            )}
-
-            {fields.video && (
-              <div className="adm-field">
-                <label>video</label>
-                <input name="video" defaultValue={row.video} />
-              </div>
-            )}
-
-            {fields.icon && (
-              <div className="adm-field">
-                <label>icon</label>
-                <input name="icon" defaultValue={row.icon} />
-                <small>A path like /img/&lt;uuid&gt;.png — set by the icon upload below.</small>
-              </div>
+            {fields.extra && name === "room" && (
+              <>
+                <div className="adm-field">
+                  <label>Guests</label>
+                  <input name="count" defaultValue={(row.extra as unknown as RoomExtra | null)?.count ?? ""} />
+                </div>
+                <div className="adm-field">
+                  <label>Highlights</label>
+                  <textarea
+                    name="meta"
+                    rows={3}
+                    defaultValue={((row.extra as unknown as RoomExtra | null)?.meta ?? []).join("\n")}
+                  />
+                  <small>One line per point.</small>
+                </div>
+                <div className="adm-field">
+                  <label>Specs</label>
+                  <textarea
+                    name="specs"
+                    rows={3}
+                    defaultValue={((row.extra as unknown as RoomExtra | null)?.specs ?? [])
+                      .map(([l, v]) => `${l}: ${v}`)
+                      .join("\n")}
+                  />
+                  <small>One per line, as "Label: value".</small>
+                </div>
+              </>
             )}
 
             {fields.paid && (
@@ -683,16 +746,40 @@ export default async function Content({
               </label>
             )}
 
-            {fields.extra && (
-              <div className="adm-field">
-                <label>extra (JSON)</label>
-                <textarea name="extra" rows={2} defaultValue={JSON.stringify(row.extra)} />
-                <small>
-                  {name.startsWith("menu_")
-                    ? "Keep the braces and quotes, and keep a number in price — a menu row without one is not saved."
-                    : "Keep the braces and quotes. If they are wrong, nothing is saved."}
-                </small>
-              </div>
+            {(fields.href || fields.image || fields.video || fields.icon) && (
+              <details className="adm-advanced">
+                <summary>Advanced</summary>
+
+                {fields.href && (
+                  <div className="adm-field">
+                    <label>Link</label>
+                    <input name="href" defaultValue={row.href} />
+                  </div>
+                )}
+
+                {fields.image && (
+                  <div className="adm-field">
+                    <label>Photo path</label>
+                    <input name="image" defaultValue={row.image} />
+                    <small>A path like /media/rooms/deluxe-king.jpg</small>
+                  </div>
+                )}
+
+                {fields.video && (
+                  <div className="adm-field">
+                    <label>Video URL</label>
+                    <input name="video" defaultValue={row.video} />
+                  </div>
+                )}
+
+                {fields.icon && (
+                  <div className="adm-field">
+                    <label>Icon path</label>
+                    <input name="icon" defaultValue={row.icon} />
+                    <small>A path like /img/&lt;uuid&gt;.png — set by the icon upload below.</small>
+                  </div>
+                )}
+              </details>
             )}
 
             {/* Not shown when the section has no such field, but still written
@@ -754,12 +841,12 @@ export default async function Content({
 
           <div className="adm-row3">
             <div className="adm-field">
-              <label>slug</label>
+              <label>Short name</label>
               <input name="slug" required />
               <small>A short name, lowercase, no spaces. It cannot be changed later.</small>
             </div>
             <div className="adm-field">
-              <label>order</label>
+              <label>Order</label>
               <input name="position" type="number" defaultValue={nextPosition} />
               <small>Lowest first.</small>
             </div>
@@ -770,12 +857,12 @@ export default async function Content({
           </div>
 
           <div className="adm-field">
-            <label>title</label>
+            <label>Title</label>
             <input name="title" />
           </div>
 
           <div className="adm-field">
-            <label>tag</label>
+            <label>Label</label>
             <input name="tag" />
             <small>
               {name === "amenity"
@@ -785,37 +872,34 @@ export default async function Content({
           </div>
 
           <div className="adm-field">
-            <label>body</label>
+            <label>Description</label>
             <textarea name="body" rows={3} />
           </div>
 
-          {fields.href && (
+          {fields.extra && name.startsWith("menu_") && (
             <div className="adm-field">
-              <label>href</label>
-              <input name="href" />
+              <label>Price (Rs.)</label>
+              <input name="price" type="number" min="0" step="1" required defaultValue={0} />
             </div>
           )}
 
-          {fields.image && (
-            <div className="adm-field">
-              <label>image</label>
-              <input name="image" />
-              <small>A path like /media/rooms/deluxe-king.jpg. Photo upload happens after adding.</small>
-            </div>
-          )}
-
-          {fields.video && (
-            <div className="adm-field">
-              <label>video</label>
-              <input name="video" />
-            </div>
-          )}
-
-          {fields.icon && (
-            <div className="adm-field">
-              <label>icon</label>
-              <input name="icon" />
-            </div>
+          {fields.extra && name === "room" && (
+            <>
+              <div className="adm-field">
+                <label>Guests</label>
+                <input name="count" />
+              </div>
+              <div className="adm-field">
+                <label>Highlights</label>
+                <textarea name="meta" rows={3} />
+                <small>One line per point.</small>
+              </div>
+              <div className="adm-field">
+                <label>Specs</label>
+                <textarea name="specs" rows={3} />
+                <small>One per line, as "Label: value".</small>
+              </div>
+            </>
           )}
 
           {fields.paid && (
@@ -825,23 +909,39 @@ export default async function Content({
             </label>
           )}
 
-          {fields.extra && (
-            <div className="adm-field">
-              <label>extra (JSON)</label>
-              {/* A blank menu row starts with a price rather than {}, because a
-                  menu row without one is refused by saveItem — and a form that
-                  pre-fills the thing it will then reject is a trap. */}
-              <textarea
-                name="extra"
-                rows={2}
-                defaultValue={JSON.stringify(name.startsWith("menu_") ? { price: 0 } : {})}
-              />
-              <small>
-                {name.startsWith("menu_")
-                  ? "Keep the braces and quotes, and keep a number in price — a menu row without one is not saved."
-                  : "Keep the braces and quotes. If they are wrong, nothing is saved."}
-              </small>
-            </div>
+          {(fields.href || fields.image || fields.video || fields.icon) && (
+            <details className="adm-advanced">
+              <summary>Advanced</summary>
+
+              {fields.href && (
+                <div className="adm-field">
+                  <label>Link</label>
+                  <input name="href" />
+                </div>
+              )}
+
+              {fields.image && (
+                <div className="adm-field">
+                  <label>Photo path</label>
+                  <input name="image" />
+                  <small>A path like /media/rooms/deluxe-king.jpg. Photo upload happens after adding.</small>
+                </div>
+              )}
+
+              {fields.video && (
+                <div className="adm-field">
+                  <label>Video URL</label>
+                  <input name="video" />
+                </div>
+              )}
+
+              {fields.icon && (
+                <div className="adm-field">
+                  <label>Icon path</label>
+                  <input name="icon" />
+                </div>
+              )}
+            </details>
           )}
 
           {!fields.image && <input type="hidden" name="image" value="" />}
@@ -854,15 +954,19 @@ export default async function Content({
         </form>
       </details>
 
-      {unused.length > 0 && (
+      {showUnused && (
         <div className="adm-unused">
           <h2>Photos nothing is using</h2>
+          {unused.length === 0 ? (
+            <p>Nothing to clean up right now.</p>
+          ) : (
           <p>
             {unused.length} uploaded {unused.length === 1 ? "photo is" : "photos are"} not shown
             anywhere on the site — replaced by a newer one, or left behind by a row that was
             deleted. They cost storage and nothing else. Deleting one cannot change any page,
             because no page points at it.
           </p>
+          )}
           <ul>
             {unused.map((o) => (
               <li key={o.key}>

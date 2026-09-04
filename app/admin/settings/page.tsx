@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getActor, requireSession } from "@/lib/auth";
 import { auditedWrite } from "@/lib/audit";
-import { settings } from "@/lib/content";
+import { settings, list } from "@/lib/content";
 import AdminNotice from "@/components/AdminNotice";
 
 export const dynamic = "force-dynamic";
@@ -48,8 +48,8 @@ const HINTS: Record<string, string> = {
      deploy silently stops the notification mail. The row still drives who the
      site *shows*, so it is editable; it just cannot be edited alone. */
   email: "Shown on the site, and where enquiries are sent. Changing it needs a matching change in wrangler.jsonc, or the notification email stops arriving.",
-  arrival: 'Pairs of ["place", "distance"].',
-  socials: 'Pairs of {"label", "href"}. Leave href empty to hide one.',
+  arrival: 'One per line, as "Place | distance".',
+  socials: 'One per line, as "Label | https://…". Leave the link blank to hide one.',
   rooms_good_to_know: "One line per point.",
   rooms_shared: "Separated by · — this is one line of text, not a list.",
   lat: "Only change these with the map link. They place the pin.",
@@ -92,7 +92,26 @@ export default async function Settings({
     noticeTone = "ok";
     noticeMessage = "Saved — the site now shows the new details.";
   }
-  const known = new Set(GROUPS.flatMap((g) => g.keys));
+  /* JSON_ROWS keys are stored as JSON but shown here as one plain line per
+   entry — staff type "Label | value", not braces and quotes. */
+function displayValue(key: string, raw: string): string {
+  if (key === "socials") {
+    return list<{ label: string; href: string }>(raw)
+      .map((s) => `${s.label} | ${s.href}`)
+      .join("\n");
+  }
+  if (key === "arrival") {
+    return list<[string, string]>(raw)
+      .map(([place, distance]) => `${place} | ${distance}`)
+      .join("\n");
+  }
+  if (key === "rooms_good_to_know") {
+    return list<string>(raw).join("\n");
+  }
+  return raw;
+}
+
+const known = new Set(GROUPS.flatMap((g) => g.keys));
   const groups = [...GROUPS, { label: "Other", keys: Object.keys(config).filter((k) => !known.has(k)).sort() }];
 
   async function save(formData: FormData) {
@@ -111,6 +130,43 @@ export default async function Settings({
          "off" for them. */
       .filter(([k]) => k.startsWith("s.") && !BOOLEAN_ROWS.has(k.slice(2)))
       .map(([k, v]) => [k.slice(2), String(v)] as const)
+      /* JSON_ROWS keys arrive here as plain lines ("Label | value") from the
+         structured textareas below, not JSON — this rebuilds the JSON the
+         rest of the site (list()) still expects to read. */
+      .map(([key, value]): readonly [string, string] => {
+        if (key === "socials") {
+          const parsed = value
+            .split("\n")
+            .map((l) => l.trim())
+            .filter(Boolean)
+            .map((line) => {
+              const i = line.indexOf("|");
+              const label = (i < 0 ? line : line.slice(0, i)).trim();
+              const href = (i < 0 ? "" : line.slice(i + 1)).trim();
+              return { label, href };
+            });
+          return [key, JSON.stringify(parsed)];
+        }
+        if (key === "arrival") {
+          const parsed = value
+            .split("\n")
+            .map((l) => l.trim())
+            .filter(Boolean)
+            .map((line): [string, string] => {
+              const i = line.indexOf("|");
+              return i < 0 ? [line, ""] : [line.slice(0, i).trim(), line.slice(i + 1).trim()];
+            });
+          return [key, JSON.stringify(parsed)];
+        }
+        if (key === "rooms_good_to_know") {
+          const parsed = value
+            .split("\n")
+            .map((l) => l.trim())
+            .filter(Boolean);
+          return [key, JSON.stringify(parsed)];
+        }
+        return [key, value];
+      })
       /* A broken JSON row would blank a whole section of the public site, so a
          value that will not parse is dropped from the batch and the old one
          stands. lib/content.ts's list() already falls back rather than throwing,
@@ -187,14 +243,16 @@ export default async function Settings({
                   {BOOLEAN_ROWS.has(key) ? (
                     <input type="checkbox" id={`s.${key}`} name={`s.${key}`} defaultChecked={config[key] === "1"} />
                   ) : LONG.has(key) ? (
-                    <textarea id={`s.${key}`} name={`s.${key}`} defaultValue={config[key]} rows={3} />
+                    <textarea
+                      id={`s.${key}`}
+                      name={`s.${key}`}
+                      defaultValue={displayValue(key, config[key])}
+                      rows={JSON_ROWS.has(key) ? 4 : 3}
+                    />
                   ) : (
                     <input id={`s.${key}`} name={`s.${key}`} defaultValue={config[key]} />
                   )}
                   {HINTS[key] && <small>{HINTS[key]}</small>}
-                  {JSON_ROWS.has(key) && (
-                    <small>Keep the brackets and quotes. If they are wrong, this row is left as it was.</small>
-                  )}
                 </div>
               ))}
             </fieldset>
