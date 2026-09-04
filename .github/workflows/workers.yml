@@ -21,9 +21,6 @@ jobs:
   # version bump — add per-worker filtering only if that ever becomes annoying.
   deploy:
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +32,15 @@ jobs:
       - run: npm ci
 
       # Run from the repo root — both configs reference
-      # node_modules/wrangler/config-schema.json relative to it.
+      # node_modules/wrangler/config-schema.json relative to it. The token is
+      # scoped per step, not to the job: at job level `npm ci` above would run
+      # every dependency's postinstall script with a Workers-edit credential in
+      # its environment.
       - run: npx wrangler deploy -c workers/audit-archiver/wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - run: npx wrangler deploy -c workers/r2-backup/wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
