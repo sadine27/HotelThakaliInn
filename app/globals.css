@@ -7210,3 +7210,5 @@ html[data-dial-open] .dial-seg {
     transform: none;
   }
 }
+
+.ci-smoke-canary { color: var(--definitely-not-a-token); }
