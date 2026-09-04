@@ -33,6 +33,14 @@
   "images": {
     "binding": "IMAGES"
   },
+  /* GOOGLE_CLIENT_ID is not secret (it's sent to the browser as part of the
+     OAuth redirect URL anyway) so it lives here as a plain var. Its partner,
+     GOOGLE_CLIENT_SECRET, must never go in this file — set it once with
+     `npx wrangler secret put GOOGLE_CLIENT_SECRET`. Fill in the real client ID
+     below once it's created in Google Cloud Console (see lib/google-auth.ts). */
+  "vars": {
+    "GOOGLE_CLIENT_ID": "997941147830-lnq9qr8dj4e9vatf9ievjkmd2p1qtsq8.apps.googleusercontent.com"
+  },
   /* Both ends pinned. `/api/contact` is public and unauthenticated, so a bug that
      ever let a guest choose the recipient would otherwise turn the hotel's domain
      into an open relay — with these, the only thing this Worker can do is mail the

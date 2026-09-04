@@ -4102,6 +4102,14 @@ html[data-dial-open] .dial-seg {
   color: #b00020;
 }
 
+.adm-account-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 /* ── Sign in ── */
 
 .adm-login {
@@ -4126,6 +4134,33 @@ html[data-dial-open] .dial-seg {
 
 .adm-login button {
   margin-top: 8px;
+}
+
+.adm-google-btn {
+  display: block;
+  margin-top: 8px;
+  padding: 10px 16px;
+  border: 1px solid #333;
+  border-radius: 2px;
+  background: #111;
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    background-color 120ms ease,
+    transform 90ms ease,
+    filter 90ms ease;
+}
+
+.adm-google-btn:hover {
+  background: #000;
+}
+
+.adm-google-btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.92);
 }
 
 /* ── Admin: one column, and the hub ── */
@@ -5043,7 +5078,8 @@ html[data-dial-open] .dial-seg {
   .adm .adm-sort a,
   .adm .adm-tile,
   .adm .adm-hub a,
-  .adm .adm-summary {
+  .adm .adm-summary,
+  .adm-google-btn {
     transition-duration: 0.01ms;
     transition-delay: 0s;
   }
@@ -5054,7 +5090,8 @@ html[data-dial-open] .dial-seg {
   .adm .adm-sort a:active,
   .adm .adm-tile:active,
   .adm .adm-hub a:active,
-  .adm .adm-summary:active {
+  .adm .adm-summary:active,
+  .adm-google-btn:active {
     transform: none;
     filter: none;
   }

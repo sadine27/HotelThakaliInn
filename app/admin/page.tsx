@@ -84,7 +84,7 @@ function Delta({ now, before }: { now: number; before: number }) {
 }
 
 export default async function Admin() {
-  await requireSession();
+  const { role } = await requireSession();
 
   const now = new Date();
   const kathmanduToday = kathmanduDay(now);
@@ -220,6 +220,14 @@ export default async function Admin() {
             description="Every admin write, last 7 days — who, what, when"
             primary={auditLast7}
           />
+          {(role === "owner" || role === "developer") && (
+            <Tile
+              href="/admin/accounts"
+              label="Admin accounts"
+              description="Who can sign in with Google, and as what role"
+              primary={null}
+            />
+          )}
         </div>
         <div className="adm-next-arrival">
           {nextArrival ? (
