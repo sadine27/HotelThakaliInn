@@ -1,0 +1,40 @@
+# The two cron workers deploy on their own trigger. Path filters in Actions live
+# on `on.push`, not on jobs, so a second workflow file is the native way to scope
+# this without pulling in a third-party filter action.
+name: Deploy cron workers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workers/**'
+      - '.github/workflows/workers.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: workers-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ponytail: any change under workers/ redeploys both. They are cron-only and
+  # edited about twice a quarter, and redeploying unchanged code is a no-op
+  # version bump — add per-worker filtering only if that ever becomes annoying.
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Run from the repo root — both configs reference
+      # node_modules/wrangler/config-schema.json relative to it.
+      - run: npx wrangler deploy -c workers/audit-archiver/wrangler.jsonc
+      - run: npx wrangler deploy -c workers/r2-backup/wrangler.jsonc

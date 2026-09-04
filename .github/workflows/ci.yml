@@ -1,0 +1,56 @@
+# The gate this repo ran on one laptop, by hand, until a dangling --ambient-bright
+# reference broke `npm run check` and sat in main across two commits unnoticed.
+# A push to main that passes deploys itself; one that doesn't, doesn't.
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel a superseded PR run, never a main run — that one may be mid-deploy.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # One job on purpose. dist/ is gitignored, so a separate deploy job would have
+  # to upload and re-download the build or rebuild it; one job shares a disk free.
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 24 to match local, and because scripts/sparkline-check.mjs imports
+      # lib/sparkline.ts directly and needs Node's native type stripping.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # typecheck + eslint + css-check + sparkline-check. No network, no secrets.
+      - run: npm run check
+
+      # Needs no credentials either: every D1-touching page is force-dynamic and
+      # process.env appears nowhere in app/, lib/ or components/.
+      - run: npm run build:vinext
+
+      # Migrations are deliberately not applied here. 0016 does a DROP COLUMN;
+      # a schema change landing from a push has no undo short of Time Travel.
+      # `wrangler d1 migrations apply --remote` stays a human command.
+      - name: Deploy to hotelthakaliinn.com
+        if: github.event_name != 'pull_request'
+        run: npm run deploy:vinext
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # The by-hand check after every deploy, automated: an upload that doesn't
+      # actually serve fails the run instead of looking green.
+      - name: Smoke check
+        if: github.event_name != 'pull_request'
+        run: curl --fail --retry 3 --retry-delay 5 -o /dev/null -sS https://hotelthakaliinn.com
