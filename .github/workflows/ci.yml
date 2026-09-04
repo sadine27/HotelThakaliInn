@@ -65,15 +65,22 @@ jobs:
 
       # The by-hand check after every deploy, automated: an upload that doesn't
       # actually serve fails the run instead of looking green.
-      # Cloudflare's bot filtering answers a runner's datacenter IP with 403 even
-      # though the site serves fine, so print the status, the mitigation headers
-      # and the first of the body before deciding -- a real outage and an edge
-      # block look identical in curl's exit code alone.
+      # Cloudflare challenges the runner's datacenter IP before the worker ever
+      # runs, so CI cannot fetch the page the way a visitor does. A challenge
+      # still proves the edge is up and routing this hostname; anything else --
+      # a 5xx, a connection failure, a redirect to nowhere -- is a real problem
+      # and fails the run. Turn off Bot Fight Mode if you want the strict check.
       - name: Smoke check
         if: github.event_name != 'pull_request'
         run: |
-          code=$(curl -sS --retry 3 --retry-delay 5 -D headers.txt -o body.html             -w '%{http_code}'             -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'             https://hotelthakaliinn.com)
-          echo "status $code"
-          grep -iE '^(cf-mitigated|cf-ray|server|content-type):' headers.txt || true
-          head -c 300 body.html; echo
-          [ "$code" = 200 ]
+          code=$(curl -sS --retry 3 --retry-delay 5 -D headers.txt -o body.html             -w '%{http_code}' https://hotelthakaliinn.com)
+          mitigated=$(grep -i '^cf-mitigated:' headers.txt | tr -d '' | awk '{print $2}')
+          echo "status $code${mitigated:+ (cf-mitigated: $mitigated)}"
+          if [ "$code" = 200 ]; then
+            echo "serving"
+          elif [ "$code" = 403 ] && [ "$mitigated" = challenge ]; then
+            echo "edge challenged this runner; site reachable, page not verified from CI"
+          else
+            head -c 500 body.html; echo
+            exit 1
+          fi
