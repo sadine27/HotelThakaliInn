@@ -63,19 +63,17 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      # The by-hand check after every deploy, automated: an upload that doesn't
-      # actually serve fails the run instead of looking green.
       # Cloudflare challenges the runner's datacenter IP before the worker ever
       # runs, so CI cannot fetch the page the way a visitor does. A challenge
       # still proves the edge is up and routing this hostname; anything else --
-      # a 5xx, a connection failure, a redirect to nowhere -- is a real problem
-      # and fails the run. Turn off Bot Fight Mode if you want the strict check.
+      # a 5xx, a connection failure, an unexpected status -- is a real problem
+      # and fails the run. Turn off Bot Fight Mode to get the strict check back.
       - name: Smoke check
         if: github.event_name != 'pull_request'
         run: |
-          code=$(curl -sS --retry 3 --retry-delay 5 -D headers.txt -o body.html             -w '%{http_code}' https://hotelthakaliinn.com)
-          mitigated=$(grep -i '^cf-mitigated:' headers.txt | tr -d '' | awk '{print $2}')
-          echo "status $code${mitigated:+ (cf-mitigated: $mitigated)}"
+          code=$(curl -sS --retry 3 --retry-delay 5 -D headers.txt -o body.html -w '%{http_code}' https://hotelthakaliinn.com)
+          mitigated=$(tr -d '\015' < headers.txt | awk 'tolower($1) == "cf-mitigated:" { print $2 }')
+          echo "status $code ${mitigated:+cf-mitigated: $mitigated}"
           if [ "$code" = 200 ]; then
             echo "serving"
           elif [ "$code" = 403 ] && [ "$mitigated" = challenge ]; then
