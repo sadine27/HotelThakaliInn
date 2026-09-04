@@ -62,7 +62,7 @@ const FROM = "notify@hotelthakaliinn.com";
    alert can never silently stop firing because someone edited a settings row. */
 const ALERT_TO = "hotelthakaliinn1@gmail.com";
 
-async function alertDelete(entry: AuditEntry) {
+export async function alertDelete(entry: AuditEntry) {
   const what = [entry.section, entry.slug].filter(Boolean).join(" / ") || "(settings)";
   await env.EMAIL.send({
     to: ALERT_TO,

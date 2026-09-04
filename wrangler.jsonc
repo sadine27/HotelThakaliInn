@@ -65,7 +65,11 @@
     /* /api/view is public, unauthenticated and writes a D1 row per call, so
        without this one script could fill the table. Sixty a minute is far more
        pages than a person reads and cheap enough to never touch a real guest. */
-    { "name": "VIEW_IP", "namespace_id": "1003", "simple": { "limit": 60, "period": 60 } }
+    { "name": "VIEW_IP", "namespace_id": "1003", "simple": { "limit": 60, "period": 60 } },
+    /* /api/booking and /api/contact are also public, unauthenticated D1 writes
+       that send mail — same shape as login's brute-force risk, so the same
+       5/60s per-IP budget: a real guest submits a form once or twice, ever. */
+    { "name": "FORM_IP", "namespace_id": "1004", "simple": { "limit": 5, "period": 60 } }
   ],
   "d1_databases": [
     {

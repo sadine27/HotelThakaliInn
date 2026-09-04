@@ -175,12 +175,6 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
     });
   }, [active, start, reduced, videoPaused]);
 
-  /* A pause is scoped to the stripe it was pressed on — opening a different
-     one, or reopening this one, starts from playing again. */
-  useEffect(() => {
-    setVideoPaused(false);
-  }, [active]);
-
   /* moveWindow captures the leaving window before `start` changes. Reduced
      motion clears any overlay so the wall cuts cleanly to the next set. */
   useEffect(() => {
@@ -228,6 +222,11 @@ export default function GalleryWall({ panels }: { panels: Panel[] }) {
   const open = (i: number, byClick: boolean) => {
     deliberate.current = byClick;
     setActive(i);
+    /* A pause is scoped to the stripe it was pressed on — opening a different
+       one, or reopening this one, starts from playing again. Set here, not in
+       an effect watching `active`, since this is the only call site that opens
+       a stripe (the others close to null, where a paused flag is moot). */
+    setVideoPaused(false);
   };
 
   return (

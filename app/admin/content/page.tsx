@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getActor, requireSession } from "@/lib/auth";
-import { auditedWrite } from "@/lib/audit";
+import { auditedWrite, alertDelete } from "@/lib/audit";
 import PhotoField from "@/components/PhotoField";
 import AdminNotice from "@/components/AdminNotice";
 import { mediaReferences, section } from "@/lib/content";
@@ -452,17 +452,29 @@ export default async function Content({
        on the live site. */
     const stillUnused = await findUnused();
     if (!stillUnused.some((o) => o.key === key)) notify("err", "inuse");
-    await env.MEDIA.delete(key);
     /* No D1 row involved — logAudit-only, no auditedWrite batch to pair it
-       with. content.delete_unused still gets an alert like every other
-       delete, since it is still a destructive action on real storage. */
+       with. The audit row lands *before* the R2 delete: if the insert fails,
+       nothing is lost; the reverse order would delete the file with no
+       record if the insert then failed. */
     const actor = await getActor();
+    const entry = {
+      actor,
+      action: "content.delete_unused",
+      section: null,
+      slug: key,
+      before: null,
+      after: null,
+    };
     await env.DB.prepare(
       `INSERT INTO audit_log (actor, action, section, slug, before, after)
        VALUES (?1, 'content.delete_unused', NULL, ?2, NULL, NULL)`,
     )
       .bind(actor, key)
       .run();
+    await env.MEDIA.delete(key);
+    /* Same alert every other delete fires, called directly since this action
+       has no paired D1 write for auditedWrite to batch. */
+    await alertDelete(entry).catch(() => {});
     notify("ok", "purged");
   }
 

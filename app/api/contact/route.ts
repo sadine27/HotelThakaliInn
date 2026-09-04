@@ -40,6 +40,11 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
+  /* CF-Connecting-IP is set by the edge and cannot be spoofed by the client. */
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const { success } = await env.FORM_IP.limit({ key: ip });
+  if (!success) return Response.json({ ok: false, error: "Too many requests." }, { status: 429 });
+
   const name = clean(body.name, LIMITS.name);
   const email = clean(body.email, LIMITS.email);
   const message = clean(body.message, LIMITS.message);
