@@ -23,6 +23,8 @@
  * health-check worker. Both read the route list from lib/public-routes.ts. */
 
 import { env } from "cloudflare:workers";
+import { BANK_FREE_BYTES, BANK_WARN_BYTES, formatBytes } from "@/lib/media";
+import { bankStats } from "@/lib/media-store";
 
 export type CheckKind = "read" | "write";
 
@@ -170,6 +172,28 @@ export const CHECKS: Check[] = [
         ok: true,
         detail: list.objects.length ? "reachable, holding uploads" : "reachable, currently empty"
       };
+    },
+  },
+
+  {
+    id: "storage",
+    kind: "read",
+    name: "Photo storage",
+    what: "the photo bank still has room, so uploads will not start failing",
+    where: "/admin/photos",
+    run: async () => {
+      const { bytes, photos, videos } = await bankStats();
+      const used = `${formatBytes(bytes)} of ${formatBytes(BANK_FREE_BYTES)}`;
+      /* The daily cap stops an accident; this is what catches the slow one.
+         Red before the bucket is full, not when it is: crossing the free tier
+         starts costing money silently, and the first symptom otherwise is a
+         bill. 6 GB leaves room for workers/r2-backup to mirror every object. */
+      return bytes >= BANK_WARN_BYTES
+        ? { ok: false, detail: `${used} — close to the free limit; delete unused photos` }
+        : {
+            ok: true,
+            detail: `${used} · ${photos} photo${photos === 1 ? "" : "s"}, ${videos} clip${videos === 1 ? "" : "s"}`,
+          };
     },
   },
 

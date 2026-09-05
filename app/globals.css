@@ -8916,3 +8916,371 @@ html[data-dial-open] .dial-seg {
     text-align: left;
   }
 }
+
+/* ── The photo bank ───────────────────────────────────────────────────────
+   A contact sheet, because the question this screen answers is "which one",
+   and that is a question you answer with your eyes. The old 32px thumbnail in
+   a list row could tell you a photo existed and nothing else.
+
+   Two columns: the sheet scrolls, the panel beside it does not. Everything a
+   photo can tell you — where it is used, who added it, where the original
+   lives — is in that panel, so choosing and knowing are the same gesture. */
+
+.adm-bank {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+
+.adm-bank-sheet {
+  min-width: 0;
+}
+
+.adm-bank-tools {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.adm-bank-search {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--con-rule);
+  background: #fff;
+  color: var(--con-ink);
+  font: inherit;
+}
+
+.adm-bank-count {
+  font-family: var(--con-mono);
+  font-size: 11px;
+  color: var(--con-dim);
+  white-space: nowrap;
+}
+
+.adm-bank-grid {
+  display: grid;
+  /* auto-fill, not auto-fit: a bank holding three photos should show three
+     thumbnails, not three panoramas stretched across the screen. */
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* `.adm .adm-bank-cell`, not `.adm-bank-cell`: the base admin skin's
+   `.adm button` is (0,1,1) and paints every button #333 with a #333 border,
+   which a single class cannot outrank. Left alone, every cell in the sheet is a
+   dark grey square until its photo finishes loading — and stays one for good if
+   the photo 404s, which is exactly when you most need to see there is a hole. */
+.adm .adm-bank-cell {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border: 1px solid var(--con-rule);
+  background: var(--con-sunk);
+  cursor: pointer;
+}
+
+.adm-bank-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* The base admin skin paints `.adm button:hover` solid black, which on a grid
+   of photographs blacks out whatever you point at. Specificity has to clear
+   (0,2,1) for the hover, and :not(:disabled) is what carries it there. */
+.adm .adm-bank-cell:hover:not(:disabled) {
+  border-color: var(--con-edge);
+  background: var(--con-sunk);
+}
+
+.adm .adm-bank-cell[aria-pressed="true"] {
+  outline: 3px solid var(--con-lit);
+  outline-offset: -3px;
+  border-color: var(--con-lit);
+}
+
+.adm-bank-cell:focus-visible {
+  outline: 3px solid var(--con-ink);
+  outline-offset: 2px;
+}
+
+/* Says a thing about the photo that the photo cannot say about itself. */
+.adm-bank-flag {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 1px 5px;
+  background: var(--con-warn);
+  color: #fff;
+  font-family: var(--con-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.adm-bank-flag--repo {
+  background: var(--con-edge);
+}
+
+.adm-bank-empty {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px dashed var(--con-rule);
+  color: var(--con-dim);
+  text-align: center;
+}
+
+.adm-bank-side {
+  position: sticky;
+  top: 12px;
+  min-width: 0;
+}
+
+/* ── The gauge ──
+   The daily cap stops accidents; this is what actually stops a surprise bill,
+   because it turns "how much room is left" from something you remember into
+   something you glance at. */
+
+.adm-bank-gauge {
+  height: 12px;
+  margin: 12px 0 6px;
+  border: 1px solid var(--con-rule);
+  background: var(--con-sunk);
+}
+
+.adm-bank-gauge-fill {
+  height: 100%;
+  background: var(--con-lit);
+}
+
+.adm-bank-gauge[data-state="warn"] .adm-bank-gauge-fill {
+  background: var(--con-warn);
+}
+
+.adm-bank-gauge[data-state="bad"] .adm-bank-gauge-fill {
+  background: var(--con-bad);
+}
+
+.adm-bank-gauge-note {
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: var(--con-dim);
+}
+
+.adm-bank-gauge-note b {
+  font-family: var(--con-mono);
+  color: var(--con-ink);
+}
+
+/* ── Uploading ── */
+
+.adm-bank-upload {
+  display: block;
+}
+
+/* The real input is hidden and the label is the button: a file input cannot be
+   restyled, and its native "No file chosen" is a lie the moment a file has in
+   fact been chosen and uploaded. */
+.adm-bank-upload input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.adm-bank-upload > label {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.adm-bank-upload > label[data-disabled="1"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.adm-bank-left {
+  margin: 8px 0 0;
+  font-family: var(--con-mono);
+  font-size: 11px;
+  color: var(--con-dim);
+}
+
+.adm-bank-left[data-state="warn"] {
+  color: var(--con-warn);
+}
+
+.adm-bank-left[data-state="bad"] {
+  color: var(--con-bad);
+  font-weight: 700;
+}
+
+.adm-bank-status {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+
+.adm-bank-status li {
+  padding: 4px 0 4px 12px;
+  border-left: 3px solid var(--con-edge);
+  margin-bottom: 4px;
+}
+
+.adm-bank-status li[data-state="done"] {
+  border-left-color: var(--con-lit);
+}
+
+.adm-bank-status li[data-state="failed"] {
+  border-left-color: var(--con-bad);
+}
+
+.adm-bank-status b {
+  display: block;
+  font-family: var(--con-mono);
+  color: var(--con-ink);
+  word-break: break-all;
+}
+
+.adm-bank-status span {
+  color: var(--con-dim);
+}
+
+.adm-bank-status li[data-state="failed"] span {
+  color: var(--con-bad);
+}
+
+/* ── The one photo ── */
+
+.adm-bank-big {
+  display: block;
+  margin: 12px 0;
+  text-decoration: none;
+}
+
+.adm-bank-big img {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--con-rule);
+  background: var(--con-sunk);
+}
+
+.adm-bank-big small {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--con-dim);
+}
+
+.adm-bank-facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 10px;
+  margin: 0 0 12px;
+  font-size: 11px;
+}
+
+.adm-bank-facts dt {
+  font-family: var(--con-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-dim);
+  padding-top: 2px;
+}
+
+.adm-bank-facts dd {
+  margin: 0;
+  color: var(--con-ink);
+  word-break: break-word;
+}
+
+.adm-bank-facts dd em {
+  color: var(--con-dim);
+}
+
+.adm-bank-form label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--con-ink);
+}
+
+.adm-bank-form input {
+  display: block;
+  width: 100%;
+  margin: 4px 0 3px;
+  padding: 6px 8px;
+  border: 1px solid var(--con-rule);
+  background: #fff;
+  color: var(--con-ink);
+  font: inherit;
+  font-weight: 400;
+}
+
+.adm-bank-form small {
+  display: block;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--con-dim);
+}
+
+.adm-bank-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--con-warn);
+  background: var(--con-sunk);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--con-dim);
+}
+
+.adm-bank-danger {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--con-rule);
+}
+
+.adm-bank-confirm p {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--con-bad);
+}
+
+.adm-bank-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adm-bank-confirm p {
+  flex-basis: 100%;
+}
+
+/* One column below the width where a 340px panel stops leaving the sheet room
+   for more than two thumbnails per row. */
+@media (max-width: 860px) {
+  .adm-bank {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adm-bank-side {
+    position: static;
+  }
+}

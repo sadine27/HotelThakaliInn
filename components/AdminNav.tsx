@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/admin/requests", label: "Booking requests" },
   { href: "/admin/messages", label: "Enquiries" },
   { href: "/admin/content", label: "Pages, rooms & photos" },
+  { href: "/admin/photos", label: "Photo bank" },
   { href: "/admin/settings", label: "Contact & facts" },
   { href: "/admin/check", label: "System check" },
   { href: "/admin/audit", label: "Audit log", managers: true },
