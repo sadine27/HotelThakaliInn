@@ -254,8 +254,20 @@ body {
      It has to be a min-height on the cards as well as a max: the cards take
      their height from an aspect-ratio against the column width, so on a narrow
      window they come out *shorter* than their own content, and a max-height
-     can't put back what a too-short box already lost. */
-  --card-min-h: 660px;
+     can't put back what a too-short box already lost.
+     And it has to bow to the viewport before it bows to the copy. The leaf
+     bottom-aligns its card at --inset, so the corner lands on the dial's pivot
+     for free — but only while pad-y + card + inset still fits in 100svh. A flat
+     660 floor did not fit a 720-tall window: the hero grew to 790, the leaf's
+     bottom went under the fold with it, and the corner ended up 69px below the
+     pivot with the notch cut somewhere off in the middle of nothing. The upper
+     bound is what the copy wants, the middle is what the window can give, and
+     560 stays the last-resort floor for windows too short for either. */
+  --card-min-h: clamp(
+    560px,
+    calc(100svh - var(--pad-y) - var(--inset) - 2px),
+    660px
+  );
   --card-max-h: max(
     var(--card-min-h),
     calc(100svh - var(--pad-y) - var(--inset) - 2px)
