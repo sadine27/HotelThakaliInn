@@ -4612,6 +4612,15 @@ html[data-dial-open] .dial-seg {
 .adm-con input.adm-w-num {
   width: 8ch;
 }
+/* `.adm input { width: 100% }` sits above every one-class rule in this block, so
+   a time picker inherited it and took a whole row to itself — which pushed the
+   word "to" onto a line of its own and made one meal read as four. A clock is a
+   fixed-width control; the browser's own picker glyph needs the extra ch. */
+.adm-con input[type="time"] {
+  width: auto;
+  flex: 0 0 auto;
+  min-width: 13ch;
+}
 /* Fixed, not auto: `width: auto` on a <select> sizes it to its widest OPTION,
    so the country code box came out as wide as "United Arab Emirates" and
    pushed the number onto its own line. */
@@ -4858,12 +4867,141 @@ html[data-dial-open] .dial-seg {
   min-width: 0;
 }
 
+/* A meal row and a good-to-know row carry more controls than fit one line at
+   any sane width, so they wrap deliberately rather than squeezing every box
+   down to nothing. */
+.adm-con-row--wrap {
+  row-gap: 8px;
+}
+
+/* The static word in front of a control ("served", "to", the room's name).
+   Not a <label>, because .adm label{display:block} would break the row. */
+.adm-con-rowlabel {
+  flex: 0 0 auto;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--con-dim);
+}
+
+/* Wide enough that "Deluxe Double" and "Family Room" start their number in the
+   same column — three sizes you cannot line up are three sizes you cannot
+   compare. */
+.adm-con-row > .adm-con-rowlabel:first-child {
+  flex: 0 0 8.5rem;
+}
+
 .adm-con-empty {
   margin: 0;
   padding: 10px;
   border: 1px dashed var(--con-rule);
   font-size: 12px;
   color: var(--con-dim);
+}
+
+/* ── Segmented choice ─────────────────────────────────────────────────────
+   Two or three answers, all visible, the chosen one held down. A <select>
+   hides every option you did not pick behind a click, which is exactly the
+   "what are my choices?" hesitation this console exists to remove. */
+
+.adm-con-choice {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.adm .adm-con-choice .adm-btn {
+  margin: 0;
+  border-radius: 0;
+}
+
+.adm .adm-con-choice .adm-btn + .adm-btn {
+  margin-left: -1px;
+}
+
+/* Pressed reads as pressed: the bevel inverts, the same way the real buttons
+   do under a finger, and the label goes bold so the state survives a screen
+   nobody can see colour on. */
+.adm .adm-con-choice .adm-btn[aria-pressed="true"] {
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(#456654, var(--green));
+  box-shadow:
+    inset -1px -1px 0 rgba(255, 255, 255, 0.25),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* ── The platform pool ────────────────────────────────────────────────────
+   Every social platform at once, with its own mark. The button this replaces
+   added "the first one not already used", so reaching TikTok meant creating
+   nine rows you did not want and re-picking each of them. */
+
+.adm-con-pick-head {
+  margin-top: 12px;
+}
+
+.adm-con-pick {
+  display: grid;
+  /* Wide enough for "Google Business" and its mark. Narrower columns clipped
+     the longest names to "Google Bu…", which is a pool you cannot read. */
+  grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
+  gap: 6px;
+}
+
+.adm .adm-con-pick-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 12px;
+  text-align: left;
+  color: var(--con-ink);
+  border: 1px solid var(--con-edge);
+  background: linear-gradient(#fdfdfd, #e4e7e9);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.adm .adm-con-pick-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow:
+    inset -1px -1px 0 rgba(255, 255, 255, 0.7),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.22);
+}
+
+/* An added platform stays visible rather than disappearing from the pool: a
+   grid that reshuffles every time you use it is a grid you have to re-read. */
+.adm .adm-con-pick-btn:disabled {
+  color: var(--con-dim);
+  background: var(--con-face);
+  box-shadow: none;
+  cursor: default;
+}
+
+.adm-con-pick-mark {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.adm-con-pick-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-con-pick-on {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: var(--con-lit);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm .adm-con-pick-btn:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* ── Tick grid (what every room has) ──────────────────────────────────────

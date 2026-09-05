@@ -28,16 +28,24 @@ import {
   AMENITIES,
   ARRIVAL_UNITS,
   COUNTRY_CODES,
+  MEALS,
+  MEAL_STYLES,
   SOCIAL_PLATFORMS,
   canEditEmail,
   composeAll,
   composeAmenities,
+  composeGoodToKnow,
   composeRoomSize,
+  composeSizePair,
   computeErrors,
   coordsFromMapsUrl,
+  digitsOnly,
+  smallestRoomSize,
   type ArrivalRow,
   type Errors,
   type FormValues,
+  type GoodRow,
+  type Meal,
   type RoomSizeUnit,
 } from "@/lib/settings-schema";
 
@@ -58,7 +66,7 @@ const FIELD_NAMES: Record<string, string> = {
   addr_ward: "Ward number",
   addr_city: "City",
   addr_postal: "Postal code",
-  rooms_size_value: "Room size",
+  room_sizes: "Room sizes",
   amenities: "What every room has",
 };
 
@@ -70,8 +78,41 @@ const nameFor = (id: string): string => {
   if (kind === "arrival") return `Arrival row ${n}`;
   if (kind === "good") return `Good-to-know point ${n}`;
   if (kind === "amen") return `Extra amenity ${n}`;
+  if (kind === "meal") return `Meal ${n}`;
+  if (kind === "room") return `Room ${n} size`;
   return id;
 };
+
+/* Two or three mutually exclusive answers, drawn as buttons rather than hidden
+   inside a select. A dropdown makes you open it to find out what the other
+   choice even is; these state both, and the pressed one stays pressed. */
+function Choice<T extends string>({
+  value,
+  onPick,
+  options,
+  label,
+}: {
+  value: T;
+  onPick: (v: T) => void;
+  options: { value: T; label: string }[];
+  label: string;
+}) {
+  return (
+    <span className="adm-con-choice" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          className="adm-btn adm-btn--sm"
+          aria-pressed={value === o.value}
+          onClick={() => onPick(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </span>
+  );
+}
 
 /* A dot AND a word — colour never carries the state on its own. "off" keeps the
    row's height so a lamp turning on cannot shove the layout. */
@@ -195,6 +236,14 @@ export default function SettingsForm({
     list.map((r, n) => (n === i ? { ...r, ...patch } : r));
   const dropRow = <T,>(list: T[], i: number): T[] => list.filter((_, n) => n !== i);
 
+  /* A phone box holds digits. Not "digits, checked afterwards" — the letters
+     never land in the first place, so there is nothing to explain and nothing
+     to correct. E.164 caps the whole number at 15, and the country code has
+     already spent some of that, so the room left here shrinks when you switch
+     from +977 to +1. */
+  const roomForDigits = (cc: string) => Math.max(1, 15 - digitsOnly(cc).length);
+  const onlyDigits = (raw: string, cc: string) => digitsOnly(raw).slice(0, roomForDigits(cc));
+
   const coordsOk = !errors.lat && !errors.lng;
 
   return (
@@ -247,9 +296,10 @@ export default function SettingsForm({
                   inputMode="numeric"
                   autoComplete="tel-national"
                   placeholder="9840007925"
+                  maxLength={roomForDigits(v.phoneCc)}
                   value={v.phoneLocal}
                   aria-describedby={described("phone")}
-                  onChange={(e) => update({ phoneLocal: e.target.value })}
+                  onChange={(e) => update({ phoneLocal: onlyDigits(e.target.value, v.phoneCc) })}
                   onBlur={() => mark("phone")}
                 />
               </div>
@@ -290,10 +340,11 @@ export default function SettingsForm({
                   className="adm-con-mono"
                   inputMode="numeric"
                   placeholder="9840007925"
+                  maxLength={roomForDigits(v.waCc)}
                   value={v.waSame ? v.phoneLocal : v.waLocal}
                   disabled={v.waSame}
                   aria-describedby={described("whatsapp")}
-                  onChange={(e) => update({ waLocal: e.target.value })}
+                  onChange={(e) => update({ waLocal: onlyDigits(e.target.value, v.waCc) })}
                   onBlur={() => mark("whatsapp")}
                 />
               </div>
@@ -407,22 +458,37 @@ export default function SettingsForm({
                   );
                 })}
               </div>
-              <p className="adm-con-hint">
-                <button
-                  type="button"
-                  className="adm-btn adm-btn--sm"
-                  onClick={() => {
-                    const next = SOCIAL_PLATFORMS.find(
-                      (p) => !v.socials.some((s) => s.label === p.label),
-                    );
-                    update({
-                      socials: [...v.socials, { label: next?.label ?? SOCIAL_PLATFORMS[0].label, href: "" }],
-                    });
-                  }}
-                >
-                  + Add a social link
-                </button>
-              </p>
+              {/* The whole pool, visible at once. The button this replaces added
+                  "the first platform not already used", so getting to TikTok
+                  meant creating and re-picking nine rows you didn't want. */}
+              <p className="adm-con-legend adm-con-pick-head">Add a platform</p>
+              <div className="adm-con-pick">
+                {SOCIAL_PLATFORMS.map((p) => {
+                  const used = v.socials.some((s) => s.label === p.label);
+                  const Icon = MARKS[p.label];
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      className="adm-con-pick-btn"
+                      disabled={used}
+                      aria-label={used ? `${p.label} — already added` : `Add ${p.label}`}
+                      onClick={() => {
+                        update({ socials: [...v.socials, { label: p.label, href: "" }] });
+                        mark(`social-${v.socials.length}`);
+                      }}
+                    >
+                      <span className="adm-con-pick-mark">{Icon ? <Icon size={20} /> : "?"}</span>
+                      <span className="adm-con-pick-name">{p.label}</span>
+                      {/* A shape, not a colour — and the button's accessible
+                          name already says "already added" in full. Spelling it
+                          out here cost the longest platform names their last
+                          four characters. */}
+                      {used && <span className="adm-con-pick-on">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -619,7 +685,13 @@ export default function SettingsForm({
             </div>
 
             <div className="adm-con-field adm-con-wide">
-              <span className="adm-con-legend">Arrival distances</span>
+              <span className="adm-con-legend">Getting here</span>
+              <p className="adm-con-hint">
+                One row per thing a guest wants to know before they set off. Most are a
+                distance from somewhere; a couple are not — the front desk being staffed
+                through the night has no number. Pick which each row is and the boxes
+                beside it change to match.
+              </p>
               <div className="adm-con-rows">
                 {v.arrival.map((r, i) => {
                   const id = `arrival-${i}`;
@@ -644,8 +716,8 @@ export default function SettingsForm({
                           })
                         }
                       >
-                        <option value="distance">is a distance</option>
-                        <option value="note">is a note</option>
+                        <option value="distance">how far away it is</option>
+                        <option value="note">something to say about it</option>
                       </select>
                       {r.kind === "distance" ? (
                         <>
@@ -710,8 +782,8 @@ export default function SettingsForm({
                 >
                   + Add a row
                 </button>{" "}
-                Not everything here is a distance — &ldquo;Front desk, through the night&rdquo; is a
-                note.
+                The first two distances also write the &ldquo;950&nbsp;m from…&rdquo; line under
+                Rooms, so that line can never disagree with this one.
               </p>
             </div>
           </div>
@@ -824,21 +896,15 @@ export default function SettingsForm({
             </div>
 
             <div className="adm-con-field adm-con-wide">
-              <label htmlFor="rooms_size_value">Room size — the smallest room</label>
+              <span className="adm-con-legend" id="room_sizes">
+                Room sizes
+              </span>
               <div className="adm-con-pair">
-                <input
-                  id="rooms_size_value"
-                  className="adm-con-mono adm-w-num"
-                  inputMode="decimal"
-                  value={v.sizeValue}
-                  aria-describedby={described("rooms_size_value")}
-                  onChange={(e) => update({ sizeValue: e.target.value })}
-                  onBlur={() => mark("rooms_size_value")}
-                />
+                <span className="adm-con-rowlabel">measured in</span>
                 <select
                   className="adm-w-unit"
                   value={v.sizeUnit}
-                  aria-label="Room size unit"
+                  aria-label="Unit for all room sizes"
                   onChange={(e) => update({ sizeUnit: e.target.value as RoomSizeUnit })}
                 >
                   <option value="m2">m²</option>
@@ -850,13 +916,164 @@ export default function SettingsForm({
                     checked={v.sizeBathroom}
                     onChange={(e) => update({ sizeBathroom: e.target.checked })}
                   />
-                  <span>bathroom included</span>
+                  <span>bathroom included in these figures</span>
                 </label>
               </div>
-              <Lamp state={lamp("rooms_size_value")} />
-              {err("rooms_size_value")}
+
+              <div className="adm-con-rows">
+                {v.rooms.length === 0 && (
+                  <p className="adm-con-empty">
+                    No rooms found. Add them under Pages, rooms &amp; photos first.
+                  </p>
+                )}
+                {v.rooms.map((r, i) => {
+                  const id = `room-${i}`;
+                  const pair = composeSizePair(r.value, v.sizeUnit);
+                  return (
+                    <div className="adm-con-row" key={r.slug}>
+                      <span className="adm-con-rowlabel">{r.title}</span>
+                      <input
+                        id={id}
+                        className="adm-con-mono adm-w-num"
+                        inputMode="decimal"
+                        placeholder="42"
+                        value={r.value}
+                        aria-label={`Size of the ${r.title}`}
+                        aria-describedby={described(id)}
+                        onChange={(e) => update({ rooms: setRow(v.rooms, i, { value: e.target.value }) })}
+                        onBlur={() => mark(id)}
+                      />
+                      <span className="adm-con-readout adm-con-flex">{pair || "not measured yet"}</span>
+                      <Lamp state={r.value.trim() ? lamp(id) : "req"} />
+                      {err(id) && <div className="adm-con-note">{err(id)}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+              {err("room_sizes")}
               <p className="adm-con-readout">{rows.rooms_size || "—"}</p>
-              <p className="adm-con-hint">The other unit is worked out from this one, so the two can never disagree.</p>
+              <p className="adm-con-hint">
+                One unit for all three, so a guest comparing two cards is comparing two
+                numbers rather than doing arithmetic. The other unit is worked out from
+                this one, and the &ldquo;rooms start at about…&rdquo; line above is the
+                smallest of them — leave a room blank until you have actually measured it
+                rather than guessing.
+              </p>
+            </div>
+
+            <div className="adm-con-field adm-con-wide">
+              <span className="adm-con-legend">Meals</span>
+              <div className="adm-con-rows">
+                {v.meals.length === 0 && <p className="adm-con-empty">No meals listed.</p>}
+                {v.meals.map((m, i) => {
+                  const id = `meal-${i}`;
+                  return (
+                    <div className="adm-con-row adm-con-row--wrap" key={id}>
+                      <select
+                        id={id}
+                        value={m.meal}
+                        aria-label={`Which meal, row ${i + 1}`}
+                        aria-describedby={described(id)}
+                        onChange={(e) => update({ meals: setRow(v.meals, i, { meal: e.target.value }) })}
+                        onBlur={() => mark(id)}
+                      >
+                        {!MEALS.includes(m.meal) && <option value={m.meal}>{m.meal || "— pick one —"}</option>}
+                        {MEALS.map((x) => (
+                          <option key={x} value={x}>
+                            {x}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={m.style}
+                        aria-label={`How ${m.meal || "it"} is served`}
+                        onChange={(e) => update({ meals: setRow(v.meals, i, { style: e.target.value }) })}
+                      >
+                        <option value="">no style given</option>
+                        {MEAL_STYLES.map((x) => (
+                          <option key={x} value={x}>
+                            {x.toLowerCase()}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="adm-con-rowlabel">served</span>
+                      <input
+                        type="time"
+                        className="adm-con-mono"
+                        value={m.from}
+                        aria-label={`Time ${m.meal || "this meal"} starts`}
+                        onChange={(e) => update({ meals: setRow(v.meals, i, { from: e.target.value }) })}
+                        onBlur={() => mark(id)}
+                      />
+                      <span className="adm-con-rowlabel">to</span>
+                      <input
+                        type="time"
+                        className="adm-con-mono"
+                        value={m.to}
+                        aria-label={`Time ${m.meal || "this meal"} ends`}
+                        onChange={(e) => update({ meals: setRow(v.meals, i, { to: e.target.value }) })}
+                        onBlur={() => mark(id)}
+                      />
+                      <Choice<Meal["cost"]>
+                        label={`Whether ${m.meal || "this meal"} is included`}
+                        value={m.cost}
+                        options={[
+                          { value: "included", label: "included" },
+                          { value: "paid", label: "paid" },
+                        ]}
+                        onPick={(cost) => {
+                          mark(id);
+                          update({ meals: setRow(v.meals, i, { cost }) });
+                        }}
+                      />
+                      {/* Only exists when there is something to charge — an
+                          always-present price box on an included meal is one
+                          more blank someone feels obliged to fill. */}
+                      {m.cost === "paid" && (
+                        <input
+                          className="adm-con-flex"
+                          placeholder="Rs 500 per person"
+                          value={m.price}
+                          aria-label={`What ${m.meal || "this meal"} costs`}
+                          onChange={(e) => update({ meals: setRow(v.meals, i, { price: e.target.value }) })}
+                          onBlur={() => mark(id)}
+                        />
+                      )}
+                      <Lamp state={lamp(id)} />
+                      <button
+                        type="button"
+                        className="adm-btn adm-btn--x"
+                        aria-label={`Remove ${m.meal || "this meal"}`}
+                        onClick={() => update({ meals: dropRow(v.meals, i) })}
+                      >
+                        ×
+                      </button>
+                      {err(id) && <div className="adm-con-note">{err(id)}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="adm-con-hint">
+                {MEALS.filter((x) => !v.meals.some((m) => m.meal === x)).map((x) => (
+                  <button
+                    key={x}
+                    type="button"
+                    className="adm-btn adm-btn--sm"
+                    onClick={() =>
+                      update({
+                        meals: [
+                          ...v.meals,
+                          { meal: x, style: "", from: "", to: "", cost: "included", price: "" },
+                        ],
+                      })
+                    }
+                  >
+                    + {x}
+                  </button>
+                ))}{" "}
+                Only breakfast is served today. Lunch and dinner have a row waiting for the
+                day they are.
+              </p>
             </div>
 
             <div className="adm-con-field adm-con-wide">
@@ -866,18 +1083,36 @@ export default function SettingsForm({
                 {v.good.map((g, i) => {
                   const id = `good-${i}`;
                   return (
-                    <div className="adm-con-row" key={id}>
+                    <div className="adm-con-row adm-con-row--wrap" key={id}>
                       <input
                         id={id}
                         className="adm-con-flex"
-                        placeholder="Breakfast buffet, 7–10 am"
-                        value={g}
+                        placeholder="Airport shuttle"
+                        value={g.text}
                         aria-label={`Good-to-know point ${i + 1}`}
                         aria-describedby={described(id)}
-                        onChange={(e) =>
-                          update({ good: v.good.map((x, n) => (n === i ? e.target.value : x)) })
-                        }
+                        onChange={(e) => update({ good: setRow(v.good, i, { text: e.target.value }) })}
                         onBlur={() => mark(id)}
+                      />
+                      <label className="adm-con-tick">
+                        <input
+                          type="checkbox"
+                          checked={g.onRequest}
+                          onChange={(e) => update({ good: setRow(v.good, i, { onRequest: e.target.checked }) })}
+                        />
+                        <span>on request</span>
+                      </label>
+                      {/* "Airport shuttle on request, paid" was one sentence
+                          holding three separate facts. This is those three. */}
+                      <Choice<GoodRow["cost"]>
+                        label={`Whether ${g.text || "this"} costs anything`}
+                        value={g.cost}
+                        options={[
+                          { value: "", label: "—" },
+                          { value: "included", label: "included" },
+                          { value: "paid", label: "paid" },
+                        ]}
+                        onPick={(cost) => update({ good: setRow(v.good, i, { cost }) })}
                       />
                       <Lamp state={lamp(id)} />
                       <button
@@ -897,10 +1132,12 @@ export default function SettingsForm({
                 <button
                   type="button"
                   className="adm-btn adm-btn--sm"
-                  onClick={() => update({ good: [...v.good, ""] })}
+                  onClick={() => update({ good: [...v.good, { text: "", onRequest: false, cost: "" }] })}
                 >
                   + Add a point
-                </button>
+                </button>{" "}
+                Meal times and arrival distances write their own lines — this is for
+                everything else.
               </p>
             </div>
           </div>
@@ -909,13 +1146,24 @@ export default function SettingsForm({
             <h3>On the site</h3>
             <div className="adm-con-preview-body">
               <p>{composeAmenities(v.amenPicked, v.amenCustom) || "— nothing ticked —"}</p>
-              <p>{composeRoomSize(v.sizeValue, v.sizeUnit, v.sizeBathroom)}</p>
-              <ul>
-                {v.good
-                  .filter((g) => g.trim())
-                  .map((g, i) => (
-                    <li key={`${g}-${i}`}>{g}</li>
+              <p>{composeRoomSize(smallestRoomSize(v.rooms), v.sizeUnit, v.sizeBathroom)}</p>
+              <dl>
+                {v.rooms
+                  .filter((r) => composeSizePair(r.value, v.sizeUnit))
+                  .map((r) => (
+                    <div key={r.slug}>
+                      <dt>{r.title}</dt>
+                      <dd>{composeSizePair(r.value, v.sizeUnit)}</dd>
+                    </div>
                   ))}
+              </dl>
+              {/* The exact array about to be stored, in order — meals, then the
+                  points, then the distances — so the composition is visible
+                  rather than something to trust. */}
+              <ul>
+                {composeGoodToKnow(v.meals, v.good, v.arrival).map((g, i) => (
+                  <li key={`${g}-${i}`}>{g}</li>
+                ))}
               </ul>
             </div>
           </aside>

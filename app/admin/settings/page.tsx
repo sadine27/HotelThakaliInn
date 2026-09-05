@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getActor, requireSession } from "@/lib/auth";
 import { auditedWrite } from "@/lib/audit";
-import { settings } from "@/lib/content";
+import { section, settings } from "@/lib/content";
 import AdminNotice from "@/components/AdminNotice";
 import {
   canEditEmail,
@@ -11,10 +11,16 @@ import {
   computeErrors,
   sanitizeFormValues,
   toFormValues,
+  tidy,
 } from "@/lib/settings-schema";
 import SettingsForm, { type SaveState } from "./SettingsForm";
 
 export const dynamic = "force-dynamic";
+
+/* Only the part of a room row this screen owns. The full shape lives in
+   app/rooms/page.tsx and app/admin/content/page.tsx; naming the one field here
+   keeps the merge below honest about what it is allowed to touch. */
+type RoomExtra = { sizeValue?: string };
 
 /* The screen itself is ./SettingsForm.tsx — a client component, because live
    validation lamps and a preview that updates as you type are the whole point
@@ -32,7 +38,11 @@ export default async function Settings({
   searchParams: Promise<{ ok?: string; err?: string }>;
 }) {
   const { role } = await requireSession();
-  const config = await settings();
+  /* Room sizes are `content` rows, not settings — the three rooms have always
+     been separate records and only their size was ever a single hotel-wide
+     sentence. includeHidden, because an unpublished room still has a size and
+     hiding it from this panel would make the number unreachable. */
+  const [config, roomRows] = await Promise.all([settings(), section<RoomExtra>("room", true)]);
   const { ok, err } = await searchParams;
 
   /* The save action redirects back here with a code; this turns the code into
@@ -93,18 +103,39 @@ export default async function Settings({
       redirect("/admin/settings?err=email");
     }
 
+    /* The room sizes are the one thing on this screen that is not a settings
+       row. Each is merged into its room's existing `extra` JSON rather than
+       replacing it, because that column also carries the beds, the capacity and
+       the specs list that /admin/content owns — writing the whole object from
+       here would silently drop all of it.
+
+       The slugs come off the network with everything else, so they are matched
+       against the rows actually in the table rather than trusted: a slug this
+       screen never offered simply has nothing to update. */
+    const live = await section<RoomExtra>("room", true);
+    const bySlug = new Map(live.map((r) => [r.slug, r]));
+    const roomWrites = values.rooms
+      .filter((r) => bySlug.has(r.slug))
+      .map((r) => {
+        const room = bySlug.get(r.slug)!;
+        const extra = JSON.stringify({ ...room.extra, sizeValue: tidy(r.value) });
+        return env.DB.prepare(
+          "UPDATE content SET extra = ?2 WHERE section = 'room' AND slug = ?1",
+        ).bind(r.slug, extra);
+      });
+
     /* UPDATE, never INSERT: these keys are a fixed vocabulary that pages read
        by name, so a new row would be a value nothing renders. A key the
        database does not have yet (before migration 0017 is applied) is simply
        an UPDATE that matches nothing, rather than a failure. */
     const stmt = env.DB.prepare("UPDATE settings SET value = ?2 WHERE key = ?1");
     await auditedWrite(
-      rows.map(([k, v]) => stmt.bind(k, v)),
+      [...rows.map(([k, v]) => stmt.bind(k, v)), ...roomWrites],
       {
         actor: await getActor(),
         action: "settings.update",
-        before,
-        after,
+        before: { ...before, rooms: live.map((r) => [r.slug, r.extra.sizeValue ?? ""]) },
+        after: { ...after, rooms: values.rooms.map((r) => [r.slug, tidy(r.value)]) },
       },
     );
     redirect("/admin/settings?ok=saved");
@@ -118,7 +149,14 @@ export default async function Settings({
       <h1>Contact details &amp; property facts</h1>
       <p className="adm-sub">Saved straight to the live site</p>
       <AdminNotice tone={noticeTone} message={noticeMessage} />
-      <SettingsForm initial={toFormValues(config)} role={role} save={save} />
+      <SettingsForm
+        initial={toFormValues(
+          config,
+          roomRows.map((r) => ({ slug: r.slug, title: r.title, sizeValue: r.extra.sizeValue ?? "" })),
+        )}
+        role={role}
+        save={save}
+      />
     </div>
   );
 }

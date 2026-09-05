@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import RoomsCarousel, { type Room } from "@/components/RoomsCarousel";
 import { list, section, settings } from "@/lib/content";
+import { composeSizePair } from "@/lib/settings-schema";
 
 export const metadata = {
   title: "Rooms | Hotel Thakali Inn",
@@ -17,7 +18,15 @@ export const dynamic = "force-dynamic";
 
 /* What travels in `extra` for this section. Ordered, room-only, never queried on
    its own — so it is JSON in one column rather than two child tables. */
-type RoomExtra = { count: string; meta: string[]; specs: [string, string][] };
+type RoomExtra = {
+  count: string;
+  meta: string[];
+  specs: [string, string][];
+  /* Just the number; the unit is one hotel-wide setting, so two cards can never
+     be quoted in different units. Absent until someone has actually measured
+     that room — a blank is honest, an invented figure is not. */
+  sizeValue?: string;
+};
 
 export default async function Rooms() {
   const [rows, config] = await Promise.all([section<RoomExtra>("room"), settings()]);
@@ -25,6 +34,7 @@ export default async function Rooms() {
   /* Column names are generic because one table serves six sections; the carousel
      reads in the vocabulary of a room. Renaming here keeps `room.capacity` at the
      point of use instead of an unexplained `item.tag`. */
+  const unit = config.rooms_size_unit === "sqft" ? "sqft" : "m2";
   const rooms: Room[] = rows.map((r) => ({
     slug: r.slug,
     name: r.title,
@@ -34,6 +44,7 @@ export default async function Rooms() {
     count: r.extra.count,
     meta: r.extra.meta,
     specs: r.extra.specs,
+    size: composeSizePair(r.extra.sizeValue ?? "", unit),
   }));
 
   /* The fan indexes into this list from the first render. An empty table is a

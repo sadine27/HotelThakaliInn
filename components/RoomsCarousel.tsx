@@ -26,6 +26,10 @@ export type Room = {
   meta: string[];
   specs: [string, string][];
   image: string;
+  /* This room's own floor area, already worded ("42 m² (452 sq ft)"). Empty for
+     a room nobody has measured, and empty is what it stays — see `size` below
+     for the hotel-wide line that covers that case. */
+  size: string;
 };
 
 /* A fan, not a closed ring. The services carousel spaces its facets at 360/n,
@@ -106,9 +110,11 @@ export default function RoomsCarousel({
   rooms: Room[];
   /* What every room has, so the per-room chips can carry only the differences */
   shared: string;
-  /* One approximate figure, for the SMALLEST room, given as approximate. Three
-     exact per-room sizes derived from it would be invented, and guests compare
-     this page against Booking. */
+  /* The hotel-wide "rooms start at about…" line. Worked out from the smallest
+     room that actually has a measurement, so it cannot drift from the per-room
+     figures the way two hand-typed numbers did (42 m² was printed as 450 sq ft
+     for months; it is 452). Still useful alongside them: rooms nobody has
+     measured yet show no size of their own, and this line covers them. */
   size: string;
   /* Hotel-level and identical in all three rooms, so it is a setting rather than
      something copied into each row. */
@@ -365,6 +371,15 @@ export default function RoomsCarousel({
 
             <div className="room-facts">
               <dl className="room-specs">
+                {/* First, because floor area is the fact a guest comparing this
+                    page against Booking.com is looking for. Omitted rather than
+                    guessed when the room has no measurement yet. */}
+                {room.size && (
+                  <div>
+                    <dt>Size</dt>
+                    <dd>{room.size}</dd>
+                  </div>
+                )}
                 {room.specs.map(([label, value]) => (
                   <div key={label}>
                     <dt>{label}</dt>

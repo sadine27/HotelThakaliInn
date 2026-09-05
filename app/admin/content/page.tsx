@@ -148,8 +148,17 @@ const TAB_LABEL: Record<Section, string> = {
   menu_bar: "Bar menu",
 };
 
-/* What travels in `extra` for the room section — mirrors app/rooms/page.tsx. */
-type RoomExtra = { count: string; meta: string[]; specs: [string, string][] };
+/* What travels in `extra` for the room section — mirrors app/rooms/page.tsx.
+   `sizeValue` is written by /admin/settings, not here: the size belongs with the
+   other two rooms' sizes so all three can be compared and the smallest can set
+   the hotel-wide line. It is listed so this screen's extra-JSON round trip
+   preserves it rather than dropping a field it does not know about. */
+type RoomExtra = {
+  count: string;
+  meta: string[];
+  specs: [string, string][];
+  sizeValue?: string;
+};
 
 /* Which of the generic columns a section's own page actually reads — checked
    against every page in app/ that calls section(). A field no page reads is a
@@ -317,7 +326,19 @@ export default async function Content({
           const i = line.indexOf(":");
           return i < 0 ? [line, ""] : [line.slice(0, i).trim(), line.slice(i + 1).trim()];
         });
-      extra = JSON.stringify({ count: get("count"), meta, specs });
+      /* Carried through untouched from the hidden field below. This screen
+         rebuilds `extra` from its own inputs rather than merging, so a field it
+         has no box for is a field it would silently delete — and the room sizes
+         are edited on /admin/settings, where all three sit together. Still
+         re-checked here, because a hidden input is reachable by a hand-crafted
+         POST like any other. */
+      const sizeValue = get("sizeValue");
+      extra = JSON.stringify({
+        count: get("count"),
+        meta,
+        specs,
+        sizeValue: /^\d+(\.\d+)?$/.test(sizeValue) ? sizeValue : "",
+      });
     } else {
       const raw = get("extra") || "{}";
       try {
@@ -733,6 +754,11 @@ export default async function Content({
 
             {fields.extra && name === "room" && (
               <>
+                <input
+                  type="hidden"
+                  name="sizeValue"
+                  value={(row.extra as unknown as RoomExtra | null)?.sizeValue ?? ""}
+                />
                 <div className="adm-field">
                   <label>Guests</label>
                   <input name="count" defaultValue={(row.extra as unknown as RoomExtra | null)?.count ?? ""} />
@@ -912,6 +938,9 @@ export default async function Content({
 
           {fields.extra && name === "room" && (
             <>
+              {/* A brand-new room has no size yet — it gets one on
+                  /admin/settings, alongside the other two. */}
+              <input type="hidden" name="sizeValue" value="" />
               <div className="adm-field">
                 <label>Guests</label>
                 <input name="count" />

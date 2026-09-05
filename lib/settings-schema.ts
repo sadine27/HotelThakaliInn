@@ -145,6 +145,16 @@ export const ARRIVAL_UNITS: string[] = ["m", "km", "min walk", "min drive"];
 export const ROOM_SIZE_UNITS = ["m2", "sqft"] as const;
 export type RoomSizeUnit = (typeof ROOM_SIZE_UNITS)[number];
 
+/* Meals. There is no meal row in the database today — "Breakfast buffet, 7–10
+   am" is one of three sentences somebody typed into `rooms_good_to_know`, and
+   "on request, paid" is a fourth typed into `arrival`. Nothing has ever parsed
+   on those commas; they are prose. These two vocabularies are what turn the
+   sentence back into facts, and they are a list rather than a text box for the
+   usual reason: lunch and dinner will exist one day, and whoever adds them
+   should not have to guess the house style for writing a time range. */
+export const MEALS: string[] = ["Breakfast", "Lunch", "Dinner", "Room service"];
+export const MEAL_STYLES: string[] = ["Buffet", "À la carte", "Set menu", "Continental"];
+
 /* ── Normalisers ──────────────────────────────────────────────────────────────
    Run before validation, always. A pasted value drags whitespace and a phone
    copied off a website arrives full of brackets and dashes; rejecting those
@@ -280,10 +290,45 @@ export function checkArrivalValue(kind: "distance" | "note", value: string): str
 
 export function checkRoomSize(v: string): string | null {
   const clean = tidy(v);
-  if (!clean) return "Enter the size of the smallest room.";
-  if (!/^\d+(\.\d+)?$/.test(clean)) return "Just the number — pick the unit beside it.";
+  if (!clean) return "Enter this room's size, or leave it blank until you've measured it.";
+  if (!/^\d+(\.\d+)?$/.test(clean)) return "Just the number — pick the unit above.";
   if (Number(clean) <= 0) return "A room can't be 0 across.";
   return null;
+}
+
+/* ── Times ────────────────────────────────────────────────────────────────────
+   `<input type="time">` hands back 24-hour "07:00"; the site has always printed
+   "7–10 am". Reproducing that exactly is not cosmetic — it is what lets the
+   whole meals rewrite land without changing a word of what a guest reads. */
+
+type Hm = { h: number; min: number };
+
+const parseHm = (v: string): Hm | null => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(v.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return h > 23 || min > 59 ? null : { h, min };
+};
+
+/* Minutes are dropped when they are zero, because "7:00–10:00 am" is how a
+   machine writes a breakfast time and "7–10 am" is how a person does. */
+const clock = (t: Hm): string => {
+  const h12 = t.h % 12 === 0 ? 12 : t.h % 12;
+  return t.min ? `${h12}:${String(t.min).padStart(2, "0")}` : String(h12);
+};
+const meridiem = (t: Hm): string => (t.h < 12 ? "am" : "pm");
+
+/* One meridiem when both ends share it ("7–10 am"), two when they don't
+   ("11 am–2 pm"). Empty string for anything unparseable, which is what the
+   validator below tests for rather than re-checking the format itself. */
+export function timeRange(from: string, to: string): string {
+  const a = parseHm(from);
+  const b = parseHm(to);
+  if (!a || !b) return "";
+  return meridiem(a) === meridiem(b)
+    ? `${clock(a)}–${clock(b)} ${meridiem(a)}`
+    : `${clock(a)} ${meridiem(a)}–${clock(b)} ${meridiem(b)}`;
 }
 
 /* ── Extractors ───────────────────────────────────────────────────────────── */
@@ -340,15 +385,92 @@ const SQFT_PER_M2 = 10.7639104;
 /* Both figures from one number, so the metric and imperial halves can never
    disagree. The live row currently says "42 m² (450 sq ft)" — 42 m² is 452,
    which is the kind of drift two hand-typed numbers always end in. */
-export function composeRoomSize(value: string, unit: RoomSizeUnit, bathroom: boolean): string {
+export function composeSizePair(value: string, unit: RoomSizeUnit): string {
   const n = Number(tidy(value));
   if (!Number.isFinite(n) || n <= 0) return "";
   const round = (x: number) => String(Math.round(x));
-  const both =
-    unit === "m2"
-      ? `${tidy(value)} m² (${round(n * SQFT_PER_M2)} sq ft)`
-      : `${tidy(value)} sq ft (${round(n / SQFT_PER_M2)} m²)`;
-  return `Rooms start at about ${both}${bathroom ? ", bathroom included" : ""}.`;
+  return unit === "m2"
+    ? `${tidy(value)} m² (${round(n * SQFT_PER_M2)} sq ft)`
+    : `${tidy(value)} sq ft (${round(n / SQFT_PER_M2)} m²)`;
+}
+
+export function composeRoomSize(value: string, unit: RoomSizeUnit, bathroom: boolean): string {
+  const both = composeSizePair(value, unit);
+  return both ? `Rooms start at about ${both}${bathroom ? ", bathroom included" : ""}.` : "";
+}
+
+/* One size per room, all three in the same unit. A per-room unit would let one
+   card read 42 m² and the next 517 sq ft, which is a comparison a guest has to
+   do arithmetic for. */
+export type RoomSize = { slug: string; title: string; value: string };
+
+/* The hotel-wide "rooms start at about…" sentence is the smallest room, worked
+   out rather than typed. Two hand-kept numbers is exactly how 42 m² came to be
+   printed as 450 sq ft. Rooms with no measurement yet simply don't compete. */
+export function smallestRoomSize(rooms: RoomSize[]): string {
+  const filled = rooms
+    .map((r) => tidy(r.value))
+    .filter((x) => x && Number.isFinite(Number(x)) && Number(x) > 0);
+  if (!filled.length) return "";
+  return filled.reduce((a, b) => (Number(b) < Number(a) ? b : a));
+}
+
+/* ── Meals, and the "good to know" list they used to be typed into ───────────── */
+
+export type MealCost = "included" | "paid";
+export type Meal = {
+  meal: string;
+  style: string;
+  from: string;
+  to: string;
+  cost: MealCost;
+  price: string;
+};
+
+/* "Breakfast" + "Buffet" + 07:00–10:00 + included → "Breakfast buffet, 7–10 am",
+   which is byte-for-byte the sentence on the live site today.
+ *
+ * The cost word appears only when the meal is paid. That is not an omission:
+ * the copy this replaces already reads as included, so printing ", included"
+ * on every line would add a word to a sentence guests already understand, while
+ * saying nothing when something IS charged for is the failure that matters. */
+export function composeMeal(m: Meal): string {
+  const name = tidy(m.meal);
+  if (!name) return "";
+  const style = tidy(m.style).toLowerCase();
+  const when = timeRange(m.from, m.to);
+  const head = [[name, style].filter(Boolean).join(" "), when].filter(Boolean).join(", ");
+  if (m.cost !== "paid") return head;
+  const price = tidy(m.price);
+  return `${head}, ${price || "paid"}`;
+}
+
+/* A point that is not a meal and not a distance. "Airport shuttle on request,
+   paid" is three facts wearing one sentence — what it is, that you have to ask,
+   and that it costs — so it gets three controls and composes back to the exact
+   string it came from. */
+export type GoodRow = { text: string; onRequest: boolean; cost: "" | MealCost };
+
+export const composeGoodRow = (g: GoodRow): string => {
+  const text = tidy(g.text);
+  if (!text) return "";
+  return `${text}${g.onRequest ? " on request" : ""}${g.cost ? `, ${g.cost}` : ""}`;
+};
+
+export function parseGoodRow(stored: string): GoodRow {
+  let text = tidy(stored);
+  let cost: GoodRow["cost"] = "";
+  const c = /,\s*(included|paid)$/i.exec(text);
+  if (c) {
+    cost = c[1].toLowerCase() as MealCost;
+    text = text.slice(0, c.index);
+  }
+  let onRequest = false;
+  if (/\son request$/i.test(text)) {
+    onRequest = true;
+    text = text.replace(/\son request$/i, "");
+  }
+  return { text: tidy(text), onRequest, cost };
 }
 
 export type ArrivalRow = { place: string; kind: "distance" | "note"; value: string; unit: string };
@@ -360,6 +482,24 @@ export const composeArrival = (rows: ArrivalRow[]): [string, string][] =>
   rows
     .filter((r) => tidy(r.place))
     .map((r) => [tidy(r.place), r.kind === "distance" ? `${tidy(r.value)} ${r.unit}` : tidy(r.value)]);
+
+/* The third line of the live "good to know" list was "950 m from the airport,
+   1.1 km from its main entrance" — the same two distances as the arrival rows,
+   typed a second time, free to drift from them forever. It is written from
+   those rows now instead, so there is one place to change and one answer. */
+export function composeArrivalLine(rows: ArrivalRow[]): string {
+  return rows
+    .filter((r) => r.kind === "distance" && tidy(r.place) && tidy(r.value))
+    .slice(0, 2)
+    .map((r) => `${tidy(r.value)} ${r.unit} from ${tidy(r.place)}`)
+    .join(", ");
+}
+
+/* Meals first, then the hand-written points, then the distances — the order the
+   three sentences are in on the live site today, so the rewrite is invisible
+   from /rooms. */
+export const composeGoodToKnow = (meals: Meal[], good: GoodRow[], arrival: ArrivalRow[]): string[] =>
+  [...meals.map(composeMeal), ...good.map(composeGoodRow), composeArrivalLine(arrival)].filter(Boolean);
 
 /* ── Parsers: the stored string → parts ───────────────────────────────────────
    Only for the rows that round-trip losslessly. A row that can be derived is a
@@ -430,13 +570,19 @@ export type FormValues = {
   arrival: ArrivalRow[];
   amenPicked: string[];
   amenCustom: string[];
-  sizeValue: string;
+  rooms: RoomSize[];
   sizeUnit: RoomSizeUnit;
   sizeBathroom: boolean;
-  good: string[];
+  meals: Meal[];
+  good: GoodRow[];
   rainDay: boolean;
   rainNight: boolean;
 };
+
+/* The three room records, as the console needs them. They are `content` rows
+   (section 'room'), not settings, which is why they arrive alongside the config
+   rather than inside it. */
+export type RoomRow = { slug: string; title: string; sizeValue: string };
 
 /* Same contract as lib/content.ts's list(): a malformed row falls back rather
    than throwing. Duplicated here in three lines instead of imported, because
@@ -454,7 +600,7 @@ function jsonList<T>(value: string | undefined): T[] {
 
 const on = (v: string | undefined) => v === "1";
 
-export function toFormValues(config: Record<string, string>): FormValues {
+export function toFormValues(config: Record<string, string>, roomRows: RoomRow[] = []): FormValues {
   const phone = parsePhone(config.phone ?? "");
   /* An empty `whatsapp` row means "same as the front desk", which is what it
      held before this screen could tell the two apart — so the pair below is
@@ -462,6 +608,18 @@ export function toFormValues(config: Record<string, string>): FormValues {
   const waSame = (config.whatsapp_same ?? "1") !== "0" || !config.whatsapp;
   const wa = parsePhone(config.whatsapp || config.phone || "");
   const amen = parseAmenities(config.rooms_shared ?? "");
+  /* Before this screen existed there was one hotel-wide figure. If no room
+     carries its own yet, that figure belongs to the first room in the fan —
+     seeding it there rather than nowhere is what stops the very first render
+     of this panel from showing three empty boxes and a blocked save. */
+  const rooms: RoomSize[] = roomRows.map((r) => ({
+    slug: r.slug,
+    title: r.title,
+    value: tidy(r.sizeValue),
+  }));
+  if (rooms.length && !rooms.some((r) => r.value)) {
+    rooms[0] = { ...rooms[0], value: tidy(config.rooms_size_value ?? "") };
+  }
   return {
     phoneCc: phone.cc,
     phoneLocal: phone.local,
@@ -485,10 +643,26 @@ export function toFormValues(config: Record<string, string>): FormValues {
     arrival: parseArrival(jsonList<[string, string]>(config.arrival)),
     amenPicked: amen.picked,
     amenCustom: amen.custom,
-    sizeValue: config.rooms_size_value ?? "",
+    rooms,
     sizeUnit: config.rooms_size_unit === "sqft" ? "sqft" : "m2",
     sizeBathroom: on(config.rooms_size_bathroom),
-    good: jsonList<string>(config.rooms_good_to_know),
+    meals: jsonList<Meal>(config.meals).map((m) => ({
+      meal: str(m?.meal),
+      style: str(m?.style),
+      from: str(m?.from),
+      to: str(m?.to),
+      cost: m?.cost === "paid" ? "paid" : "included",
+      price: str(m?.price),
+    })),
+    /* Read from `good_rows`, never from `rooms_good_to_know`. The latter is
+       output: it is composed from the meals, these rows and the arrival
+       distances, so parsing it back would read the derived breakfast and
+       distance lines in as hand-written points and print each of them twice. */
+    good: jsonList<GoodRow>(config.good_rows).map((g) => ({
+      text: str(g?.text),
+      onRequest: g?.onRequest === true,
+      cost: g?.cost === "included" || g?.cost === "paid" ? g.cost : ("" as const),
+    })),
     rainDay: on(config.rain_glass_day),
     rainNight: on(config.rain_glass_night),
   };
@@ -559,10 +733,41 @@ export function sanitizeFormValues(raw: unknown): FormValues {
       .map(str)
       .filter((x) => AMENITIES.includes(x)),
     amenCustom: arr(r.amenCustom).slice(0, CAP).map(str),
-    sizeValue: str(r.sizeValue),
+    /* Slug and title identify a `content` row the save is about to UPDATE, so
+       they are the one part of this payload that is not merely displayed —
+       the action re-checks both against what is actually in the table. */
+    rooms: arr(r.rooms)
+      .slice(0, CAP)
+      .map((x) => {
+        const o = obj(x);
+        return { slug: str(o.slug), title: str(o.title), value: str(o.value) };
+      }),
     sizeUnit: r.sizeUnit === "sqft" ? "sqft" : "m2",
     sizeBathroom: bool(r.sizeBathroom),
-    good: arr(r.good).slice(0, CAP).map(str),
+    meals: arr(r.meals)
+      .slice(0, CAP)
+      .map((x) => {
+        const o = obj(x);
+        return {
+          meal: str(o.meal),
+          style: str(o.style),
+          from: str(o.from),
+          to: str(o.to),
+          cost: o.cost === "paid" ? ("paid" as const) : ("included" as const),
+          price: str(o.price),
+        };
+      }),
+    good: arr(r.good)
+      .slice(0, CAP)
+      .map((x) => {
+        const o = obj(x);
+        const cost = str(o.cost);
+        return {
+          text: str(o.text),
+          onRequest: bool(o.onRequest),
+          cost: cost === "included" || cost === "paid" ? cost : ("" as const),
+        };
+      }),
     rainDay: bool(r.rainDay),
     rainNight: bool(r.rainNight),
   };
@@ -584,12 +789,21 @@ export function computeErrors(v: FormValues): Errors {
   set("email", checkEmail(v.email));
   set("booking_url", checkUrl(v.bookingUrl, BOOKING_HOSTS, "Booking.com"));
 
+  /* Two Instagram rows used to save happily and then render the same icon
+     twice. The platform picker below makes it hard to do by hand; this is what
+     makes it impossible, including for a payload that skipped the picker. */
+  const seenPlatform = new Set<string>();
   v.socials.forEach((s, i) => {
     const platform = SOCIAL_PLATFORMS.find((p) => p.label === s.label);
     if (!platform) {
       e[`social-${i}`] = "Pick which platform this link is for.";
       return;
     }
+    if (seenPlatform.has(s.label)) {
+      e[`social-${i}`] = `${s.label} is already listed above — remove one of the two.`;
+      return;
+    }
+    seenPlatform.add(s.label);
     set(`social-${i}`, checkUrl(s.href, platform.hosts, platform.label));
   });
 
@@ -611,10 +825,28 @@ export function computeErrors(v: FormValues): Errors {
     else set(`arrival-${i}`, checkArrivalValue(r.kind, r.value));
   });
 
-  set("rooms_size_value", checkRoomSize(v.sizeValue));
+  /* A room may legitimately be unmeasured — two of the three are, until someone
+     walks them with a tape. What may not happen is all three being blank, which
+     would compose an empty `rooms_size` and silently delete a line from /rooms. */
+  v.rooms.forEach((r, i) => {
+    if (tidy(r.value)) set(`room-${i}`, checkRoomSize(r.value));
+  });
+  if (!v.rooms.some((r) => tidy(r.value)))
+    e.room_sizes = "At least one room needs a size — the site's “rooms start at about…” line is worked out from the smallest.";
+
+  const seenMeal = new Set<string>();
+  v.meals.forEach((m, i) => {
+    const id = `meal-${i}`;
+    if (!MEALS.includes(m.meal)) e[id] = "Pick which meal this row is.";
+    else if (seenMeal.has(m.meal)) e[id] = `${m.meal} is already listed above — remove one of the two.`;
+    else if (!timeRange(m.from, m.to)) e[id] = "Set both times it is served, like 07:00 to 10:00.";
+    else if (m.cost === "paid" && !tidy(m.price))
+      e[id] = "Say what it costs — or mark it included.";
+    seenMeal.add(m.meal);
+  });
 
   v.good.forEach((g, i) => {
-    if (!tidy(g)) e[`good-${i}`] = "Write the point, or remove the row.";
+    if (!tidy(g.text)) e[`good-${i}`] = "Write the point, or remove the row.";
   });
 
   /* An amenity list nobody has ticked anything in would blank the line on
@@ -634,6 +866,7 @@ export function computeErrors(v: FormValues): Errors {
    keeps the six public components that read them untouched by all of this. */
 export function composeAll(v: FormValues): Record<string, string> {
   const phone = composePhone(v.phoneCc, v.phoneLocal);
+  const smallest = smallestRoomSize(v.rooms);
   return {
     phone,
     whatsapp: v.waSame ? phone : composePhone(v.waCc, v.waLocal),
@@ -655,11 +888,13 @@ export function composeAll(v: FormValues): Record<string, string> {
     addr_postal: digitsOnly(v.addr.postal),
     arrival: JSON.stringify(composeArrival(v.arrival)),
     rooms_shared: composeAmenities(v.amenPicked, v.amenCustom),
-    rooms_size: composeRoomSize(v.sizeValue, v.sizeUnit, v.sizeBathroom),
-    rooms_size_value: tidy(v.sizeValue),
+    rooms_size: composeRoomSize(smallest, v.sizeUnit, v.sizeBathroom),
+    rooms_size_value: smallest,
     rooms_size_unit: v.sizeUnit,
     rooms_size_bathroom: v.sizeBathroom ? "1" : "0",
-    rooms_good_to_know: JSON.stringify(v.good.map(tidy).filter(Boolean)),
+    meals: JSON.stringify(v.meals.filter((m) => tidy(m.meal))),
+    good_rows: JSON.stringify(v.good.filter((g) => tidy(g.text))),
+    rooms_good_to_know: JSON.stringify(composeGoodToKnow(v.meals, v.good, v.arrival)),
     rain_glass_day: v.rainDay ? "1" : "0",
     rain_glass_night: v.rainNight ? "1" : "0",
   };

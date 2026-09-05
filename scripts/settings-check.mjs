@@ -13,7 +13,16 @@ import {
   BOOKING_HOSTS,
   COUNTRY_CODES,
   MAPS_HOSTS,
+  MEALS,
+  MEAL_STYLES,
   SOCIAL_PLATFORMS,
+  composeGoodRow,
+  composeGoodToKnow,
+  composeMeal,
+  composeSizePair,
+  parseGoodRow,
+  smallestRoomSize,
+  timeRange,
   checkArrivalValue,
   checkEmail,
   checkLat,
@@ -252,6 +261,23 @@ for (const p of SOCIAL_PLATFORMS) {
    metacharacter would compile into something that matches the wrong things. */
 for (const u of ARRIVAL_UNITS) assert.match(u, /^[a-z ]+$/);
 
+assert.ok(MEALS.includes("Breakfast") && MEALS.includes("Lunch") && MEALS.includes("Dinner"));
+assert.ok(MEAL_STYLES.includes("Buffet"));
+
+/* ── Times ────────────────────────────────────────────────────────────────────
+   The whole meals rewrite is only invisible to a guest if 07:00–10:00 comes out
+   as "7–10 am", which is what the site has always printed. */
+assert.equal(timeRange("07:00", "10:00"), "7–10 am");
+assert.equal(timeRange("07:30", "10:00"), "7:30–10 am");
+assert.equal(timeRange("11:00", "14:00"), "11 am–2 pm");
+assert.equal(timeRange("12:00", "13:00"), "12–1 pm");
+assert.equal(timeRange("00:00", "07:00"), "12–7 am");
+/* Unparseable is an empty string rather than a throw, because computeErrors
+   tests exactly this to decide whether a meal row is finished. */
+assert.equal(timeRange("", "10:00"), "");
+assert.equal(timeRange("25:00", "10:00"), "");
+assert.equal(timeRange("7", "10"), "");
+
 /* ── The live database, end to end ────────────────────────────────────────────
    Every settings row as it stands on hotelthakaliinn.com right now, plus the
    ten migration 0017 adds. Two things have to be true of it, and they are the
@@ -263,6 +289,32 @@ for (const u of ARRIVAL_UNITS) assert.match(u, /^[a-z ]+$/);
    2. It composes back to itself. Six public components read these strings; a
       composer that "improves" one of them changes the live site on the next
       save without anyone asking for it. */
+
+/* Post-migration-0018 state. The breakfast line and the distance line are now
+   OUTPUT — composed from `meals` and from the arrival rows — so the migration
+   writes them in their composed form and this fixture matches the database.
+   The third line is the one wording change in the whole rewrite: it names the
+   arrival rows as they are actually stored rather than as somebody once phrased
+   them, which is the price of it never drifting from them again. */
+const LIVE_GOOD_TO_KNOW = [
+  "Breakfast buffet, 7–10 am",
+  "Airport shuttle on request, paid",
+  "950 m from TIA terminal, 1.1 km from Main entrance",
+];
+
+const LIVE_MEALS = [
+  { meal: "Breakfast", style: "Buffet", from: "07:00", to: "10:00", cost: "included", price: "" },
+];
+const LIVE_GOOD_ROWS = [{ text: "Airport shuttle", onRequest: true, cost: "paid" }];
+
+/* The three `content` rows, as they stand before anyone has measured the other
+   two. Only the size travels; the rest of each room's `extra` belongs to
+   /admin/content and this screen never writes it. */
+const LIVE_ROOMS = [
+  { slug: "deluxe-double", title: "Deluxe Double", sizeValue: "" },
+  { slug: "deluxe-king", title: "Deluxe King", sizeValue: "" },
+  { slug: "family", title: "Family Room", sizeValue: "" },
+];
 
 const LIVE_CONFIG = {
   phone: "+977-9840007925",
@@ -280,11 +332,7 @@ const LIVE_CONFIG = {
   arrival: JSON.stringify(LIVE_ARRIVAL),
   rooms_shared: LIVE_AMENITIES,
   rooms_size: "Rooms start at about 42 m² (450 sq ft), bathroom included.",
-  rooms_good_to_know: JSON.stringify([
-    "Breakfast buffet, 7–10 am",
-    "Airport shuttle on request, paid",
-    "950 m from the airport, 1.1 km from its main entrance",
-  ]),
+  rooms_good_to_know: JSON.stringify(LIVE_GOOD_TO_KNOW),
   rain_glass_day: "0",
   rain_glass_night: "0",
   // migration 0017
@@ -298,9 +346,20 @@ const LIVE_CONFIG = {
   rooms_size_bathroom: "1",
   whatsapp: "",
   whatsapp_same: "1",
+  // migration 0018
+  meals: JSON.stringify(LIVE_MEALS),
+  good_rows: JSON.stringify(LIVE_GOOD_ROWS),
 };
 
-const live = toFormValues(LIVE_CONFIG);
+const live = toFormValues(LIVE_CONFIG, LIVE_ROOMS);
+
+/* No room carries its own size yet, so the one hotel-wide figure is seeded into
+   the first room rather than nowhere — otherwise the very first render of the
+   panel is three empty boxes and a save that refuses. */
+assert.deepEqual(
+  live.rooms.map((r) => r.value),
+  ["42", "", ""],
+);
 
 assert.deepEqual(computeErrors(live), {}, "the live settings must already be valid");
 
@@ -318,11 +377,109 @@ for (const key of [
   "arrival",
   "rooms_shared",
   "rooms_good_to_know",
+  "meals",
+  "good_rows",
   "rain_glass_day",
   "rain_glass_night",
 ]) {
   assert.equal(composed[key], LIVE_CONFIG[key], `composing changed the live ${key} row`);
 }
+
+/* ── Meals, and the list they used to be typed into ─────────────────────────── */
+
+assert.equal(composeMeal(LIVE_MEALS[0]), "Breakfast buffet, 7–10 am");
+/* Included stays unsaid, because the copy this replaces already reads that way.
+   Paid does not: a charge nobody mentioned is the failure that matters. */
+assert.equal(
+  composeMeal({ ...LIVE_MEALS[0], cost: "paid", price: "" }),
+  "Breakfast buffet, 7–10 am, paid",
+);
+assert.equal(
+  composeMeal({ ...LIVE_MEALS[0], cost: "paid", price: "Rs 500 per person" }),
+  "Breakfast buffet, 7–10 am, Rs 500 per person",
+);
+assert.equal(composeMeal({ ...LIVE_MEALS[0], style: "" }), "Breakfast, 7–10 am");
+assert.equal(composeMeal({ ...LIVE_MEALS[0], meal: "" }), "");
+
+/* "Airport shuttle on request, paid" is three facts in one sentence, and the
+   three controls that replaced it have to put it back together exactly. */
+assert.equal(composeGoodRow(LIVE_GOOD_ROWS[0]), "Airport shuttle on request, paid");
+assert.deepEqual(parseGoodRow("Airport shuttle on request, paid"), LIVE_GOOD_ROWS[0]);
+assert.deepEqual(parseGoodRow("Parking"), { text: "Parking", onRequest: false, cost: "" });
+assert.deepEqual(parseGoodRow("Late checkout, included"), {
+  text: "Late checkout",
+  onRequest: false,
+  cost: "included",
+});
+
+/* Order matters: meals, then the hand-written points, then the distances — the
+   order the three sentences sit in on the live site. */
+assert.deepEqual(composeGoodToKnow(live.meals, live.good, live.arrival), LIVE_GOOD_TO_KNOW);
+
+/* The duplicate is gone at the source. Change an arrival row and the line under
+   Rooms changes with it; there is no second copy to forget. */
+const moved = composeAll({
+  ...live,
+  arrival: live.arrival.map((r, i) => (i === 0 ? { ...r, value: "1200" } : r)),
+});
+assert.ok(JSON.parse(moved.rooms_good_to_know).at(-1).startsWith("1200 m from TIA terminal"));
+assert.ok(JSON.parse(moved.arrival).some(([, v]) => v === "1200 m"));
+
+/* A meal with no times cannot be saved — a half-finished row would print
+   "Breakfast buffet" with no hours, which is worse than no line. */
+assert.ok(computeErrors({ ...live, meals: [{ ...LIVE_MEALS[0], to: "" }] })["meal-0"]);
+assert.ok(computeErrors({ ...live, meals: [{ ...LIVE_MEALS[0], meal: "Brunch" }] })["meal-0"]);
+assert.ok(
+  computeErrors({ ...live, meals: [{ ...LIVE_MEALS[0], cost: "paid", price: "" }] })["meal-0"],
+  "a paid meal with no price says nothing about what it costs",
+);
+assert.ok(
+  computeErrors({ ...live, meals: [LIVE_MEALS[0], LIVE_MEALS[0]] })["meal-1"],
+  "two breakfast rows would print the line twice",
+);
+
+/* ── Room sizes ─────────────────────────────────────────────────────────────── */
+
+assert.equal(composeSizePair("42", "m2"), "42 m² (452 sq ft)");
+assert.equal(composeSizePair("452", "sqft"), "452 sq ft (42 m²)");
+assert.equal(composeSizePair("", "m2"), "");
+assert.equal(composeSizePair("0", "m2"), "");
+
+/* The hotel-wide line is the SMALLEST measured room, worked out rather than
+   typed — which is the whole reason 42 m² could be printed as 450 sq ft for
+   months. Unmeasured rooms do not compete. */
+assert.equal(smallestRoomSize(LIVE_ROOMS.map((r) => ({ ...r, value: "" }))), "");
+assert.equal(smallestRoomSize([{ value: "48" }, { value: "42" }, { value: "" }]), "42");
+assert.equal(smallestRoomSize([{ value: "9" }, { value: "48" }]), "9");
+
+const measured = composeAll({
+  ...live,
+  rooms: [
+    { slug: "deluxe-double", title: "Deluxe Double", value: "42" },
+    { slug: "deluxe-king", title: "Deluxe King", value: "48" },
+    { slug: "family", title: "Family Room", value: "55" },
+  ],
+});
+assert.equal(measured.rooms_size_value, "42");
+assert.equal(measured.rooms_size, "Rooms start at about 42 m² (452 sq ft), bathroom included.");
+
+/* Every room blank would compose an empty rooms_size and silently delete a line
+   from /rooms, so the save is refused instead. */
+assert.ok(computeErrors({ ...live, rooms: LIVE_ROOMS.map((r) => ({ ...r, value: "" })) }).room_sizes);
+assert.ok(computeErrors({ ...live, rooms: [{ ...live.rooms[0], value: "big" }] })["room-0"]);
+
+/* ── Digits only, and one platform per row ──────────────────────────────────── */
+
+assert.ok(
+  computeErrors({
+    ...live,
+    socials: [
+      { label: "Instagram", href: "https://www.instagram.com/a/" },
+      { label: "Instagram", href: "https://www.instagram.com/b/" },
+    ],
+  })["social-1"],
+  "two rows for one platform would render the same icon twice",
+);
 
 /* The one deliberate exception, and the reason the field became a number: the
    stored line says 450 sq ft, but 42 m² is 452. Two hand-typed figures had
