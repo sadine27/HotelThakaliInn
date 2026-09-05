@@ -220,6 +220,12 @@ export default async function Admin() {
             secondaryLabel="hidden"
             secondary={contentHidden}
           />
+          <Tile
+            href="/admin/check"
+            label="System check"
+            description="Try every part of the site for real, before somebody else finds it broken"
+            primary={null}
+          />
           {(role === "owner" || role === "developer") && (
             <Tile
               href="/admin/audit"
@@ -257,9 +263,16 @@ export default async function Admin() {
         <header className="adm-stats-head">
           <h2>Who is reading the site</h2>
           <p>
-            Every page a visitor opens, counted here. No names, no location, no
-            cookie — this cannot tell you who anyone is, only which pages get
-            read and where the reader came from.
+            Every page a visitor opens, counted here. No cookie and no third
+            party — but since September 2026 this does record where a visit came
+            from and keeps an address, so it can tell you that two visits were
+            the same person. What is kept, and for how long, is written out on{" "}
+            <Link href="/privacy">the privacy page</Link>.
+          </p>
+          <p>
+            <Link href="/admin/analytics" className="adm-btn adm-btn--sm">
+              Show in detail
+            </Link>
           </p>
         </header>
 
@@ -358,7 +371,8 @@ export default async function Admin() {
             <p className="adm-stats-note">
               Counting started {firstDay ?? "today"}. There is nothing before
               that and nothing can be recovered — the visits that happened before
-              this existed were never written down.
+              this existed were never written down, and the ones before September
+              2026 have no country or visitor attached for the same reason.
             </p>
           </>
         )}

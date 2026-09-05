@@ -39,3 +39,6 @@ assets/*.png
 .ds/
 # Screenshot scratch from the visual review loop
 /*.png
+
+# Deep-copilot orchestration scratch — logs and plans, same as .ds/
+.deep-copilot/

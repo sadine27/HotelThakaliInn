@@ -105,7 +105,7 @@ export default function SiteFooter() {
 
       <div className="site-footer-bar">
         © {new Date().getFullYear()} Hotel Thakali Inn. All rights reserved. ·{" "}
-        <Link href="/contact">Contact</Link>
+        <Link href="/contact">Contact</Link> · <Link href="/privacy">Privacy</Link>
       </div>
     </footer>
   );

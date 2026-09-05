@@ -1,0 +1,30 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "thakali-inn-health-check",
+  "main": "index.mjs",
+  "compatibility_date": "2026-08-29",
+  // 04:00 Kathmandu is 22:15 UTC the day before — Nepal is UTC+5:45, and cron
+  // has no half-hours, let alone quarters. 22:15 UTC is the closest it gets.
+  // Deliberately after the 03:00 UTC r2-backup so a failing backup is already
+  // visible by the time this runs.
+  "triggers": { "crons": ["15 22 * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "thakali-inn-contact",
+      "database_id": "62a811d5-4f4b-4268-9b3d-6ea35a08d7e1"
+    }
+  ],
+  // Same pinned destination as the main worker: an alert that could be pointed
+  // somewhere else by editing a settings row is not an alert.
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_destination_addresses": ["hotelthakaliinn1@gmail.com"],
+      "allowed_sender_addresses": ["notify@hotelthakaliinn.com"]
+    }
+  ],
+  // CHECK_TOKEN is a secret: `wrangler secret put CHECK_TOKEN` in this
+  // directory, and the same value on the main worker so /api/check accepts it.
+  "observability": { "enabled": true }
+}

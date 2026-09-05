@@ -61,6 +61,25 @@ export const kathmanduDay = (date = new Date()) =>
     day: "2-digit",
   }).format(date);
 
+/* "YYYY-MM-DD HH:MM:SS" in Kathmandu, the shape SQLite stores and sorts as text.
+   The page_views table already had created_at in UTC and nothing ever read it:
+   "which hour of the day does traffic land in" is a question about the hotel's
+   day, and an hour bucket computed in UTC is 5h45m wrong for every row. */
+export const kathmanduNow = (date = new Date()) => {
+  const p = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const at = (t: string) => p.find((x) => x.type === t)?.value ?? "00";
+  return `${at("year")}-${at("month")}-${at("day")} ${at("hour")}:${at("minute")}:${at("second")}`;
+};
+
 /* N days back from a Kathmandu day, as another Kathmandu day. Date arithmetic
    in UTC on a noon anchor: noon is far enough from either midnight that the
    :45 offset can never push it into the wrong date. */
