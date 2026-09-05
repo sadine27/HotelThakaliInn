@@ -4277,97 +4277,113 @@ html[data-dial-open] .dial-seg {
   gap: 8px;
 }
 
-.adm-hub a {
-  display: grid;
-  gap: 2px;
-  padding: 14px 16px;
-  border: 1px solid #ccc;
-  border-radius: 2px;
-  color: #111;
-  text-decoration: none;
-}
-
-.adm-hub a:hover {
-  border-color: #333;
-}
-
-.adm-hub strong {
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.adm-hub span {
-  font-size: 13px;
-  color: #555;
-}
-
 .adm-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
-.adm-tile {
-  display: block;
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 2px;
-  background: #fff;
+/* The console's panel, made pressable. Flat grey cards read as a list of links;
+   these read as controls, which is the whole point of the skin — the same
+   reasoning that drove the settings rebuild. */
+.adm-con .adm-tile {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 12px 14px;
+  color: var(--con-ink);
   text-decoration: none;
-  color: inherit;
+  border: 1px solid var(--con-edge);
+  background: linear-gradient(#fdfdfd, #eef0f1);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.18);
 }
 
-.adm-tile:hover {
-  border-color: #333;
+.adm-con .adm-tile:hover {
+  background: linear-gradient(#ffffff, #e6e9ea);
 }
 
-.adm-tile-number {
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 6px;
+/* Sinks under the finger, like every other button in this console. */
+.adm-con .adm-tile:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset -1px -1px 0 rgba(255, 255, 255, 0.7),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.22);
 }
 
 .adm-tile-label {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 2px;
+  order: 1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--con-dim);
+}
+
+/* Tabular figures, so a column of tiles lines its numbers up instead of
+   wobbling by a digit's width. */
+.adm-tile-number {
+  order: 2;
+  font-family: var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
 }
 
 .adm-tile-desc {
-  font-size: 13px;
-  color: #555;
-  margin-bottom: 8px;
+  order: 3;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--con-dim);
 }
 
 .adm-tile-secondary {
-  font-size: 13px;
-  color: #555;
+  order: 4;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--con-rule);
+  font-family: var(--con-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--con-dim);
 }
 
 .adm-tile-secondary strong {
-  color: inherit;
+  color: var(--con-ink);
 }
 
-.adm-tile--accent {
-  border-left: 4px solid #333;
+/* Work waiting to be done, marked in the console's live green rather than by a
+   grey bar that reads as decoration. */
+.adm-con .adm-tile[data-accent="1"] {
+  border-left: 4px solid var(--con-lit);
 }
 
-.adm-tile--zero {
-  opacity: 0.65;
+.adm-con .adm-tile[data-accent="1"] .adm-tile-number {
+  color: var(--con-lit);
 }
 
 .adm-next-arrival {
   grid-column: 1 / -1;
-  font-size: 14px;
-  color: #111;
-  padding: 8px 0;
+  padding: 9px 12px;
+  border: 1px solid var(--con-rule);
+  background: var(--con-face);
+  font-size: 13px;
+  color: var(--con-ink);
 }
 
 @media (max-width: 768px) {
   .adm-tiles {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-con .adm-tile:active {
+    transform: none;
   }
 }
 
@@ -4899,6 +4915,239 @@ html[data-dial-open] .dial-seg {
   color: var(--con-dim);
 }
 
+/* ── Admin accounts ───────────────────────────────────────────────────────
+   One panel per person. What this replaces was a <table> with five headings
+   and then every row collapsed into a single colSpan={5} cell holding a flex
+   form, so no field ever lined up with the label above it — which is why the
+   screen read as a blank sheet with boxes on it. */
+
+.adm-acct {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--con-rule);
+  background: #fff;
+}
+
+.adm-acct-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+
+.adm-acct-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-family: var(--con-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--con-ink);
+}
+
+.adm-acct-name {
+  font-family: var(--con-mono);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Pushed right so "never signed in" lands in the same place on every panel —
+   it is the one thing on this screen you scan a column of rather than read. */
+.adm-acct-seen {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--con-dim);
+}
+
+.adm-acct-seen[data-never="1"] {
+  color: var(--con-warn);
+}
+
+.adm-acct-field {
+  display: grid;
+  gap: 4px;
+  max-width: 34rem;
+}
+
+.adm-acct-field > span {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--con-dim);
+}
+
+/* Three radios wearing the console's buttons. Native inputs, so this whole
+   screen stays a server component — and so the keyboard already works. */
+.adm-acct-roles {
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+
+.adm .adm-acct-role {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  margin: 0 -1px 0 0;
+  padding: 0 14px;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--con-ink);
+  border: 1px solid var(--con-edge);
+  background: linear-gradient(#fdfdfd, #e4e7e9);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+
+/* The radio itself is off-screen rather than display:none — hidden that way it
+   stops being focusable, and the keyboard loses the control entirely. */
+.adm-acct-role input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.adm .adm-acct-role:has(input:checked) {
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(#456654, var(--green));
+  box-shadow:
+    inset -1px -1px 0 rgba(255, 255, 255, 0.25),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Focus has to be visible on the label, since the input it belongs to is not
+   on screen to show a ring of its own. */
+.adm .adm-acct-role:has(input:focus-visible) {
+  outline: 2px solid #0060df;
+  outline-offset: 1px;
+}
+
+.adm .adm-acct-role:has(input:disabled) {
+  color: var(--con-dim);
+  cursor: default;
+}
+
+/* `.adm select { width: 100% }` sits above every one-class rule here, so a
+   two-word choice like "owner" came out 550px wide. A select should be as wide
+   as what it holds, not as wide as the column it sits in. */
+.adm-con .adm-acct select {
+  max-width: 26rem;
+}
+
+.adm-acct-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.adm-acct-actions .adm-con-hint {
+  margin: 0;
+}
+
+/* Its own strip, at the bottom, behind its own rule: the one control here that
+   cannot be undone should not sit beside the one pressed every day. */
+.adm-acct-danger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--con-bad);
+}
+
+.adm-acct-danger > span {
+  font-size: 12px;
+  color: var(--con-dim);
+}
+
+.adm .adm-acct-remove {
+  width: auto;
+  min-width: 0;
+  padding: 0 12px;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── The permission matrix ────────────────────────────────────────────────
+   Built from the same CAPABILITIES the server enforces, so it cannot describe
+   a rule that is not real. Roles were three words in a dropdown before this;
+   what they meant lived only in the code. */
+
+.adm-matrix-wrap {
+  overflow-x: auto;
+}
+
+.adm-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.adm-matrix th,
+.adm-matrix td {
+  padding: 9px 10px;
+  border: 1px solid var(--con-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.adm-matrix thead th {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: var(--con-face);
+}
+
+.adm-matrix tbody th {
+  font-weight: 600;
+}
+
+.adm-matrix tbody th span {
+  display: block;
+  margin-top: 3px;
+  max-width: 46ch;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--con-dim);
+}
+
+.adm-matrix td {
+  width: 7.5rem;
+  font-family: var(--con-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.adm-matrix td[data-state="yes"] {
+  color: var(--con-lit);
+  background: color-mix(in srgb, var(--con-lit) 8%, #fff);
+}
+
+.adm-matrix td[data-state="grant"] {
+  color: var(--con-warn);
+  background: color-mix(in srgb, var(--con-warn) 10%, #fff);
+}
+
+.adm-matrix td[data-state="no"] {
+  color: var(--con-dim);
+}
+
 /* ── Segmented choice ─────────────────────────────────────────────────────
    Two or three answers, all visible, the chosen one held down. A <select>
    hides every option you did not pick behind a click, which is exactly the
@@ -5126,6 +5375,14 @@ html[data-dial-open] .dial-seg {
   font-size: 9px;
   letter-spacing: 0.1em;
   color: var(--con-warn);
+}
+
+/* Open reads as open. The chip is the only thing on screen that says whether
+   this field can currently change the address every enquiry goes to, so it
+   changes colour AND wording rather than quietly disappearing. */
+.adm-con-lock[data-open="1"] {
+  border-color: var(--con-lit);
+  color: var(--con-lit);
 }
 
 .adm-con-warn {

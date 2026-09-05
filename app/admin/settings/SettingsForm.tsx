@@ -31,7 +31,6 @@ import {
   MEALS,
   MEAL_STYLES,
   SOCIAL_PLATFORMS,
-  canEditEmail,
   composeAll,
   composeAmenities,
   composeGoodToKnow,
@@ -125,13 +124,24 @@ function Lamp({ state }: { state: "ok" | "bad" | "req" | "off" }) {
   );
 }
 
+/* What lib/permissions.ts decided about this person and the email row, already
+   resolved on the server. The console never re-derives it from a role string:
+   an owner's access can come from a 24-hour grant, and only the server can know
+   whether one is live. */
+export type EmailAccess = {
+  allowed: boolean;
+  via: "role" | "grant" | null;
+  leftLabel: string | null;
+  grantedBy: string | null;
+};
+
 export default function SettingsForm({
   initial,
-  role,
+  emailAccess,
   save,
 }: {
   initial: FormValues;
-  role: string;
+  emailAccess: EmailAccess;
   save: (prev: SaveState, data: FormData) => Promise<SaveState>;
 }) {
   const [state, formAction] = useActionState(save, null);
@@ -153,7 +163,7 @@ export default function SettingsForm({
   const [pinNote, setPinNote] = useState("");
   const summaryRef = useRef<HTMLDivElement>(null);
 
-  const emailEditable = canEditEmail(role);
+  const emailEditable = emailAccess.allowed;
 
   /* One setter for everything, so "the person changed something" is a single
      place — which is what clears a stale rejection from the server and marks
@@ -358,8 +368,18 @@ export default function SettingsForm({
             <div className="adm-con-field adm-con-wide">
               <label htmlFor="email">
                 Email address
-                {!emailUnlocked && (
-                  <span className="adm-con-lock">{emailEditable ? "locked" : "locked — owner only"}</span>
+                {emailUnlocked ? (
+                  <span className="adm-con-lock" data-open="1">
+                    unlocked
+                  </span>
+                ) : (
+                  <span className="adm-con-lock">
+                    {!emailAccess.allowed
+                      ? "locked — ask the developer"
+                      : emailAccess.via === "grant"
+                        ? `locked · access granted, ${emailAccess.leftLabel}`
+                        : "locked"}
+                  </span>
                 )}
               </label>
               <input
@@ -378,17 +398,27 @@ export default function SettingsForm({
                 This is where every enquiry from the website is sent. Changing it stops that mail
                 arriving until a developer redeploys the site — the destination is pinned in the
                 deploy configuration, not here.
-                {emailEditable ? "" : " Ask the owner or the developer if it needs to change."}
+                {emailEditable ? "" : " Message the developer if it needs to change; they can grant access for 24 hours."}
+                {emailAccess.via === "grant" && emailAccess.grantedBy
+                  ? ` Granted by ${emailAccess.grantedBy}, ${emailAccess.leftLabel}.`
+                  : ""}
               </p>
-              {emailEditable && !emailUnlocked && (
+              {emailEditable && (
                 <p className="adm-con-hint">
+                  {/* Lock, not just unlock. Leaving the field open for the rest
+                      of a session is how the one row nobody meant to touch gets
+                      touched — and there was no way back short of reloading. */}
                   <button
                     type="button"
                     className="adm-btn adm-btn--sm"
-                    onClick={() => setEmailUnlocked(true)}
+                    onClick={() => {
+                      if (emailUnlocked) update({ email: initial.email });
+                      setEmailUnlocked((open) => !open);
+                    }}
                   >
-                    Unlock
-                  </button>
+                    {emailUnlocked ? "Lock" : "Unlock"}
+                  </button>{" "}
+                  {emailUnlocked ? "Locking again puts back the address that is on the site." : ""}
                 </p>
               )}
             </div>

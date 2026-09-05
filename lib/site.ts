@@ -60,3 +60,25 @@ export const mapEmbedUrl = (lat: string, lng: string) =>
 
 export const directionsUrl = (plusCode: string) =>
   `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(plusCode)}`;
+
+/* "in 23 hours" beats a UTC timestamp on a screen someone is reading to decide
+   whether they still have time to do the thing. Used by the permission grants
+   on /admin/accounts and /admin/settings.
+ *
+ * It lives here, with the other pure helpers, rather than beside the grants in
+ * lib/permissions.ts — that file reaches for `cloudflare:workers` and so cannot
+ * be loaded by scripts/settings-check.mjs under bare node. This is the half of
+ * it worth pinning with a test: SQLite writes datetime('now') as UTC with no
+ * zone marker, and Date.parse reads a bare "YYYY-MM-DD HH:MM:SS" as LOCAL time,
+ * which in Kathmandu is 5h45m of silent error in the direction that shows
+ * access as still live after it has ended.
+ *
+ * Rounded down, so a grant that says "1 hour left" has at least an hour left. */
+export function timeLeft(expiresAt: string, now = new Date()): string {
+  const end = Date.parse(expiresAt.replace(" ", "T") + "Z");
+  const mins = Math.floor((end - now.getTime()) / 60000);
+  if (!Number.isFinite(mins) || mins <= 0) return "expired";
+  if (mins < 60) return `${mins} min left`;
+  const hours = Math.floor(mins / 60);
+  return `${hours} ${hours === 1 ? "hour" : "hours"} left`;
+}

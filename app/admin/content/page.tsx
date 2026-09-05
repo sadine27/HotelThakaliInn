@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getActor, requireSession } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { auditedWrite, alertDelete } from "@/lib/audit";
 import PhotoField from "@/components/PhotoField";
 import AdminNotice from "@/components/AdminNotice";
@@ -205,7 +206,10 @@ export default async function Content({
     unused?: string;
   }>;
 }) {
-  await requireSession();
+  const session = await requireSession();
+  /* Read once for the render; every delete action re-asks at the moment of the
+     write, because a grant can expire while this page is open. */
+  const canDelete = (await can(session, "content.delete")).allowed;
   const { s, q, sort: sortParam, page: pageParam, ok, err, unused: unusedParam } = await searchParams;
   const name: Section = s && isSection(s) ? s : "hero";
   const query = (q ?? "").trim();
@@ -276,6 +280,10 @@ export default async function Content({
   } else if (err === "inuse") {
     noticeTone = "err";
     noticeMessage = "Not deleted — a row on the site uses that photo.";
+  } else if (err === "perm") {
+    noticeTone = "err";
+    noticeMessage =
+      "Nothing was deleted — deleting is the developer's, and an owner needs access granted for it. Everything else on this page is yours to edit.";
   } else if (ok === "saved") {
     noticeTone = "ok";
     noticeMessage = "Saved.";
@@ -530,7 +538,13 @@ export default async function Content({
 
   async function deleteUnused(formData: FormData) {
     "use server";
-    await requireSession();
+    /* Deleting is the one thing on this screen that cannot be undone from the
+       admin, so it is the one thing that is not simply "are you signed in".
+       Checked here rather than only on the button: a disabled button is a
+       suggestion, and this action is reachable by a hand-crafted POST. */
+    if (!(await can(await requireSession(), "content.delete")).allowed) {
+      contentRedirect(name, query, sort, page, "err", "perm");
+    }
     const key = String(formData.get("key") ?? "");
     /* The list is recomputed rather than trusted: the button was rendered from
        a snapshot, and in the seconds since, someone in another tab may have
@@ -566,7 +580,9 @@ export default async function Content({
 
   async function removeItem(formData: FormData) {
     "use server";
-    await requireSession();
+    if (!(await can(await requireSession(), "content.delete")).allowed) {
+      contentRedirect(name, query, sort, page, "err", "perm");
+    }
     const sec = String(formData.get("section") ?? "");
     const slug = String(formData.get("slug") ?? "");
     if (!isSection(sec) || !slug) return;
@@ -1039,12 +1055,16 @@ export default async function Content({
                   <br />
                   {o.uploaded.toISOString().slice(0, 10)}
                 </span>
-                <form action={deleteUnused}>
-                  <input type="hidden" name="key" value={o.key} />
-                  <SubmitButton type="submit" pendingText="Deleting…">
-                    Delete
-                  </SubmitButton>
-                </form>
+                {canDelete ? (
+                  <form action={deleteUnused}>
+                    <input type="hidden" name="key" value={o.key} />
+                    <SubmitButton type="submit" pendingText="Deleting…">
+                      Delete
+                    </SubmitButton>
+                  </form>
+                ) : (
+                  <span className="adm-unused-meta">developer only</span>
+                )}
               </li>
             ))}
           </ul>
@@ -1054,8 +1074,18 @@ export default async function Content({
       {pageRows.length > 0 && (
         <div className="adm-danger">
           <h2>Delete</h2>
-          <p>There is no undo. A deleted row is gone from the site immediately.</p>
-          {pageRows.map((row) => (
+          {/* Editing is everyone's; deleting is not. Said in words rather than
+              by an absent button, so nobody spends ten minutes looking for the
+              one control that was quietly removed. */}
+          {!canDelete ? (
+            <p>
+              Deleting is the developer&rsquo;s. An owner can be given it for 24 hours — ask
+              them. Everything else on this page is yours to change.
+            </p>
+          ) : (
+            <p>There is no undo. A deleted row is gone from the site immediately.</p>
+          )}
+          {canDelete && pageRows.map((row) => (
             <form key={`rm-${row.slug}`} action={removeItem} className="adm-remove">
               <input type="hidden" name="section" value={name} />
               <input type="hidden" name="slug" value={row.slug} />

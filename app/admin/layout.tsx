@@ -4,6 +4,7 @@
  * check lives where the work happens, and there is exactly one rule to remember:
  * requireSession() is the first line of every admin page and every action. */
 import AdminNav from "@/components/AdminNav";
+import { peekSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,14 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  /* peekSession, not requireSession: this runs on /admin/login too, where there
+     is no session yet and redirecting would be a loop. It decides what the nav
+     lists and nothing else — see the note above about why no guard lives here. */
+  const session = await peekSession();
   return (
     <div className="adm">
-      <AdminNav />
+      <AdminNav role={session?.role ?? null} />
       {children}
     </div>
   );

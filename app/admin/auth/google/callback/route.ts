@@ -50,6 +50,21 @@ export async function GET(request: Request) {
     return fail(request, "notwhitelisted");
   }
 
+  /* Successful sign-ins were the one thing the audit log did not record — it
+     held every rejection and none of the arrivals, so "who has actually been in
+     here" was unanswerable. It is also what the accounts screen reads to show
+     when each person was last seen, and an account that has never signed in is
+     worth noticing: it is either a typo in the email or somebody who no longer
+     needs the row. Not fatal if it fails — a login must not depend on a log
+     write succeeding. */
+  await env.DB.prepare(
+    `INSERT INTO audit_log (actor, action, section, slug, before, after)
+     VALUES (?1, 'admin_login.ok', NULL, NULL, NULL, NULL)`,
+  )
+    .bind(row.username)
+    .run()
+    .catch(() => {});
+
   await startSession(row.username);
   return Response.redirect(new URL("/admin", request.url).toString(), 302);
 }

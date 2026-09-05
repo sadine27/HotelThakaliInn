@@ -106,6 +106,21 @@ export async function hasSession() {
   return (await verify()) !== null;
 }
 
+/* Same lookup as requireSession, but it answers "nobody" instead of redirecting.
+   For the one caller that has to run before anything is guarded: the admin
+   layout, which draws the nav on /admin/login too and must not bounce a person
+   away from the page they are trying to sign in on. Never use it as a guard —
+   a null here means "not signed in", not "carry on". */
+export async function peekSession(): Promise<{ username: string; role: string } | null> {
+  const username = await verify();
+  if (!username) return null;
+  const row = await env.DB.prepare("SELECT role FROM admin_users WHERE username = ?1")
+    .bind(username)
+    .first<{ role: string }>()
+    .catch(() => null);
+  return row ? { username, role: row.role } : null;
+}
+
 /* The username of the signed-in account, for attribution in the audit log.
    Only ever called after requireSession() has already run, so a null here
    would mean the caller skipped that guard — callers should not need to

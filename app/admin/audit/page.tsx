@@ -1,6 +1,8 @@
 import { env } from "cloudflare:workers";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,10 @@ export default async function Audit({
     to?: string;
   }>;
 }) {
-  await requireSession();
+  /* Every change anyone has ever made, with their name on it. Not something the
+     front desk needs, and until now "is there a session" was the only thing
+     standing in front of it. */
+  if (!(await can(await requireSession(), "audit.read")).allowed) redirect("/admin");
   const { action, section, actor, from, to } = await searchParams;
 
   const clauses: string[] = [];

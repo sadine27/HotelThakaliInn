@@ -42,13 +42,25 @@ import {
   parseAmenities,
   parseArrival,
   parsePhone,
-  canEditEmail,
   composeAll,
   computeErrors,
   sanitizeFormValues,
   toFormValues,
 } from "../lib/settings-schema.ts";
-import { phoneHref, waHref } from "../lib/site.ts";
+import { phoneHref, waHref, timeLeft } from "../lib/site.ts";
+
+/* ── Permission grants expire when they say they do ───────────────────────────
+   SQLite stamps datetime('now') as UTC with no zone marker, and Date.parse
+   reads a bare "YYYY-MM-DD HH:MM:SS" as LOCAL time. In Kathmandu that is 5h45m
+   of silent error, in the direction that shows a grant as live for nearly six
+   hours after it ended. */
+const NOW = new Date("2026-09-05T10:00:00Z");
+assert.equal(timeLeft("2026-09-06 10:00:00", NOW), "24 hours left");
+assert.equal(timeLeft("2026-09-05 11:30:00", NOW), "1 hour left"); // rounded down, never up
+assert.equal(timeLeft("2026-09-05 10:45:00", NOW), "45 min left");
+assert.equal(timeLeft("2026-09-05 09:59:00", NOW), "expired");
+assert.equal(timeLeft("2026-09-05 10:00:00", NOW), "expired"); // the boundary is closed
+assert.equal(timeLeft("not a timestamp", NOW), "expired"); // unparseable denies, never grants
 
 /* ── The pin, not the viewport ───────────────────────────────────────────────
    The live maps_url row. It carries the position TWICE and the two are 8km
@@ -233,10 +245,10 @@ assert.match(checkEmail(""), /Enter an address/);
 
 /* ── The email lock is a role check, not a disabled attribute ────────────── */
 
-assert.equal(canEditEmail("owner"), true);
-assert.equal(canEditEmail("developer"), true);
-assert.equal(canEditEmail("staff"), false);
-assert.equal(canEditEmail(""), false);
+/* The email lock's rule moved to lib/permissions.ts — it needs the database to
+   answer "does this owner hold a live grant?", so it cannot be checked from
+   here without a D1 binding. scripts/permissions-check.mjs covers the part that
+   is still pure: the role matrix and the expiry arithmetic. */
 
 /* ── Vocabularies are internally consistent ──────────────────────────────── */
 

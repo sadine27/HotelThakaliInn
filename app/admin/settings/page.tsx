@@ -5,8 +5,8 @@ import { getActor, requireSession } from "@/lib/auth";
 import { auditedWrite } from "@/lib/audit";
 import { section, settings } from "@/lib/content";
 import AdminNotice from "@/components/AdminNotice";
+import { can, timeLeft } from "@/lib/permissions";
 import {
-  canEditEmail,
   composeAll,
   computeErrors,
   sanitizeFormValues,
@@ -37,7 +37,8 @@ export default async function Settings({
 }: {
   searchParams: Promise<{ ok?: string; err?: string }>;
 }) {
-  const { role } = await requireSession();
+  const session = await requireSession();
+  const emailAccess = await can(session, "settings.email");
   /* Room sizes are `content` rows, not settings — the three rooms have always
      been separate records and only their size was ever a single hotel-wide
      sentence. includeHidden, because an unpublished room still has a size and
@@ -56,12 +57,13 @@ export default async function Settings({
     noticeMessage = "Saved — the site now shows the new details.";
   } else if (err === "email") {
     noticeTone = "err";
-    noticeMessage = "Nothing was saved — only an owner or developer can change the email address.";
+    noticeMessage =
+      "Nothing was saved — the email row is the developer's, and any access granted for it has run out. Ask them; a grant lasts 24 hours.";
   }
 
   async function save(_prev: SaveState, formData: FormData): Promise<SaveState> {
     "use server";
-    const { role } = await requireSession();
+    const actor = await requireSession();
 
     let parsed: unknown;
     try {
@@ -99,8 +101,12 @@ export default async function Settings({
        rather than quietly dropping the key, because a save that reports success
        while ignoring half of what was sent is worse than one that fails. */
     const after = Object.fromEntries(rows);
-    if (!canEditEmail(role) && before.email !== undefined && before.email !== after.email) {
-      redirect("/admin/settings?err=email");
+    if (before.email !== undefined && before.email !== after.email) {
+      /* Asked at the moment of the write, not at page load: a grant can expire
+         between opening this screen and pressing Save, and the answer that
+         matters is the one that is true when the row changes. */
+      const { allowed } = await can(actor, "settings.email");
+      if (!allowed) redirect("/admin/settings?err=email");
     }
 
     /* The room sizes are the one thing on this screen that is not a settings
@@ -154,7 +160,12 @@ export default async function Settings({
           config,
           roomRows.map((r) => ({ slug: r.slug, title: r.title, sizeValue: r.extra.sizeValue ?? "" })),
         )}
-        role={role}
+        emailAccess={{
+          allowed: emailAccess.allowed,
+          via: emailAccess.via,
+          leftLabel: emailAccess.expiresAt ? timeLeft(emailAccess.expiresAt) : null,
+          grantedBy: emailAccess.grantedBy,
+        }}
         save={save}
       />
     </div>

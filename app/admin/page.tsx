@@ -8,6 +8,10 @@ import { sparklinePoints, weekDelta } from "@/lib/sparkline";
 
 export const dynamic = "force-dynamic";
 
+/* A panel you press, in the settings console's idiom rather than the flat grey
+   card this used to be — the same reasoning the owner gave for that rebuild:
+   if the screen looks unserious, the work done on it is treated as unserious.
+   A number that could not be read (the query threw) shows a dash, never a 0. */
 function Tile({ href, label, description, primary, secondaryLabel, secondary, accent = false }: {
   href: string;
   label: string;
@@ -17,16 +21,15 @@ function Tile({ href, label, description, primary, secondaryLabel, secondary, ac
   secondary?: number | null;
   accent?: boolean;
 }) {
-  const hasPrimary = primary !== null;
   return (
-    <Link href={href} className={`adm-tile ${accent ? 'adm-tile--accent' : ''}`}>
-      {hasPrimary && <div className="adm-tile-number">{primary}</div>}
-      <div className="adm-tile-label">{label}</div>
-      <div className="adm-tile-desc">{description}</div>
+    <Link href={href} className="adm-tile" data-accent={accent ? "1" : undefined}>
+      <span className="adm-tile-label">{label}</span>
+      {primary !== null && <span className="adm-tile-number">{primary}</span>}
+      <span className="adm-tile-desc">{description}</span>
       {secondaryLabel && secondary !== null && secondary !== undefined && (
-        <div className="adm-tile-secondary">
-          {secondaryLabel}: <strong>{secondary}</strong>
-        </div>
+        <span className="adm-tile-secondary">
+          {secondaryLabel} <strong>{secondary}</strong>
+        </span>
       )}
     </Link>
   );
@@ -179,7 +182,7 @@ export default async function Admin() {
   }
 
   return (
-    <div className="adm-page">
+    <div className="adm-page adm-con">
       <h1>Manage the site</h1>
       <p className="adm-sub">Everything here is live the moment you save it</p>
 
@@ -205,7 +208,7 @@ export default async function Admin() {
           />
           <Tile
             href="/admin/settings"
-            label="Contact details & property facts"
+            label="Contact & facts"
             description="Address, phone, email, arrival distances, what every room has"
             primary={settingsCount}
           />
@@ -217,16 +220,18 @@ export default async function Admin() {
             secondaryLabel="hidden"
             secondary={contentHidden}
           />
-          <Tile
-            href="/admin/audit"
-            label="Audit log"
-            description="Every admin write, last 7 days — who, what, when"
-            primary={auditLast7}
-          />
+          {(role === "owner" || role === "developer") && (
+            <Tile
+              href="/admin/audit"
+              label="Audit log"
+              description="Every admin write, last 7 days — who, what, when"
+              primary={auditLast7}
+            />
+          )}
           {(role === "owner" || role === "developer") && (
             <Tile
               href="/admin/accounts"
-              label="Admin accounts"
+              label="Accounts"
               description="Who can sign in with Google, and as what role"
               primary={null}
             />

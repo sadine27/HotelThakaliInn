@@ -900,12 +900,7 @@ export function composeAll(v: FormValues): Record<string, string> {
   };
 }
 
-/* ── The email lock ───────────────────────────────────────────────────────────
-   wrangler.jsonc pins allowed_destination_addresses to one address so a bug in
-   the public contact endpoint can never turn the hotel's domain into an open
-   relay. That means changing this row without a matching deploy silently stops
-   every enquiry notification — a failure nobody notices until a booking is
-   already lost. So the row is editable, but not by whoever is on the front desk
-   this evening. Checked here and enforced again in the server action; the
-   client-side lock is only the part you can see. */
-export const canEditEmail = (role: string): boolean => role === "owner" || role === "developer";
+/* The email lock moved to lib/permissions.ts, which is where every "may this
+   person do this?" question now lives — and which needs the database, so it
+   cannot live in this file. This one stayed pure on purpose: a browser bundle
+   and bare `node` both have to be able to load it. */
