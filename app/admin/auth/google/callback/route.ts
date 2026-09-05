@@ -35,9 +35,20 @@ export async function GET(request: Request) {
   const row = await env.DB.prepare("SELECT username FROM admin_users WHERE email = ?1")
     .bind(email)
     .first<{ username: string }>();
-  /* No match: say "not authorized", never anything that would confirm or deny
-     whether a particular email is in the whitelist. */
-  if (!row) return fail(request, "notwhitelisted");
+  if (!row) {
+    /* The user-facing message never confirms or denies whether a particular
+       email is whitelisted — but the email Google just verified is proven
+       real, so it's safe to record here, where only owner/developer can read
+       it, for the one time this rejection is actually a mistake (a row
+       stored with a typo, say) rather than an intruder. */
+    await env.DB.prepare(
+      `INSERT INTO audit_log (actor, action, section, slug, before, after)
+       VALUES ('google-oauth', 'admin_login.rejected', NULL, ?1, NULL, NULL)`,
+    )
+      .bind(email)
+      .run();
+    return fail(request, "notwhitelisted");
+  }
 
   await startSession(row.username);
   return Response.redirect(new URL("/admin", request.url).toString(), 302);

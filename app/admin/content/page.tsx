@@ -5,6 +5,7 @@ import { getActor, requireSession } from "@/lib/auth";
 import { auditedWrite, alertDelete } from "@/lib/audit";
 import PhotoField from "@/components/PhotoField";
 import AdminNotice from "@/components/AdminNotice";
+import SubmitButton from "@/components/SubmitButton";
 import { mediaReferences, section } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,31 @@ const SECTIONS = [
 type Section = (typeof SECTIONS)[number];
 
 const isSection = (value: string): value is Section => SECTIONS.includes(value as Section);
+
+/* Module-level, not a closure inside the page component: a "use server" action
+   below is hoisted to the top of the module and its captured free variables
+   get serialized so the hoisted copy can rebuild them. A *function* value
+   can't be serialized that way — closing over a local notify() helper (as
+   this used to) throws "Functions cannot be passed directly to Client
+   Components" the moment the action is rendered. name/query/sort/page stay
+   as plain closed-over values (strings/numbers serialize fine); only the
+   helper itself had to move out to stop being one. */
+function contentRedirect(
+  name: Section,
+  query: string,
+  sort: Sort,
+  page: number,
+  kind: "ok" | "err",
+  code: string,
+): never {
+  const p = new URLSearchParams();
+  p.set("s", name);
+  if (query) p.set("q", query);
+  if (sort !== "position") p.set("sort", sort);
+  if (page > 1) p.set("page", String(page));
+  p.set(kind, code);
+  redirect(`/admin/content?${p.toString()}`);
+}
 
 /* The client sends a MIME type it chose, and a .txt renamed to .jpg keeps its
    text/plain nowhere at all — so the file's own first bytes decide. This is the
@@ -215,22 +241,17 @@ export default async function Content({
   const pageHref = (p: number) =>
     `/admin/content?s=${name}${query ? `&q=${encodeURIComponent(query)}` : ""}${sort !== "position" ? `&sort=${sort}` : ""}&page=${p}`;
 
-  /* Every write action below ends with notify(...): it redirects back to the
-     tab, search and page the staff member was on, tagging the outcome with an
-     ok/err code that the popup below turns into plain words. Keeping the place
-     matters — a Save on page 3 of menu_bar should land back on page 3, not on
-     a collapsed list from the top. */
-  function notify(kind: "ok" | "err", code: string): never {
-    const p = new URLSearchParams();
-    p.set("s", name);
-    if (query) p.set("q", query);
-    if (sort !== "position") p.set("sort", sort);
-    if (page > 1) p.set("page", String(page));
-    p.set(kind, code);
-    redirect(`/admin/content?${p.toString()}`);
-  }
+  /* Every write action below ends with a contentRedirect(...) call: it
+     redirects back to the tab, search and page the staff member was on,
+     tagging the outcome with an ok/err code that the popup below turns into
+     plain words. Keeping the place matters — a Save on page 3 of menu_bar
+     should land back on page 3, not on a collapsed list from the top. Each
+     action closes over name/query/sort/page (plain values, fine to
+     serialize) and calls the module-level helper directly rather than
+     through a local wrapper — see the comment on contentRedirect itself for
+     why a wrapper function can't sit in between. */
 
-  /* The reverse of notify(): a code sitting in the URL becomes the popup's
+  /* The reverse of that: a code sitting in the URL becomes the popup's
      copy. No code, no popup. */
   let noticeTone: "ok" | "err" | undefined;
   let noticeMessage: string | undefined;
@@ -281,7 +302,7 @@ export default async function Content({
     let extra: string;
     if (sec.startsWith("menu_")) {
       const price = Number(get("price"));
-      if (!Number.isFinite(price)) notify("err", "menu");
+      if (!Number.isFinite(price)) contentRedirect(name, query, sort, page, "err", "menu");
       extra = JSON.stringify({ price });
     } else if (sec === "room") {
       const meta = get("meta")
@@ -302,7 +323,7 @@ export default async function Content({
       try {
         JSON.parse(raw);
       } catch {
-        notify("err", "json");
+        contentRedirect(name, query, sort, page, "err", "json");
       }
       extra = raw;
     }
@@ -374,7 +395,7 @@ export default async function Content({
         paid: paidValue,
       },
     });
-    notify("ok", existing ? "saved" : "added");
+    contentRedirect(name, query, sort, page, "ok", existing ? "saved" : "added");
   }
 
   async function upload(formData: FormData) {
@@ -386,15 +407,15 @@ export default async function Content({
     const slug = String(formData.get("slug") ?? "");
     /* The file itself failed its checks — say so rather than doing nothing.
        Section/slug failures are defensive and stay silent. */
-    if (!(file instanceof File) || !file.size || file.size > MAX) notify("err", "upload");
+    if (!(file instanceof File) || !file.size || file.size > MAX) contentRedirect(name, query, sort, page, "err", "upload");
     if (!isSection(sec) || !slug) return;
 
     const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
     const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
-    if (!match) notify("err", "upload");
+    if (!match) contentRedirect(name, query, sort, page, "err", "upload");
     const [type, ext] = match;
     /* RIFF is also AVI and WAV. Only the WEBP fourcc makes it an image. */
-    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") notify("err", "upload");
+    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") contentRedirect(name, query, sort, page, "err", "upload");
 
     /* The row is fetched before anything is written. The upload form only exists
        on saved rows, so a miss means the row was deleted from another tab — and
@@ -430,7 +451,7 @@ export default async function Content({
       return;
     }
     await dropOrphan(row.image);
-    notify("ok", "uploaded");
+    contentRedirect(name, query, sort, page, "ok", "uploaded");
   }
 
   /* Same shape as `upload`, but writes the `icon` column — and raster only, no
@@ -448,14 +469,14 @@ export default async function Content({
     const slug = String(formData.get("slug") ?? "");
     /* The file itself failed its checks — say so rather than doing nothing.
        Section/slug failures are defensive and stay silent. */
-    if (!(file instanceof File) || !file.size || file.size > MAX) notify("err", "upload");
+    if (!(file instanceof File) || !file.size || file.size > MAX) contentRedirect(name, query, sort, page, "err", "upload");
     if (!isSection(sec) || !slug) return;
 
     const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
     const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
-    if (!match) notify("err", "upload");
+    if (!match) contentRedirect(name, query, sort, page, "err", "upload");
     const [type, ext] = match;
-    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") notify("err", "upload");
+    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") contentRedirect(name, query, sort, page, "err", "upload");
 
     const row = await env.DB.prepare(
       "SELECT icon FROM content WHERE section = ?1 AND slug = ?2",
@@ -483,7 +504,7 @@ export default async function Content({
       return;
     }
     await dropOrphan(row.icon);
-    notify("ok", "uploaded");
+    contentRedirect(name, query, sort, page, "ok", "uploaded");
   }
 
   async function deleteUnused(formData: FormData) {
@@ -495,7 +516,7 @@ export default async function Content({
        pointed a row at exactly this file. Deleting it then would blank a photo
        on the live site. */
     const stillUnused = await findUnused();
-    if (!stillUnused.some((o) => o.key === key)) notify("err", "inuse");
+    if (!stillUnused.some((o) => o.key === key)) contentRedirect(name, query, sort, page, "err", "inuse");
     /* No D1 row involved — logAudit-only, no auditedWrite batch to pair it
        with. The audit row lands *before* the R2 delete: if the insert fails,
        nothing is lost; the reverse order would delete the file with no
@@ -519,7 +540,7 @@ export default async function Content({
     /* Same alert every other delete fires, called directly since this action
        has no paired D1 write for auditedWrite to batch. */
     await alertDelete(entry).catch(() => {});
-    notify("ok", "purged");
+    contentRedirect(name, query, sort, page, "ok", "purged");
   }
 
   async function removeItem(formData: FormData) {
@@ -554,7 +575,7 @@ export default async function Content({
     /* dropOrphan is a no-op for anything not under /img/, so the empty columns
        and the seeded /media/ paths cost a string check each and nothing more. */
     for (const file of [row.image, row.icon, row.video]) await dropOrphan(file);
-    notify("ok", "deleted");
+    contentRedirect(name, query, sort, page, "ok", "deleted");
   }
 
   return (
@@ -791,7 +812,9 @@ export default async function Content({
             {!fields.icon && <input type="hidden" name="icon" value={row.icon} />}
             {!fields.extra && <input type="hidden" name="extra" value={JSON.stringify(row.extra)} />}
 
-            <button type="submit">Save</button>
+            <SubmitButton type="submit" pendingText="Saving…">
+              Save
+            </SubmitButton>
           </form>
 
           {fields.image && (
@@ -800,7 +823,9 @@ export default async function Content({
               <input type="hidden" name="slug" value={row.slug} />
               <label>photo</label>
               <PhotoField />
-              <button type="submit">Upload photo</button>
+              <SubmitButton type="submit" pendingText="Uploading…">
+                Upload photo
+              </SubmitButton>
               <small>
                 JPEG, PNG or WebP. Big photos are resized in your browser before they are sent, so
                 a photo straight off a phone or camera is fine. It replaces the image path above.
@@ -814,7 +839,9 @@ export default async function Content({
               <input type="hidden" name="slug" value={row.slug} />
               <label>icon</label>
               <input type="file" name="file" accept="image/png,image/webp,image/jpeg" required />
-              <button type="submit">Upload icon</button>
+              <SubmitButton type="submit" pendingText="Uploading…">
+                Upload icon
+              </SubmitButton>
               <small>PNG, WebP or JPEG (no SVG — see the comment in this file). It replaces the icon path above.</small>
             </form>
           )}
@@ -950,7 +977,9 @@ export default async function Content({
           {!fields.icon && <input type="hidden" name="icon" value="" />}
           {!fields.extra && <input type="hidden" name="extra" value="{}" />}
 
-          <button type="submit">Add</button>
+          <SubmitButton type="submit" pendingText="Adding…">
+            Add
+          </SubmitButton>
         </form>
       </details>
 
@@ -983,7 +1012,9 @@ export default async function Content({
                 </span>
                 <form action={deleteUnused}>
                   <input type="hidden" name="key" value={o.key} />
-                  <button type="submit">Delete</button>
+                  <SubmitButton type="submit" pendingText="Deleting…">
+                    Delete
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -999,7 +1030,9 @@ export default async function Content({
             <form key={`rm-${row.slug}`} action={removeItem} className="adm-remove">
               <input type="hidden" name="section" value={name} />
               <input type="hidden" name="slug" value={row.slug} />
-              <button type="submit">Delete {row.slug}</button>
+              <SubmitButton type="submit" pendingText="Deleting…">
+                Delete {row.slug}
+              </SubmitButton>
             </form>
           ))}
         </div>

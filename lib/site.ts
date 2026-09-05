@@ -36,6 +36,22 @@ export const waHref = (phone: string) => {
   return `https://wa.me/${digits}`;
 };
 
+/* One Gmail mailbox answers to several spellings, and the admin whitelist
+   compares strings, so it has to know that: googlemail.com is an alias of
+   gmail.com, a +tag is routing rather than identity, and a pasted address drags
+   whitespace. An owner row typed "lsharma.banstola@gmail.com" was rejected for
+   an evening because the Google ID token said "@googlemail.com" — same inbox,
+   different string. Both sides of that comparison run through here: what the
+   accounts form stores, and what the login callback looks up. */
+export const normalizeEmail = (raw: string) => {
+  const [local = "", domain = ""] = raw.trim().toLowerCase().split("@");
+  const host = domain === "googlemail.com" ? "gmail.com" : domain;
+  /* Gmail ignores dots too, but stripping them would rewrite the address shown
+     in the accounts table into something nobody typed. Domain and +tag are
+     enough for the mismatch that actually bites. */
+  return `${host === "gmail.com" ? local.split("+")[0] : local}@${host}`;
+};
+
 /* Keyless embed — `output=embed` needs no Maps API key and no billing account.
    Pinned to the listing's exact coordinates, not to a name search, so the marker
    can't wander onto a similarly named place. */

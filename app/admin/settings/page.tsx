@@ -5,6 +5,7 @@ import { getActor, requireSession } from "@/lib/auth";
 import { auditedWrite } from "@/lib/audit";
 import { settings, list } from "@/lib/content";
 import AdminNotice from "@/components/AdminNotice";
+import SubmitButton from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -259,7 +260,9 @@ const known = new Set(GROUPS.flatMap((g) => g.keys));
           ),
       )}
 
-      <button type="submit">Save</button>
+      <SubmitButton type="submit" pendingText="Saving…">
+        Save
+      </SubmitButton>
     </form>
   );
 }

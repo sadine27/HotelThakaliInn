@@ -6,6 +6,7 @@
  * in" — admin_users is the whitelist, looked up by the caller. */
 import { env } from "cloudflare:workers";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { normalizeEmail } from "./site";
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -51,5 +52,5 @@ export async function verifyGoogleCode(code: string, redirectUri: string): Promi
   if (typeof email !== "string" || !payload.email_verified) {
     throw new Error("google id_token had no verified email");
   }
-  return email.toLowerCase();
+  return normalizeEmail(email);
 }

@@ -14,7 +14,7 @@ export default async function Login({
   return (
     <div className="adm-login">
       <h1>Hotel Thakali Inn</h1>
-      <p className="adm-sub">Staff sign in</p>
+      <p className="adm-sub">Admin sign in</p>
 
       {e === "slow" && (
         <p className="adm-error" role="alert">
