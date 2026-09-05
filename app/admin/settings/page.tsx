@@ -55,8 +55,11 @@ const HINTS: Record<string, string> = {
   rooms_shared: "Separated by · — this is one line of text, not a list.",
   lat: "Only change these with the map link. They place the pin.",
   lng: "Only change these with the map link. They place the pin.",
-  rain_glass_day: "Droplets on the homepage hero, daytime only.",
-  rain_glass_night: "Droplets on the homepage hero, night (and dawn/dusk) only.",
+  /* The switch is a permission, not a trigger: RainGlass only draws when the
+     live weather says rain or storm. Saying "droplets on the hero" without that
+     made a switch that does nothing on a clear day look broken. */
+  rain_glass_day: "Droplets on the homepage hero during the day — and only while it is actually raining in Kathmandu. Dry weather shows nothing either way.",
+  rain_glass_night: "The same, for night, dawn and dusk. Changes take a couple of minutes to reach the site.",
 };
 
 /* Grouped for scanning, not alphabetical — thirteen fields in one flat list
@@ -238,12 +241,30 @@ const known = new Set(GROUPS.flatMap((g) => g.keys));
           group.keys.length > 0 && (
             <fieldset className="adm-fieldset" key={group.label}>
               <legend>{group.label}</legend>
-              {group.keys.map((key) => (
+              {group.keys.map((key) =>
+                /* A checkbox is not a text field. Left in the shared markup it
+                   inherited `.adm input { width: 100% }` and rendered as a
+                   full-width stretched box with the label stranded above it —
+                   no readable on/off state, which is what "the toggle doesn't
+                   work" looked like. .adm-check is the wrapper the content
+                   editor's checkboxes already use. */
+                BOOLEAN_ROWS.has(key) ? (
+                  <div className="adm-field" key={key}>
+                    <label className="adm-check">
+                      <input
+                        type="checkbox"
+                        id={`s.${key}`}
+                        name={`s.${key}`}
+                        defaultChecked={config[key] === "1"}
+                      />
+                      <span>{LABELS[key] ?? key.replace(/_/g, " ")}</span>
+                    </label>
+                    {HINTS[key] && <small>{HINTS[key]}</small>}
+                  </div>
+                ) : (
                 <div className="adm-field" key={key}>
                   <label htmlFor={`s.${key}`}>{LABELS[key] ?? key.replace(/_/g, " ")}</label>
-                  {BOOLEAN_ROWS.has(key) ? (
-                    <input type="checkbox" id={`s.${key}`} name={`s.${key}`} defaultChecked={config[key] === "1"} />
-                  ) : LONG.has(key) ? (
+                  {LONG.has(key) ? (
                     <textarea
                       id={`s.${key}`}
                       name={`s.${key}`}
@@ -255,7 +276,8 @@ const known = new Set(GROUPS.flatMap((g) => g.keys));
                   )}
                   {HINTS[key] && <small>{HINTS[key]}</small>}
                 </div>
-              ))}
+                ),
+              )}
             </fieldset>
           ),
       )}

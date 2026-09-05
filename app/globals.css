@@ -243,16 +243,19 @@ body {
      spread must fit inside the viewport or the dial, which is fixed, drifts off
      it. svh, not vh: on mobile vh is the *large* viewport, so with the address
      bar showing the cards are sized for space that isn't there yet.
-     The floor is the escape hatch. 560 is what the copy card actually needs:
-     232px of it is the well's reserved band, and the rest is the eyebrow, the
-     deck and the rail. Below that the spread stops shrinking and the hero grows
-     past the viewport instead, so the page scrolls rather than silently
-     clipping the rail off the bottom of a card that has overflow:hidden.
+     The floor is the escape hatch. It is what the copy card actually needs, so
+     it moves when the card's contents do: 560 counted the eyebrow, the deck and
+     the rail against the well's 232px reserved band, and then the CTA row and
+     the live note were added under them and never counted. At 560 the card came
+     out shorter than its own copy on every laptop-height viewport and
+     overflow:hidden ate the bottom of the note. 660 is the same sum with those
+     two included. Below that the spread stops shrinking and the hero grows past
+     the viewport instead, so the page scrolls rather than silently clipping.
      It has to be a min-height on the cards as well as a max: the cards take
      their height from an aspect-ratio against the column width, so on a narrow
      window they come out *shorter* than their own content, and a max-height
      can't put back what a too-short box already lost. */
-  --card-min-h: 560px;
+  --card-min-h: 660px;
   --card-max-h: max(
     var(--card-min-h),
     calc(100svh - var(--pad-y) - var(--inset) - 2px)
@@ -561,6 +564,12 @@ body {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  /* The name is nowrap and the readout has a floor of its own, so on a card
+     narrower than the two together the row used to overflow and the card's
+     overflow:hidden sliced the readout in half at the card's edge. Wrapping
+     drops it onto its own line instead — side by side wherever both fit, which
+     is still every viewport wide enough to have the room. */
+  flex-wrap: wrap;
   gap: 16px;
   margin: 0 0 clamp(20px, 4vh, 40px);
   font-family: var(--font-mono), monospace;
@@ -578,8 +587,15 @@ body {
 .live {
   display: flex;
   align-items: baseline;
+  /* Each fact is one flex item, so the chip breaks between readings rather
+     than mid-reading — "72 Moderate air" never splits across two lines. */
+  flex-wrap: wrap;
   gap: 10px;
   margin: 0;
+  /* Without this the chip sizes to its own max-content and simply hangs off
+     the card: it is laid out against a column flex parent on phones, which
+     gives it no width to wrap against, and the wrap above never fires. */
+  max-width: 100%;
   /* Tighter than the brand beside it. At 0.34em the readout would be twice the
      width of the name it shares a row with, and the row has to hold at the
      card's narrowest. */
@@ -700,8 +716,12 @@ body {
   /* lower floor than the ceiling suggests: the well takes a band off the
      bottom, so short viewports need the deck to give before the card does.
      8rem, not 10: at 10 the deck outlasted the card on a laptop screen and the
-     card's own overflow:hidden ate the bottom of the rail. */
-  height: clamp(8rem, 24vh, 15.5rem);
+     card's own overflow:hidden ate the bottom of the rail.
+     22vh, not 24: the deck is the designated giver, and the note that now sits
+     below the CTA row needs the ~30px back on a 900-tall screen to clear the
+     card's bottom edge. The tallest slide's headline+body measures ~171px at
+     that height, which 22vh still clears. */
+  height: clamp(8rem, 22vh, 15.5rem);
   overflow: hidden;
 }
 
@@ -1792,9 +1812,6 @@ body {
     align-items: flex-start;
     gap: 6px;
     margin-bottom: 12px;
-  }
-  .live {
-    flex-wrap: wrap;
   }
   .hero-deck {
     /* 7rem fitted the shortest slide only — the two-line headlines pushed the
@@ -4723,6 +4740,13 @@ html[data-dial-open] .dial-seg {
 .adm-check input {
   width: auto;
   margin: 0;
+}
+
+/* A settings toggle carries its hint underneath, and .adm-check's own bottom
+   margin plus the hint's top margin pushed the two far enough apart that the
+   sentence read as belonging to the next field. */
+.adm-field > .adm-check {
+  margin-bottom: 0;
 }
 
 /* Set apart, and last. Delete has no undo and no confirm step — putting it in

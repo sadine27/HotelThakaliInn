@@ -145,8 +145,13 @@ export async function GET() {
   };
 
   return Response.json(body, {
-    /* Ten minutes in the browser, fifteen shared: a guest reloading the page
-       does not re-hit us, and the client polls on a slower cadence anyway. */
-    headers: { "cache-control": "public, max-age=600, s-maxage=900" },
+    /* Two minutes, both layers. It used to be ten and fifteen, which is right
+       for weather and wrong for everything else in this payload: the rain-glass
+       switches are edited in /admin/settings and read from here, so a fifteen
+       minute shared cache meant flipping one and reloading showed no change —
+       indistinguishable from a broken switch. Two minutes still collapses a
+       guest's reloads to nothing and costs Open-Meteo ~720 calls a day per
+       colo, well inside its free ceiling. */
+    headers: { "cache-control": "public, max-age=120, s-maxage=120" },
   });
 }
