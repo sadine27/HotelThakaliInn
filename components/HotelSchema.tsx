@@ -41,9 +41,13 @@ export default function HotelSchema({
     description: DESCRIPTION,
     address: {
       "@type": "PostalAddress",
-      streetAddress: config.address ?? "",
-      addressLocality: "Kathmandu",
-      postalCode: "44600",
+      /* Read from the address rows the settings console now edits as separate
+         parts, rather than the two hardcoded strings that used to sit here and
+         would have kept claiming Kathmandu 44600 after a move. Falls back to
+         the composed line for streetAddress, which is what it always was. */
+      streetAddress: config.addr_tole || config.address || "",
+      addressLocality: config.addr_city || "Kathmandu",
+      postalCode: config.addr_postal || "44600",
       addressCountry: "NP",
     },
     ...(lat && lng

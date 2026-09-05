@@ -43,11 +43,11 @@ export default function FloatDock() {
   /* A tool, not a guest page: the staff side gets none of this furniture. */
   if (pathname.startsWith("/admin")) return null;
 
-  /* The phone arrives with the live payload rather than from a second fetch —
+  /* The number arrives with the live payload rather than from a second fetch —
      it is a settings row, and /api/live is already reading settings for the
      coordinates. Absent until that lands, and absent for good if staff clear
      the row, so the button has to be able to not exist. */
-  const wa = live?.phone ? waHref(live.phone) : "";
+  const wa = live?.whatsapp ? waHref(live.whatsapp) : "";
   const home = pathname === "/";
 
   function back() {

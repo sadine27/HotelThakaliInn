@@ -16,6 +16,9 @@ export const dynamic = "force-dynamic";
 export default async function Contact() {
   const [config, hero] = await Promise.all([settings(), section("hero")]);
   const phone = config.phone ?? "";
+  /* An unset whatsapp row, or the "same as the front desk" switch, both mean
+     the printed number — see composeAll() in lib/settings-schema.ts. */
+  const whatsapp = (config.whatsapp_same === "0" && config.whatsapp) || phone;
   const plusCode = config.plus_code ?? "";
 
   const socials = list<{ label: string; href: string }>(config.socials);
@@ -36,9 +39,9 @@ export default async function Contact() {
           /* Derived here rather than stored, so a corrected phone number or a moved
            pin can only be edited in one place. */
           phoneHref: phoneHref(phone),
-          /* Empty when staff clear the phone row, and the WhatsApp channel then
+          /* Empty when staff clear the number, and the WhatsApp channel then
              does not render at all — see channels() in ContactPanel. */
-          waHref: phone ? waHref(phone) : "",
+          waHref: whatsapp ? waHref(whatsapp) : "",
           mapEmbedUrl: mapEmbedUrl(config.lat ?? "", config.lng ?? ""),
           directionsUrl: directionsUrl(plusCode),
           socials,

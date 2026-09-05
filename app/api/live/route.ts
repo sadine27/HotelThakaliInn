@@ -138,6 +138,9 @@ export async function GET() {
     aqi: typeof aqi === "number" ? Math.round(aqi) : null,
     air: typeof aqi === "number" ? air(Math.round(aqi)) : null,
     phone: config.phone ?? "",
+    /* Falls back to the main number, which is what an unset row means and what
+       this did implicitly before the two could differ. */
+    whatsapp: (config.whatsapp_same === "0" && config.whatsapp) || config.phone || "",
     socials: list<{ label: string; href: string }>(config.socials).filter((s) => s.href),
     address: config.address ?? "",
     email: config.email ?? "",

@@ -31,6 +31,11 @@ export type Live = {
      D1 without making every page dynamic. Empty string when staff clear the
      settings row — the button then does not render at all. */
   phone: string;
+  /* The number the WhatsApp button opens, which is not always the number the
+     site prints — a hotel can answer WhatsApp on a different handset. Resolved
+     server-side against the whatsapp_same switch, so every consumer gets one
+     ready-to-use number rather than the rule for picking between two. */
+  whatsapp: string;
   /* Same reasoning as phone: the footer is mounted in the root layout, which
      cannot read D1 without making every page dynamic, so the accounts ride
      along with the rest of the live payload instead of a second fetch. */

@@ -6,13 +6,8 @@ import { useEffect, useRef } from "react";
 import Glyph from "./Glyph";
 import { useLive } from "./Live";
 import LogoMark from "./LogoMark";
-import { FacebookMark, InstagramMark } from "./SocialMarks";
+import { MARKS } from "./SocialMarks";
 import { DESCRIPTION, phoneHref } from "@/lib/site";
-
-const MARK: Record<string, (props: { size?: number }) => React.JSX.Element> = {
-  Instagram: InstagramMark,
-  Facebook: FacebookMark,
-};
 
 /* The close of every public page — the one place a footer belongs and the one
    thing the dial, the dock and the hero never cover: the hotel's mark, how to
@@ -83,7 +78,7 @@ export default function SiteFooter() {
           {socials.length > 0 && (
             <ul className="site-footer-socials">
               {socials.map((s) => {
-                const Icon = MARK[s.label];
+                const Icon = MARKS[s.label];
                 return (
                   <li key={s.label}>
                     <a

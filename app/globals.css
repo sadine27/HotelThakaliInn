@@ -4198,7 +4198,7 @@ html[data-dial-open] .dial-seg {
 
 .adm-page {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 
@@ -4474,6 +4474,729 @@ html[data-dial-open] .dial-seg {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #777;
+}
+
+/* ── Admin: the settings console ───────────────────────────────────────────
+   /admin/settings used to be thirteen identical boxes stretched across the
+   full column, and it read as a blank form: nothing about a box says whether
+   it wants "+977 9840007925" or "9840007925", so the person filling it in
+   guesses, and half the time guesses wrong. The fix is half structure (see
+   lib/settings-schema.ts) and half this — controls sized and grouped like
+   instruments, so the shape of a control answers the question its label asks.
+
+   Still deliberately not the guest site's look; see the note at the top of the
+   admin block. This is more tool, not more website: hard rules, square
+   corners, no shadows except the bevel that makes a button feel pressed, and
+   the brand green reserved for the one control that commits. */
+
+.adm-con {
+  /* Local to the console. The admin ground is untokenised on purpose, so these
+     live here rather than in :root, where they would imply the guest site can
+     use them. --green is the exception — it is the brand, defined
+     unconditionally at :root, and it marks the single committing action. */
+  --con-face: #f4f5f6;
+  --con-sunk: #e6e8ea;
+  --con-rule: #b8bcc0;
+  --con-edge: #8b9196;
+  --con-ink: #16191c;
+  --con-dim: #5a6169;
+  --con-lit: #1c7a3e;
+  --con-bad: #b00020;
+  --con-warn: #8a6100;
+  --con-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ── Panels ── */
+
+.adm-con-panel {
+  margin: 0 0 18px;
+  padding: 0 14px 14px;
+  border: 1px solid var(--con-rule);
+  border-radius: 0;
+  background: var(--con-face);
+}
+
+.adm-con-panel > legend {
+  margin-left: -4px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--con-ink);
+}
+
+/* The console's whole answer to "why is there so much empty space": short
+   fields sit two or three to a row instead of one 1100px box each. auto-fit
+   rather than a fixed column count, so the same rule collapses to one column
+   on a phone without a second media query. */
+.adm-con-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px 16px;
+  align-items: start;
+}
+
+/* A field holding a whole URL, or a row of its own controls, opts out of the
+   grid rather than being squeezed into one cell of it. */
+.adm-con-wide {
+  grid-column: 1 / -1;
+}
+
+/* ── Fields ── */
+
+.adm-con-field {
+  min-width: 0;
+}
+
+.adm-con-field > label:not(.adm-con-tick),
+.adm-con-legend {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--con-dim);
+}
+
+.adm-con input,
+.adm-con select,
+.adm-con textarea {
+  border: 1px solid var(--con-edge);
+  border-radius: 0;
+  padding: 7px 8px;
+  background: #fff;
+  color: var(--con-ink);
+  /* Sunk, against the raised buttons: an input is a hole, a button is a knob,
+     and the two must never be mistakable for each other at a glance. */
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.13);
+}
+
+.adm-con input:disabled,
+.adm-con select:disabled,
+.adm-con textarea:disabled {
+  background: var(--con-sunk);
+  color: var(--con-dim);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.adm-con input[readonly] {
+  background: var(--con-sunk);
+  box-shadow: none;
+}
+
+/* Every number, code and URL. Tabular figures are most of why the panel reads
+   as an instrument rather than a form, and they stop a coordinate's digits
+   shifting sideways as it is edited. */
+.adm-con-mono,
+.adm-con input.adm-con-mono,
+.adm-con-readout {
+  font-family: var(--con-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+/* Sized to what they hold. A latitude in a 1000px-wide box is the single
+   loudest piece of "nobody ever looked at this form". */
+.adm-con input.adm-w-coord {
+  width: 14ch;
+}
+.adm-con input.adm-w-post {
+  width: 8ch;
+}
+.adm-con input.adm-w-ward {
+  width: 7ch;
+}
+.adm-con input.adm-w-num {
+  width: 8ch;
+}
+/* Fixed, not auto: `width: auto` on a <select> sizes it to its widest OPTION,
+   so the country code box came out as wide as "United Arab Emirates" and
+   pushed the number onto its own line. */
+.adm-con select.adm-w-unit {
+  width: 12ch;
+}
+/* Wide enough for "+977 Nepal" — the code first, so the half that matters is
+   the half that survives when a longer country name is clipped. */
+.adm-con select.adm-w-cc {
+  width: 16ch;
+}
+
+/* A select inside a row or a pair is one control among several, not the row.
+   Without this it inherits `.adm select { width: 100% }` and takes the whole
+   line to itself. */
+.adm-con-row > select,
+.adm-con-pair > select {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+}
+
+/* A prefix and its number are one value, so they sit on one line and read as
+   one control. This pair is what makes the country code impossible to leave
+   off: it is not something you can forget to type, it is something you pick. */
+.adm-con-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.adm-con-pair > input:not([class*="adm-w-"]) {
+  flex: 1 1 12ch;
+  min-width: 0;
+}
+
+/* ── Lamps ────────────────────────────────────────────────────────────────
+   A dot AND a word, never the dot alone — colour is not allowed to be the only
+   carrier of a state. Fixed height, so a lamp appearing or changing cannot
+   nudge the rest of the row. */
+
+.adm-con-lamp {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 18px;
+  margin-top: 4px;
+  font-family: var(--con-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-dim);
+}
+
+.adm-con-lamp::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.adm-con-lamp[data-state="ok"] {
+  color: var(--con-lit);
+}
+.adm-con-lamp[data-state="bad"] {
+  color: var(--con-bad);
+}
+.adm-con-lamp[data-state="req"] {
+  color: var(--con-warn);
+}
+.adm-con-lamp[data-state="off"] {
+  visibility: hidden;
+}
+
+/* The sentence under a red lamp. It says what to do about it, which is what
+   earns it the width. */
+.adm-con-err {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--con-bad);
+}
+
+.adm-con-hint {
+  margin: 3px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--con-dim);
+}
+
+/* What the value becomes — "dials as tel:+977…", the composed address line.
+   Monospace and dimmed, so it reads as a readout rather than another field. */
+.adm-con-readout {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--con-dim);
+  overflow-wrap: anywhere;
+}
+
+.adm-con-readout b {
+  color: var(--con-ink);
+  font-weight: 600;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────
+   The XAMPP physics, and the reason for them: a control that visibly sinks
+   under the finger tells you it did something. A flat rectangle that merely
+   recolours does not, and a form whose controls feel inert gets filled in
+   like one. */
+
+.adm .adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* Well past the 24×24 CSS px floor for a pointer target. */
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--con-edge);
+  border-radius: 0;
+  background: linear-gradient(#fdfdfd, #e4e7e9);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.18);
+  color: var(--con-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.adm .adm-btn:hover:not(:disabled) {
+  background: linear-gradient(#fff, #eceff1);
+}
+
+/* The bevel inverts, so the light that was on the top edge moves to the
+   bottom — the button is genuinely pressed in, not just tinted. */
+.adm .adm-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  background: linear-gradient(#dcdfe1, #eef0f2);
+  box-shadow:
+    inset -1px -1px 0 rgba(255, 255, 255, 0.7),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.22);
+  filter: none;
+}
+
+.adm .adm-btn:disabled {
+  background: var(--con-sunk);
+  box-shadow: none;
+  color: #767b80;
+  cursor: not-allowed;
+}
+
+/* The one control that commits. Brand green rather than the generic steel,
+   because exactly one button on this page changes the live site. */
+.adm .adm-btn--go {
+  min-width: 132px;
+  border-color: var(--green-ink);
+  background: linear-gradient(#456654, var(--green));
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.28),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.3);
+  color: #fff;
+}
+
+.adm .adm-btn--go:hover:not(:disabled) {
+  background: linear-gradient(#4d7059, var(--green));
+}
+
+.adm .adm-btn--go:active:not(:disabled) {
+  background: linear-gradient(var(--green-ink), #3d5b4b);
+  box-shadow:
+    inset -1px -1px 0 rgba(255, 255, 255, 0.15),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.adm .adm-btn--sm {
+  min-height: 28px;
+  padding: 0 9px;
+  font-size: 11px;
+}
+
+.adm .adm-btn--x {
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  font-size: 14px;
+  letter-spacing: 0;
+  color: var(--con-bad);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm .adm-btn:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ── Repeatable rows ──────────────────────────────────────────────────────
+   Socials, arrival, good-to-know. An explicit [+ ADD] and an [×] per row is
+   the whole point: a textarea of newline-separated values leaves someone
+   wondering whether a blank line counts and whether the last one needs a
+   comma. A row either exists or it does not. */
+
+.adm-con-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm-con-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--con-rule);
+  background: #fff;
+}
+
+.adm-con-row > .adm-con-flex {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+/* The lamp sits in the row, not under it: a reserved line per row read as the
+   same dead space this rebuild exists to remove, and a fixed-width lamp holds
+   its place just as well. The message below it is the only part that appears
+   and disappears, and only a row with a real problem grows. */
+.adm-con-row > .adm-con-lamp {
+  flex: 0 0 auto;
+  min-width: 62px;
+  margin-top: 0;
+}
+
+.adm-con-row > .adm-con-note {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.adm-con-empty {
+  margin: 0;
+  padding: 10px;
+  border: 1px dashed var(--con-rule);
+  font-size: 12px;
+  color: var(--con-dim);
+}
+
+/* ── Tick grid (what every room has) ──────────────────────────────────────
+   Thirty amenities as a dense multi-column list. Reading a list and ticking
+   is recognition; recalling thirty of them into an empty box is not, which is
+   why the live row currently holds eight. */
+
+.adm-con-ticks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 2px 12px;
+}
+
+.adm .adm-con-tick {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  /* The whole strip is the label, so the hit area is the row rather than the
+     13px box inside it. */
+  min-height: 28px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--con-ink);
+  cursor: pointer;
+}
+
+.adm-con-tick:hover {
+  background: var(--con-sunk);
+}
+
+.adm-con .adm-con-tick input {
+  width: auto;
+  margin: 0;
+  box-shadow: none;
+  accent-color: var(--green);
+}
+
+/* A custom amenity, once added — reads as a value someone put there, not a
+   box still waiting to be filled. */
+.adm-con-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.adm-con-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--con-edge);
+  background: #fff;
+  font-size: 13px;
+  color: var(--con-ink);
+}
+
+/* ── The "?" help ─────────────────────────────────────────────────────────
+   <details>, because a popover library for four sentences is not a trade
+   worth making. Sits next to the label it explains, so the answer is where
+   the question is. */
+
+.adm-con-help {
+  display: inline;
+}
+
+.adm-con-help > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 5px;
+  border: 1px solid var(--con-edge);
+  border-radius: 50%;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--con-dim);
+  cursor: help;
+  list-style: none;
+  vertical-align: -2px;
+}
+
+.adm-con-help > summary::-webkit-details-marker {
+  display: none;
+}
+
+.adm-con-help[open] > summary {
+  border-color: var(--con-ink);
+  background: var(--con-ink);
+  color: #fff;
+}
+
+.adm-con-help-body {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--con-edge);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--con-ink);
+}
+
+/* ── The email lock ── */
+
+.adm-con-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--con-warn);
+  font-family: var(--con-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--con-warn);
+}
+
+.adm-con-warn {
+  margin: 4px 0 0;
+  padding: 7px 9px;
+  border-left: 3px solid var(--con-warn);
+  background: #fff8e6;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #6b4c00;
+}
+
+/* ── Fields beside their result ───────────────────────────────────────────
+   The preview is not a mock. It renders the string the composer is about to
+   store, so what it shows and what a guest sees cannot disagree — which is
+   what earns it the width. */
+
+.adm-con-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+@media (min-width: 1000px) {
+  .adm-con-split {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 21rem);
+  }
+
+  /* Follows the fields down a long panel. Without this the preview sits at the
+     top and leaves a column of empty grey beside everything below it — the
+     exact dead space this rebuild is meant to remove. */
+  .adm-con-preview {
+    position: sticky;
+    top: 58px;
+  }
+}
+
+.adm-con-preview {
+  padding: 10px 12px 12px;
+  border: 1px solid var(--con-rule);
+  background: var(--con-sunk);
+}
+
+.adm-con-preview > h3 {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--con-dim);
+}
+
+.adm-con-preview-body {
+  padding: 10px;
+  border: 1px solid var(--con-rule);
+  background: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--con-ink);
+  overflow-wrap: anywhere;
+}
+
+.adm-con-preview-body > :first-child {
+  margin-top: 0;
+}
+
+.adm-con-preview-body > :last-child {
+  margin-bottom: 0;
+}
+
+.adm-con-preview-body ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+/* The arrival list, as a term/value pair per line. A bare <dl> indents every
+   <dd> onto its own line under its <dt>, which reads as a broken list rather
+   than the compact strip the contact page actually renders. */
+.adm-con-preview-body dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 8px 0 0;
+}
+
+.adm-con-preview-body dl > div {
+  display: contents;
+}
+
+.adm-con-preview-body dt {
+  color: var(--con-dim);
+}
+
+.adm-con-preview-body dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The footer's own social row, drawn with the real glyph components at the
+   real size, so a wrong platform pick shows up here rather than on the live
+   site. */
+.adm-con-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adm-con-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--con-edge);
+  background: #fff;
+  color: var(--con-ink);
+}
+
+.adm-con-mark[data-unknown="1"] {
+  border-style: dashed;
+  border-color: var(--con-bad);
+  color: var(--con-bad);
+  font-size: 9px;
+}
+
+/* Keyless Google embed — no API key, no billing account, and it shows the pin
+   itself rather than the two numbers that claim to be it. */
+.adm-con-map {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--con-rule);
+  background: var(--con-sunk);
+}
+
+/* ── Error summary ────────────────────────────────────────────────────────
+   Complements the inline lamps, never replaces them: a summary on its own
+   says something is wrong somewhere, which on a form this long is barely
+   better than nothing. */
+
+.adm-con-summary {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 2px solid var(--con-bad);
+  background: #fff5f6;
+}
+
+.adm-con-summary h2 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--con-bad);
+}
+
+.adm-con-summary ol {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.adm-con-summary a {
+  color: var(--con-bad);
+}
+
+.adm-con-summary:focus-visible {
+  outline: 2px solid var(--con-bad);
+  outline-offset: 3px;
+}
+
+/* ── The action bar ───────────────────────────────────────────────────────
+   Sticky, because the panel is long and a save button you have to go looking
+   for is a save someone forgets. */
+
+.adm-con-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--con-rule);
+  border-top: 2px solid var(--con-edge);
+  background: var(--con-face);
+}
+
+.adm-con-bar-state {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--con-mono);
+  font-size: 11px;
+  color: var(--con-dim);
+}
+
+.adm-con-bar-state[data-state="bad"] {
+  color: var(--con-bad);
+  font-weight: 700;
+}
+
+.adm-con-bar-state[data-state="dirty"] {
+  color: var(--con-warn);
+  font-weight: 700;
 }
 
 /* ── Admin: the content editor ── */
