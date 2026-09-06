@@ -5,6 +5,7 @@
  */
 import { env } from "cloudflare:workers";
 import { mediaReferences } from "@/lib/content";
+import { REPO_MEDIA } from "@/lib/repo-media";
 import { kathmanduDay } from "@/lib/live";
 import type { Kind } from "@/lib/media";
 
@@ -115,14 +116,22 @@ export async function bankItems(): Promise<BankItem[]> {
   });
 
   const known = new Set(uploaded.map((u) => u.path));
-  const repo: BankItem[] = [...refs.keys()]
-    .filter((p) => p.startsWith("/media/") && !known.has(p))
+  /* The shipped files, plus any /media/ path a row still points at that is no
+     longer in the repo — a photo deleted from git but left on a card is a hole
+     on the live site, and the only way anyone finds out is seeing it here. */
+  const repo: BankItem[] = [
+    ...new Set([...REPO_MEDIA, ...[...refs.keys()].filter((p) => p.startsWith("/media/"))]),
+  ]
+    .filter((p) => !known.has(p))
     .sort()
     .map((path) => ({
       path,
       key: "",
       kind: /\.(mp4|mov|webm)$/i.test(path) ? ("video" as const) : ("photo" as const),
-      name: path.split("/").pop() ?? path,
+      /* The folder as well as the file: public/media holds a buffet.jpg under
+         breakfast/ and another under gallery/, and a picker offering two things
+         both called "buffet.jpg" is a picker that cannot be used. */
+      name: path.replace("/media/", ""),
       bytes: 0,
       width: 0,
       height: 0,

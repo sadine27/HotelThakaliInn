@@ -65,4 +65,25 @@ assert.ok(MAX_BYTES.video > 5 * MAX_BYTES.photo, "a clip needs far more room tha
    or the feature they were made for cannot use them. */
 assert.ok(MAX_BYTES.video > 3 * 1024 * 1024, "must comfortably fit the existing gallery clips");
 
+/* The shipped-media manifest against the files actually in the repo. A photo
+   added to public/media and not listed is a photo the picker cannot offer; a
+   path listed and not on disk is a broken thumbnail in the bank. */
+{
+  const { readdirSync } = await import("node:fs");
+  const { join, posix } = await import("node:path");
+  const walk = (dir, base = "") =>
+    readdirSync(join("public/media", dir), { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory()
+        ? walk(join(dir, e.name), posix.join(base, e.name))
+        : [posix.join("/media", base, e.name)],
+    );
+  const onDisk = walk(".").sort();
+  const { REPO_MEDIA } = await import("../lib/repo-media.ts");
+  assert.deepEqual(
+    [...REPO_MEDIA].sort(),
+    onDisk,
+    "lib/repo-media.ts is out of step with public/media — regenerate it",
+  );
+}
+
 console.log("media-check: all assertions passed");

@@ -3,11 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getActor, requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { auditedWrite, alertDelete } from "@/lib/audit";
-import PhotoField from "@/components/PhotoField";
+import { auditedWrite } from "@/lib/audit";
 import AdminNotice from "@/components/AdminNotice";
+import PhotoPicker from "@/components/PhotoPicker";
 import SubmitButton from "@/components/SubmitButton";
-import { mediaReferences, section } from "@/lib/content";
+import { section } from "@/lib/content";
+import { bankItems } from "@/lib/media-store";
 
 export const dynamic = "force-dynamic";
 
@@ -58,69 +59,6 @@ function contentRedirect(
   redirect(`/admin/content?${p.toString()}`);
 }
 
-/* The client sends a MIME type it chose, and a .txt renamed to .jpg keeps its
-   text/plain nowhere at all — so the file's own first bytes decide. This is the
-   free equivalent of env.IMAGES.info(): if a paid Images subscription is ever
-   confirmed, swap in info() and delete this table. */
-const MAGIC: [string, string, number[]][] = [
-  ["image/jpeg", "jpg", [0xff, 0xd8, 0xff]],
-  ["image/png", "png", [0x89, 0x50, 0x4e, 0x47]],
-  ["image/webp", "webp", [0x52, 0x49, 0x46, 0x46]], // RIFF; bytes 8-11 spell WEBP
-];
-
-/* Comfortably above a 1600px JPEG (the seeded ones are 200-400 KB) and below
-   the 3 MB Server Action body cap in next.config.mjs, so this check is the one
-   that rejects rather than the transport. */
-const MAX = 2 * 1024 * 1024;
-
-/* Deletes a replaced or removed upload, but only when no other row points at
-   it: the image field is free text, and staff can paste another row's /img/
-   key into it. Seeded /media/ paths are never touched. Without this, every
-   photo replacement leaks ~200-400 KB into the free-tier bucket forever. */
-async function dropOrphan(image: string | undefined) {
-  if (!image?.startsWith("/img/")) return;
-  const { results } = await env.DB.prepare(
-    "SELECT 1 FROM content WHERE image = ?1 OR video = ?1 OR icon = ?1 LIMIT 1",
-  )
-    .bind(image)
-    .all();
-  if (results.length) return;
-  await env.MEDIA.delete(image.slice(5));
-}
-
-/* Every uploaded photo that no row points at any more.
- *
- * `dropOrphan` keeps the bucket clean going forward, but it did not always
- * exist, and it cannot see a row deleted straight out of D1 by hand. This is the
- * sweep: R2 holds the truth about what was uploaded, `content.image` holds the
- * truth about what is used, and anything in the first set and not the second is
- * paying rent for nothing. Only /img/ keys are considered — the seeded /media/
- * paths are files in the repo, not uploads, and are not ours to delete. */
-async function findUnused() {
-  /* R2's list() caps at 1000 keys a call and says so via `truncated`/`cursor` —
-     a single call silently stopped seeing (and thus never flagged) anything
-     uploaded past the first 1000. Looping the cursor is what keeps a bucket
-     that outgrows one page from quietly hiding its own orphans. */
-  const refsPromise = mediaReferences();
-  const objects: { key: string; size: number; uploaded: Date }[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await env.MEDIA.list({ limit: 1000, cursor });
-    objects.push(...page.objects);
-    cursor = page.truncated ? page.cursor : undefined;
-  } while (cursor);
-
-  const refs = await refsPromise;
-  /* Only /img/ keys are uploads — the seeded /media/ paths are repo files, and a
-     video column can hold an external URL that never starts with /img/. */
-  const referenced = new Set(
-    [...refs.keys()].filter((k) => k.startsWith("/img/")).map((k) => k.slice(5)),
-  );
-  return objects
-    .filter((o) => !referenced.has(o.key))
-    .map((o) => ({ key: o.key, size: o.size, uploaded: o.uploaded }));
-}
-
 /* Column names are generic because one table serves six sections. On this screen
    they need to read as the thing being edited. */
 const TITLES: Record<Section, string> = {
@@ -148,6 +86,98 @@ const TAB_LABEL: Record<Section, string> = {
   menu_mains: "Mains menu",
   menu_bar: "Bar menu",
 };
+
+/* What each tab actually is, in the words someone who has never seen this
+ * screen would use, plus a sketch of where on the public site it lands.
+ *
+ * The sentence alone was tried and is not enough: "hero" and "service" both
+ * describe things on the home page, and the difference between them is
+ * positional. A picture of the page with one band lit answers that in less time
+ * than a paragraph does, and it is the same answer for a member of staff who
+ * reads English slowly. */
+type Sketch = { page: string; blocks: string[]; lit: number };
+const EXPLAIN: Record<Section, { what: string; sketch: Sketch }> = {
+  hero: {
+    what: "The big photographs that slide across the top of the home page, each with a line of text over it. This is the first thing a guest sees.",
+    sketch: { page: "Home", blocks: ["Big slides", "Small cards", "Rooms strip"], lit: 0 },
+  },
+  service: {
+    what: "The small cards under the slides on the home page — the short boxes that say what the hotel offers. Each one can link somewhere.",
+    sketch: { page: "Home", blocks: ["Big slides", "Small cards", "Rooms strip"], lit: 1 },
+  },
+  room: {
+    what: "The room types on the Rooms page. Each row here is one room card, with its guest count, its highlights and its list of specs.",
+    sketch: { page: "Rooms", blocks: ["Room cards", "Booking panel"], lit: 0 },
+  },
+  gallery: {
+    what: "The photographs and clips in the grid on the Gallery page. A row can hold a photo, a clip, or a photo with a clip behind it.",
+    sketch: { page: "Gallery", blocks: ["Photo & clip grid"], lit: 0 },
+  },
+  amenity: {
+    what: "Everything the hotel offers, on the Amenities page. The label you give a row is the heading it gets grouped under.",
+    sketch: { page: "Amenities", blocks: ["Featured experiences", "The full list, by label"], lit: 1 },
+  },
+  menu_breakfast: {
+    what: "The breakfast list on the Cuisine page.",
+    sketch: { page: "Cuisine", blocks: ["Breakfast", "Snacks", "Mains", "Bar"], lit: 0 },
+  },
+  menu_snacks: {
+    what: "The snacks and starters list on the Cuisine page.",
+    sketch: { page: "Cuisine", blocks: ["Breakfast", "Snacks", "Mains", "Bar"], lit: 1 },
+  },
+  menu_mains: {
+    what: "The mains list on the Cuisine page.",
+    sketch: { page: "Cuisine", blocks: ["Breakfast", "Snacks", "Mains", "Bar"], lit: 2 },
+  },
+  menu_bar: {
+    what: "The bar and drinks list on the Cuisine page.",
+    sketch: { page: "Cuisine", blocks: ["Breakfast", "Snacks", "Mains", "Bar"], lit: 3 },
+  },
+};
+
+/* Inline SVG rather than a diagram library or nine hand-drawn files: it is four
+   rectangles and a caption, it inherits the console's own colours, and there is
+   nothing to keep in sync when a tab is renamed. */
+function PageSketch({ page, blocks, lit }: Sketch) {
+  const H = 20;
+  const GAP = 5;
+  const TOP = 20;
+  const height = TOP + blocks.length * (H + GAP) + 4;
+  return (
+    <svg
+      className="adm-sketch"
+      viewBox={`0 0 220 ${height}`}
+      role="img"
+      aria-label={`Where this appears on the ${page} page`}
+    >
+      <rect x="0.5" y="0.5" width="219" height={height - 1} fill="#fff" stroke="#b8bcc0" />
+      <rect x="1" y="1" width="218" height="13" fill="#e6e8ea" />
+      <text x="7" y="10.5" fontSize="7.5" fill="#5a6169">
+        {page} page
+      </text>
+      {blocks.map((b, n) => (
+        <g key={b}>
+          <rect
+            x="10"
+            y={TOP + n * (H + GAP)}
+            width="200"
+            height={H}
+            fill={n === lit ? "#1c7a3e" : "#eef0f1"}
+            stroke={n === lit ? "#1c7a3e" : "#c9ced2"}
+          />
+          <text
+            x="18"
+            y={TOP + n * (H + GAP) + 13.5}
+            fontSize="8.5"
+            fill={n === lit ? "#fff" : "#5a6169"}
+          >
+            {b}
+          </text>
+        </g>
+      ))}
+    </svg>
+  );
+}
 
 /* What travels in `extra` for the room section — mirrors app/rooms/page.tsx.
    `sizeValue` is written by /admin/settings, not here: the size belongs with the
@@ -203,28 +233,26 @@ export default async function Content({
     page?: string;
     ok?: string;
     err?: string;
-    unused?: string;
   }>;
 }) {
   const session = await requireSession();
   /* Read once for the render; every delete action re-asks at the moment of the
      write, because a grant can expire while this page is open. */
   const canDelete = (await can(session, "content.delete")).allowed;
-  const { s, q, sort: sortParam, page: pageParam, ok, err, unused: unusedParam } = await searchParams;
+  const { s, q, sort: sortParam, page: pageParam, ok, err } = await searchParams;
   const name: Section = s && isSection(s) ? s : "hero";
   const query = (q ?? "").trim();
   const sort: Sort = sortParam && isSort(sortParam) ? sortParam : "position";
   const fields = FIELDS[name];
+  const needsBank = Boolean(fields.image || fields.video || fields.icon);
 
   /* true = include unpublished. Without it the "Show on the site" checkbox is a
      one-way door: unticking a row drops it out of this list too. */
   const allRows = await section(name, true);
-  /* findUnused() lists the ENTIRE R2 bucket, page by page — real cost on a
-     bucket with hundreds of uploads. It ran on every single page load; now it
-     only runs when staff actually asks, via the link rendered below. */
-  const showUnused = unusedParam === "1";
-  const unused = showUnused ? await findUnused().catch(() => []) : [];
-
+  /* The whole bank, once, for every picker on the page — one query rather than
+     one per row. Skipped entirely on the menu tabs, which have no photo field
+     at all and would otherwise pay for a scan they never read. */
+  const bank = needsBank ? await bankItems() : [];
   /* Ten past the last row, not `rows.length`. Positions are sparse on purpose —
      the amenity seed leaves gaps between categories, running to 181 across 68
      rows — so a count would drop every new amenity into the middle of the list
@@ -274,12 +302,6 @@ export default async function Content({
   } else if (err === "menu") {
     noticeTone = "err";
     noticeMessage = "Nothing was saved — a menu row needs a price (a number).";
-  } else if (err === "upload") {
-    noticeTone = "err";
-    noticeMessage = "Not uploaded — only JPEG, PNG or WebP, and under 2 MB.";
-  } else if (err === "inuse") {
-    noticeTone = "err";
-    noticeMessage = "Not deleted — a row on the site uses that photo.";
   } else if (err === "perm") {
     noticeTone = "err";
     noticeMessage =
@@ -290,15 +312,9 @@ export default async function Content({
   } else if (ok === "added") {
     noticeTone = "ok";
     noticeMessage = "Added — it is live on the site.";
-  } else if (ok === "uploaded") {
-    noticeTone = "ok";
-    noticeMessage = "Uploaded — the live site shows the new file.";
   } else if (ok === "deleted") {
     noticeTone = "ok";
     noticeMessage = "Row deleted — it is gone from the site.";
-  } else if (ok === "purged") {
-    noticeTone = "ok";
-    noticeMessage = "Photo deleted.";
   }
 
   async function saveItem(formData: FormData) {
@@ -365,7 +381,7 @@ export default async function Content({
       "SELECT * FROM content WHERE section = ?1 AND slug = ?2",
     )
       .bind(sec, slug)
-      .first();
+      .first<{ image: string; video: string; icon: string }>();
 
     /* Mirrors the render condition on the checkbox below. If a second section
        ever grows a paid flag, both have to change together. */
@@ -424,158 +440,8 @@ export default async function Content({
         paid: paidValue,
       },
     });
+
     contentRedirect(name, query, sort, page, "ok", existing ? "saved" : "added");
-  }
-
-  async function upload(formData: FormData) {
-    "use server";
-    await requireSession();
-
-    const file = formData.get("file");
-    const sec = String(formData.get("section") ?? "");
-    const slug = String(formData.get("slug") ?? "");
-    /* The file itself failed its checks — say so rather than doing nothing.
-       Section/slug failures are defensive and stay silent. */
-    if (!(file instanceof File) || !file.size || file.size > MAX) contentRedirect(name, query, sort, page, "err", "upload");
-    if (!isSection(sec) || !slug) return;
-
-    const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-    const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
-    if (!match) contentRedirect(name, query, sort, page, "err", "upload");
-    const [type, ext] = match;
-    /* RIFF is also AVI and WAV. Only the WEBP fourcc makes it an image. */
-    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") contentRedirect(name, query, sort, page, "err", "upload");
-
-    /* The row is fetched before anything is written. The upload form only exists
-       on saved rows, so a miss means the row was deleted from another tab — and
-       an unwritten blob is the only blob that costs nothing. */
-    const row = await env.DB.prepare(
-      "SELECT image FROM content WHERE section = ?1 AND slug = ?2",
-    )
-      .bind(sec, slug)
-      .first<{ image: string }>();
-    if (!row) return;
-
-    /* The uploaded filename is never used — not as the key, not as metadata. It
-       is attacker-controlled text and a UUID answers every question it would,
-       including "is this a new photo or the old one cached forever". */
-    const key = `${crypto.randomUUID()}.${ext}`;
-    await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: type } });
-
-    const write = env.DB.prepare(
-      "UPDATE content SET image = ?3, updated_at = datetime('now') WHERE section = ?1 AND slug = ?2",
-    ).bind(sec, slug, `/img/${key}`);
-    const { meta } = await auditedWrite(write, {
-      actor: await getActor(),
-      action: "content.update",
-      section: sec,
-      slug,
-      before: { image: row.image },
-      after: { image: `/img/${key}` },
-    });
-    /* The row vanished between the SELECT and the UPDATE: take the new blob
-       back out, or it sits in the bucket forever with no row pointing at it. */
-    if (!meta.changes) {
-      await env.MEDIA.delete(key);
-      return;
-    }
-    await dropOrphan(row.image);
-    contentRedirect(name, query, sort, page, "ok", "uploaded");
-  }
-
-  /* Same shape as `upload`, but writes the `icon` column — and raster only, no
-     SVG. SVG is markup rather than pixels, and R2 would serve it back as
-     image/svg+xml, so any embedded <script> (or onload=, or an
-     <a xlink:href="javascript:">) runs as this site's own origin the moment the
-     file is opened directly. A regex blocklist cannot cover every vector, so the
-     format is simply not accepted — a small PNG covers the same use case. */
-  async function uploadIcon(formData: FormData) {
-    "use server";
-    await requireSession();
-
-    const file = formData.get("file");
-    const sec = String(formData.get("section") ?? "");
-    const slug = String(formData.get("slug") ?? "");
-    /* The file itself failed its checks — say so rather than doing nothing.
-       Section/slug failures are defensive and stay silent. */
-    if (!(file instanceof File) || !file.size || file.size > MAX) contentRedirect(name, query, sort, page, "err", "upload");
-    if (!isSection(sec) || !slug) return;
-
-    const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-    const match = MAGIC.find(([, , sig]) => sig.every((b, i) => head[i] === b));
-    if (!match) contentRedirect(name, query, sort, page, "err", "upload");
-    const [type, ext] = match;
-    if (type === "image/webp" && String.fromCharCode(...head.slice(8, 12)) !== "WEBP") contentRedirect(name, query, sort, page, "err", "upload");
-
-    const row = await env.DB.prepare(
-      "SELECT icon FROM content WHERE section = ?1 AND slug = ?2",
-    )
-      .bind(sec, slug)
-      .first<{ icon: string }>();
-    if (!row) return;
-
-    const key = `${crypto.randomUUID()}.${ext}`;
-    await env.MEDIA.put(key, file.stream(), { httpMetadata: { contentType: type } });
-
-    const write = env.DB.prepare(
-      "UPDATE content SET icon = ?3, updated_at = datetime('now') WHERE section = ?1 AND slug = ?2",
-    ).bind(sec, slug, `/img/${key}`);
-    const { meta } = await auditedWrite(write, {
-      actor: await getActor(),
-      action: "content.update",
-      section: sec,
-      slug,
-      before: { icon: row.icon },
-      after: { icon: `/img/${key}` },
-    });
-    if (!meta.changes) {
-      await env.MEDIA.delete(key);
-      return;
-    }
-    await dropOrphan(row.icon);
-    contentRedirect(name, query, sort, page, "ok", "uploaded");
-  }
-
-  async function deleteUnused(formData: FormData) {
-    "use server";
-    /* Deleting is the one thing on this screen that cannot be undone from the
-       admin, so it is the one thing that is not simply "are you signed in".
-       Checked here rather than only on the button: a disabled button is a
-       suggestion, and this action is reachable by a hand-crafted POST. */
-    if (!(await can(await requireSession(), "content.delete")).allowed) {
-      contentRedirect(name, query, sort, page, "err", "perm");
-    }
-    const key = String(formData.get("key") ?? "");
-    /* The list is recomputed rather than trusted: the button was rendered from
-       a snapshot, and in the seconds since, someone in another tab may have
-       pointed a row at exactly this file. Deleting it then would blank a photo
-       on the live site. */
-    const stillUnused = await findUnused();
-    if (!stillUnused.some((o) => o.key === key)) contentRedirect(name, query, sort, page, "err", "inuse");
-    /* No D1 row involved — logAudit-only, no auditedWrite batch to pair it
-       with. The audit row lands *before* the R2 delete: if the insert fails,
-       nothing is lost; the reverse order would delete the file with no
-       record if the insert then failed. */
-    const actor = await getActor();
-    const entry = {
-      actor,
-      action: "content.delete_unused",
-      section: null,
-      slug: key,
-      before: null,
-      after: null,
-    };
-    await env.DB.prepare(
-      `INSERT INTO audit_log (actor, action, section, slug, before, after)
-       VALUES (?1, 'content.delete_unused', NULL, ?2, NULL, NULL)`,
-    )
-      .bind(actor, key)
-      .run();
-    await env.MEDIA.delete(key);
-    /* Same alert every other delete fires, called directly since this action
-       has no paired D1 write for auditedWrite to batch. */
-    await alertDelete(entry).catch(() => {});
-    contentRedirect(name, query, sort, page, "ok", "purged");
   }
 
   async function removeItem(formData: FormData) {
@@ -609,19 +475,166 @@ export default async function Content({
       after: null,
     });
 
-    /* dropOrphan is a no-op for anything not under /img/, so the empty columns
-       and the seeded /media/ paths cost a string check each and nothing more. */
-    for (const file of [row.image, row.icon, row.video]) await dropOrphan(file);
     contentRedirect(name, query, sort, page, "ok", "deleted");
   }
 
+  /* One definition, two callers: the edit row and the add-new form ask for the
+     same boxes and used to carry two copies of them, which is how the photo
+     path came to be pasted twice and the "Advanced" disclosure came to hide it
+     in both. `row` undefined means the blank form. */
+  const detailFields = (row?: (typeof pageRows)[number]) => {
+    const extra = row?.extra as unknown as RoomExtra | null;
+    return (
+      <>
+        <div className="adm-con-field adm-con-wide">
+          <label>Title</label>
+          <input name="title" defaultValue={row?.title ?? ""} />
+        </div>
+
+        <div className="adm-con-field adm-con-wide">
+          <label>Label</label>
+          <input name="tag" defaultValue={row?.tag ?? ""} />
+          <small>
+            {name === "amenity"
+              ? "The heading this gets grouped under (e.g. Bathroom, Kitchen, Safety & security)."
+              : "The small line above or beside the title."}
+          </small>
+        </div>
+
+        <div className="adm-con-field adm-con-wide">
+          <label>Description</label>
+          <textarea name="body" rows={3} defaultValue={row?.body ?? ""} />
+        </div>
+
+        {fields.extra && name.startsWith("menu_") && (
+          <div className="adm-con-field">
+            <label>Price (Rs.)</label>
+            <input
+              name="price"
+              type="number"
+              min="0"
+              step="1"
+              required
+              defaultValue={(row?.extra as { price?: number } | undefined)?.price ?? 0}
+            />
+          </div>
+        )}
+
+        {fields.extra && name === "room" && (
+          <>
+            {/* A brand-new room has no size yet — it gets one on
+                /admin/settings, alongside the other two. */}
+            <input type="hidden" name="sizeValue" value={extra?.sizeValue ?? ""} />
+            <div className="adm-con-field">
+              <label>Guests</label>
+              <input name="count" defaultValue={extra?.count ?? ""} />
+            </div>
+            <div className="adm-con-field adm-con-wide">
+              <label>Highlights</label>
+              <textarea name="meta" rows={3} defaultValue={(extra?.meta ?? []).join("\n")} />
+              <small>One line per point.</small>
+            </div>
+            <div className="adm-con-field adm-con-wide">
+              <label>Specs</label>
+              <textarea
+                name="specs"
+                rows={3}
+                defaultValue={(extra?.specs ?? []).map(([l, v]) => `${l}: ${v}`).join("\n")}
+              />
+              <small>One per line, as &ldquo;Label: value&rdquo;.</small>
+            </div>
+          </>
+        )}
+
+        {fields.paid && (
+          <label className="adm-con-tick adm-con-wide">
+            <input name="paid" type="checkbox" defaultChecked={row?.paid === 1} />
+            <span>Paid / additional charge</span>
+          </label>
+        )}
+      </>
+    );
+  };
+
+  /* The photo, clip and icon controls. Every one of them used to be a text box
+     behind a disclosure marked "Advanced", which asked staff to know a file path
+     — the single loudest complaint about this screen. */
+  const mediaFields = (row?: (typeof pageRows)[number]) => (
+    <>
+      {fields.image && (
+        <PhotoPicker
+          name="image"
+          label="Photo"
+          kind="photo"
+          items={bank}
+          defaultValue={row?.image ?? ""}
+          hint="Pick one from the bank. To add a new one, use the Photo bank screen."
+        />
+      )}
+      {fields.video && (
+        <PhotoPicker
+          name="video"
+          label="Clip"
+          kind="video"
+          items={bank}
+          defaultValue={row?.video ?? ""}
+          hint="Optional. A clip plays behind the photo in the gallery."
+        />
+      )}
+      {fields.icon && (
+        <PhotoPicker
+          name="icon"
+          label="Icon"
+          kind="photo"
+          items={bank}
+          defaultValue={row?.icon ?? ""}
+          hint="Optional. Leave it empty and the site draws its own symbol for this amenity."
+        />
+      )}
+      {fields.href && (
+        <div className="adm-con-field adm-con-wide">
+          <label>Where the card goes when it is clicked</label>
+          <input name="href" defaultValue={row?.href ?? ""} placeholder="/rooms" />
+          <small>A page on this site, like /rooms or /cuisine. Leave empty for no link.</small>
+        </div>
+      )}
+    </>
+  );
+
+  /* Written on every save even when the section has no such box, so a row
+     created before FIELDS existed keeps what it already had rather than being
+     blanked by a form that never showed it. */
+  const carried = (row?: (typeof pageRows)[number]) => (
+    <>
+      {!fields.image && <input type="hidden" name="image" value={row?.image ?? ""} />}
+      {!fields.href && <input type="hidden" name="href" value={row?.href ?? ""} />}
+      {!fields.video && <input type="hidden" name="video" value={row?.video ?? ""} />}
+      {!fields.icon && <input type="hidden" name="icon" value={row?.icon ?? ""} />}
+      {!fields.extra && (
+        <input type="hidden" name="extra" value={JSON.stringify(row?.extra ?? {})} />
+      )}
+    </>
+  );
+
   return (
-    <div className="adm-page">
+    <div className="adm-page adm-con">
       <Link href="/admin" className="adm-back">
         ← Back
       </Link>
       <h1>Pages, rooms &amp; photos</h1>
-      <p className="adm-sub">{TITLES[name]}</p>
+      {/* A <div>, not the <p> it was: a <details> is flow content and a browser
+          closes an open <p> the moment it meets one, which put the help panel
+          outside the subtitle it belongs to. */}
+      <div className="adm-sub">
+        {TITLES[name]}
+        <details className="adm-con-help">
+          <summary aria-label={`What ${TAB_LABEL[name]} means`}>?</summary>
+          <div className="adm-con-help-body adm-explain">
+            <p>{EXPLAIN[name].what}</p>
+            <PageSketch {...EXPLAIN[name].sketch} />
+          </div>
+        </details>
+      </div>
       <AdminNotice tone={noticeTone} message={noticeMessage} />
 
       <nav className="adm-tabs">
@@ -645,7 +658,7 @@ export default async function Content({
           <input
             type="search"
             name="q"
-            placeholder="Search title, slug or tag…"
+            placeholder="Search title, short name or label…"
             defaultValue={query}
           />
           {sort !== "position" && <input type="hidden" name="sort" value={sort} />}
@@ -669,10 +682,17 @@ export default async function Content({
         {rows.length} {rows.length === 1 ? "item" : "items"}
         {query && <> matching “{query}”</>}
         {totalPages > 1 && <> — page {page} of {totalPages}</>}
-        {!showUnused && (
+        {needsBank && (
           <>
             {" · "}
-            <Link href={`/admin/content?s=${name}&unused=1`}>Check for unused photos</Link>
+            {/* Where photos come from and go. The "check for unused photos"
+                sweep that used to sit here is gone: it deleted R2 objects that
+                the content table did not reference, which was correct while
+                every upload belonged to one card, and wrong the moment the bank
+                made a photo a thing in its own right — an unused one is a photo
+                waiting to be used, and the bank is where it is seen and, if it
+                really is finished with, deleted. */}
+            <Link href="/admin/photos">Add or remove photos in the bank</Link>
           </>
         )}
       </p>
@@ -703,13 +723,11 @@ export default async function Content({
             </span>
           </summary>
 
-          {/* The upload is a sibling form, not a nested one — a <form> inside a
-              <form> is invalid HTML and browsers silently drop the inner one. */}
           <form className="adm-item" action={saveItem}>
             <input type="hidden" name="section" value={name} />
 
-            <div className="adm-row3">
-              <div className="adm-field">
+            <div className="adm-con-grid">
+              <div className="adm-con-field">
                 <label>Short name</label>
                 {/* Read-only on an existing row: (section, slug) is the primary
                     key, so editing it here would silently create a duplicate
@@ -718,7 +736,7 @@ export default async function Content({
                 <input name="slug" defaultValue={row.slug} required readOnly />
               </div>
 
-              <div className="adm-field">
+              <div className="adm-con-field">
                 <label>Order</label>
                 {/* The row's stored position, never its index in this list.
                     They agree only while a section is numbered densely; the
@@ -726,166 +744,54 @@ export default async function Content({
                     row — with no edit to this box at all — rewrote its place
                     in the list and moved the card. */}
                 <input name="position" type="number" defaultValue={row.position} />
+                <small>Lowest first.</small>
               </div>
 
-              <label className="adm-check adm-check--inline">
+              <label className="adm-con-tick">
                 <input name="published" type="checkbox" defaultChecked={row.published === 1} />
                 <span>Show on the site</span>
               </label>
+
+              {detailFields(row)}
+              {mediaFields(row)}
             </div>
 
-            <div className="adm-field">
-              <label>Title</label>
-              <input name="title" defaultValue={row.title} />
+            {carried(row)}
+
+            <div className="adm-item-bar">
+              <SubmitButton type="submit" className="adm-btn adm-btn--go" pendingText="Saving…">
+                Save
+              </SubmitButton>
             </div>
-
-            <div className="adm-field">
-              <label>Label</label>
-              <input name="tag" defaultValue={row.tag} />
-              <small>
-                {name === "amenity"
-                  ? "Category (e.g. Bathroom, Kitchen, Safety & security)."
-                  : "The small line above or beside the title."}
-              </small>
-            </div>
-
-            <div className="adm-field">
-              <label>Description</label>
-              <textarea name="body" rows={3} defaultValue={row.body} />
-            </div>
-
-            {fields.extra && name.startsWith("menu_") && (
-              <div className="adm-field">
-                <label>Price (Rs.)</label>
-                <input
-                  name="price"
-                  type="number"
-                  min="0"
-                  step="1"
-                  required
-                  defaultValue={(row.extra as { price?: number } | null)?.price ?? 0}
-                />
-              </div>
-            )}
-
-            {fields.extra && name === "room" && (
-              <>
-                <input
-                  type="hidden"
-                  name="sizeValue"
-                  value={(row.extra as unknown as RoomExtra | null)?.sizeValue ?? ""}
-                />
-                <div className="adm-field">
-                  <label>Guests</label>
-                  <input name="count" defaultValue={(row.extra as unknown as RoomExtra | null)?.count ?? ""} />
-                </div>
-                <div className="adm-field">
-                  <label>Highlights</label>
-                  <textarea
-                    name="meta"
-                    rows={3}
-                    defaultValue={((row.extra as unknown as RoomExtra | null)?.meta ?? []).join("\n")}
-                  />
-                  <small>One line per point.</small>
-                </div>
-                <div className="adm-field">
-                  <label>Specs</label>
-                  <textarea
-                    name="specs"
-                    rows={3}
-                    defaultValue={((row.extra as unknown as RoomExtra | null)?.specs ?? [])
-                      .map(([l, v]) => `${l}: ${v}`)
-                      .join("\n")}
-                  />
-                  <small>One per line, as "Label: value".</small>
-                </div>
-              </>
-            )}
-
-            {fields.paid && (
-              <label className="adm-check">
-                <input name="paid" type="checkbox" defaultChecked={row.paid === 1} />
-                <span>Paid / additional charge</span>
-              </label>
-            )}
-
-            {(fields.href || fields.image || fields.video || fields.icon) && (
-              <details className="adm-advanced">
-                <summary>Advanced</summary>
-
-                {fields.href && (
-                  <div className="adm-field">
-                    <label>Link</label>
-                    <input name="href" defaultValue={row.href} />
-                  </div>
-                )}
-
-                {fields.image && (
-                  <div className="adm-field">
-                    <label>Photo path</label>
-                    <input name="image" defaultValue={row.image} />
-                    <small>A path like /media/rooms/deluxe-king.jpg</small>
-                  </div>
-                )}
-
-                {fields.video && (
-                  <div className="adm-field">
-                    <label>Video URL</label>
-                    <input name="video" defaultValue={row.video} />
-                  </div>
-                )}
-
-                {fields.icon && (
-                  <div className="adm-field">
-                    <label>Icon path</label>
-                    <input name="icon" defaultValue={row.icon} />
-                    <small>A path like /img/&lt;uuid&gt;.png — set by the icon upload below.</small>
-                  </div>
-                )}
-              </details>
-            )}
-
-            {/* Not shown when the section has no such field, but still written
-                on every save so a row created before FIELDS existed keeps
-                whatever it already had rather than being blanked. */}
-            {!fields.image && <input type="hidden" name="image" value={row.image} />}
-            {!fields.href && <input type="hidden" name="href" value={row.href} />}
-            {!fields.video && <input type="hidden" name="video" value={row.video} />}
-            {!fields.icon && <input type="hidden" name="icon" value={row.icon} />}
-            {!fields.extra && <input type="hidden" name="extra" value={JSON.stringify(row.extra)} />}
-
-            <SubmitButton type="submit" pendingText="Saving…">
-              Save
-            </SubmitButton>
           </form>
 
-          {fields.image && (
-            <form action={upload} encType="multipart/form-data" className="adm-upload">
-              <input type="hidden" name="section" value={name} />
-              <input type="hidden" name="slug" value={row.slug} />
-              <label>photo</label>
-              <PhotoField />
-              <SubmitButton type="submit" pendingText="Uploading…">
-                Upload photo
-              </SubmitButton>
-              <small>
-                JPEG, PNG or WebP. Big photos are resized in your browser before they are sent, so
-                a photo straight off a phone or camera is fine. It replaces the image path above.
-              </small>
-            </form>
-          )}
-
-          {fields.icon && (
-            <form action={uploadIcon} encType="multipart/form-data" className="adm-upload">
-              <input type="hidden" name="section" value={name} />
-              <input type="hidden" name="slug" value={row.slug} />
-              <label>icon</label>
-              <input type="file" name="file" accept="image/png,image/webp,image/jpeg" required />
-              <SubmitButton type="submit" pendingText="Uploading…">
-                Upload icon
-              </SubmitButton>
-              <small>PNG, WebP or JPEG (no SVG — see the comment in this file). It replaces the icon path above.</small>
-            </form>
+          {/* Item 4: the delete for this row lives on this row, and is its own
+              form — a <form> inside a <form> is invalid HTML and browsers
+              silently drop the inner one. It used to sit in one stack at the
+              bottom of the page labelled "Delete <slug>", which made deleting
+              the wrong thing a matter of misreading one of forty near-identical
+              short names. The disclosure is the two-step confirm: no JavaScript,
+              and it cannot be armed on the way past to Save. */}
+          {canDelete ? (
+            <details className="adm-item-danger">
+              <summary>Delete this one…</summary>
+              <form action={removeItem}>
+                <input type="hidden" name="section" value={name} />
+                <input type="hidden" name="slug" value={row.slug} />
+                <p>
+                  Delete <b>{row.title || row.slug}</b>? It goes from the site immediately, and
+                  there is no undo.
+                </p>
+                <SubmitButton type="submit" className="adm-btn adm-btn--bad" pendingText="Deleting…">
+                  Yes, delete it
+                </SubmitButton>
+              </form>
+            </details>
+          ) : (
+            <p className="adm-item-locked">
+              Deleting is the developer&rsquo;s. An owner can be given it for 24 hours — ask them.
+              Everything else here is yours to change.
+            </p>
           )}
         </details>
       ))}
@@ -900,202 +806,115 @@ export default async function Content({
         </nav>
       )}
 
-      {/* The blank row that adds a new item. Always open, and separate from the
-          list above it, so it reads as "start something new" rather than as one
-          more collapsed card to notice among the rest. */}
-      <details className="adm-row adm-row--new" open>
-        <summary className="adm-summary">+ Add new</summary>
+      {/* Item 6: adding something new is a sequence, not a blank clone of the
+          edit row. Numbered steps in the order the questions actually occur —
+          what is it, what does it say, what does it look like, where does it go
+          — so nobody has to work out which of a dozen boxes is the required
+          one. The <ol> numbers itself, so a section with no photo field simply
+          has three steps rather than a gap where step 3 was. */}
+      <fieldset className="adm-con-panel adm-new">
+        <legend>Add a new one</legend>
         <form className="adm-item" action={saveItem}>
           <input type="hidden" name="section" value={name} />
-
-          <div className="adm-row3">
-            <div className="adm-field">
-              <label>Short name</label>
-              <input name="slug" required />
-              <small>A short name, lowercase, no spaces. It cannot be changed later.</small>
-            </div>
-            <div className="adm-field">
-              <label>Order</label>
-              <input name="position" type="number" defaultValue={nextPosition} />
-              <small>Lowest first.</small>
-            </div>
-            <label className="adm-check adm-check--inline">
-              <input name="published" type="checkbox" defaultChecked />
-              <span>Show on the site</span>
-            </label>
-          </div>
-
-          <div className="adm-field">
-            <label>Title</label>
-            <input name="title" />
-          </div>
-
-          <div className="adm-field">
-            <label>Label</label>
-            <input name="tag" />
-            <small>
-              {name === "amenity"
-                ? "Category (e.g. Bathroom, Kitchen, Safety & security)."
-                : "The small line above or beside the title."}
-            </small>
-          </div>
-
-          <div className="adm-field">
-            <label>Description</label>
-            <textarea name="body" rows={3} />
-          </div>
-
-          {fields.extra && name.startsWith("menu_") && (
-            <div className="adm-field">
-              <label>Price (Rs.)</label>
-              <input name="price" type="number" min="0" step="1" required defaultValue={0} />
-            </div>
-          )}
-
-          {fields.extra && name === "room" && (
-            <>
-              {/* A brand-new room has no size yet — it gets one on
-                  /admin/settings, alongside the other two. */}
-              <input type="hidden" name="sizeValue" value="" />
-              <div className="adm-field">
-                <label>Guests</label>
-                <input name="count" />
+          <ol className="adm-steps">
+            <li>
+              <b>Name it</b>
+              <div className="adm-con-grid">
+                <div className="adm-con-field">
+                  <label>Short name</label>
+                  <input name="slug" required placeholder="deluxe-king" />
+                  <small>Lowercase, no spaces. It cannot be changed later.</small>
+                </div>
+                <div className="adm-con-field adm-con-wide">
+                  <label>Title</label>
+                  <input name="title" />
+                </div>
               </div>
-              <div className="adm-field">
-                <label>Highlights</label>
-                <textarea name="meta" rows={3} />
-                <small>One line per point.</small>
-              </div>
-              <div className="adm-field">
-                <label>Specs</label>
-                <textarea name="specs" rows={3} />
-                <small>One per line, as "Label: value".</small>
-              </div>
-            </>
-          )}
+            </li>
 
-          {fields.paid && (
-            <label className="adm-check">
-              <input name="paid" type="checkbox" />
-              <span>Paid / additional charge</span>
-            </label>
-          )}
-
-          {(fields.href || fields.image || fields.video || fields.icon) && (
-            <details className="adm-advanced">
-              <summary>Advanced</summary>
-
-              {fields.href && (
-                <div className="adm-field">
-                  <label>Link</label>
-                  <input name="href" />
+            <li>
+              <b>Say what it is</b>
+              <div className="adm-con-grid">
+                <div className="adm-con-field adm-con-wide">
+                  <label>Label</label>
+                  <input name="tag" />
+                  <small>
+                    {name === "amenity"
+                      ? "The heading this gets grouped under (e.g. Bathroom, Kitchen, Safety & security)."
+                      : "The small line above or beside the title."}
+                  </small>
                 </div>
-              )}
-
-              {fields.image && (
-                <div className="adm-field">
-                  <label>Photo path</label>
-                  <input name="image" />
-                  <small>A path like /media/rooms/deluxe-king.jpg. Photo upload happens after adding.</small>
+                <div className="adm-con-field adm-con-wide">
+                  <label>Description</label>
+                  <textarea name="body" rows={3} />
                 </div>
-              )}
-
-              {fields.video && (
-                <div className="adm-field">
-                  <label>Video URL</label>
-                  <input name="video" />
-                </div>
-              )}
-
-              {fields.icon && (
-                <div className="adm-field">
-                  <label>Icon path</label>
-                  <input name="icon" />
-                </div>
-              )}
-            </details>
-          )}
-
-          {!fields.image && <input type="hidden" name="image" value="" />}
-          {!fields.href && <input type="hidden" name="href" value="" />}
-          {!fields.video && <input type="hidden" name="video" value="" />}
-          {!fields.icon && <input type="hidden" name="icon" value="" />}
-          {!fields.extra && <input type="hidden" name="extra" value="{}" />}
-
-          <SubmitButton type="submit" pendingText="Adding…">
-            Add
-          </SubmitButton>
-        </form>
-      </details>
-
-      {showUnused && (
-        <div className="adm-unused">
-          <h2>Photos nothing is using</h2>
-          {unused.length === 0 ? (
-            <p>Nothing to clean up right now.</p>
-          ) : (
-          <p>
-            {unused.length} uploaded {unused.length === 1 ? "photo is" : "photos are"} not shown
-            anywhere on the site — replaced by a newer one, or left behind by a row that was
-            deleted. They cost storage and nothing else. Deleting one cannot change any page,
-            because no page points at it.
-          </p>
-          )}
-          <ul>
-            {unused.map((o) => (
-              <li key={o.key}>
-                {/* The photo itself, not just its name: staff recognise a room,
-                    not a UUID, and "is this the one I meant to keep" is the only
-                    question this panel has to answer. */}
-                <a href={`/img/${o.key}`} target="_blank" rel="noopener noreferrer">
-                  <img src={`/img/${o.key}`} alt="" loading="lazy" />
-                </a>
-                <span className="adm-unused-meta">
-                  {Math.round(o.size / 1024)} KB
-                  <br />
-                  {o.uploaded.toISOString().slice(0, 10)}
-                </span>
-                {canDelete ? (
-                  <form action={deleteUnused}>
-                    <input type="hidden" name="key" value={o.key} />
-                    <SubmitButton type="submit" pendingText="Deleting…">
-                      Delete
-                    </SubmitButton>
-                  </form>
-                ) : (
-                  <span className="adm-unused-meta">developer only</span>
+                {fields.extra && name.startsWith("menu_") && (
+                  <div className="adm-con-field">
+                    <label>Price (Rs.)</label>
+                    <input name="price" type="number" min="0" step="1" required defaultValue={0} />
+                  </div>
                 )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                {fields.extra && name === "room" && (
+                  <>
+                    <input type="hidden" name="sizeValue" value="" />
+                    <div className="adm-con-field">
+                      <label>Guests</label>
+                      <input name="count" />
+                    </div>
+                    <div className="adm-con-field adm-con-wide">
+                      <label>Highlights</label>
+                      <textarea name="meta" rows={3} />
+                      <small>One line per point.</small>
+                    </div>
+                    <div className="adm-con-field adm-con-wide">
+                      <label>Specs</label>
+                      <textarea name="specs" rows={3} />
+                      <small>One per line, as &ldquo;Label: value&rdquo;.</small>
+                    </div>
+                  </>
+                )}
+                {fields.paid && (
+                  <label className="adm-con-tick adm-con-wide">
+                    <input name="paid" type="checkbox" />
+                    <span>Paid / additional charge</span>
+                  </label>
+                )}
+              </div>
+            </li>
 
-      {pageRows.length > 0 && (
-        <div className="adm-danger">
-          <h2>Delete</h2>
-          {/* Editing is everyone's; deleting is not. Said in words rather than
-              by an absent button, so nobody spends ten minutes looking for the
-              one control that was quietly removed. */}
-          {!canDelete ? (
-            <p>
-              Deleting is the developer&rsquo;s. An owner can be given it for 24 hours — ask
-              them. Everything else on this page is yours to change.
-            </p>
-          ) : (
-            <p>There is no undo. A deleted row is gone from the site immediately.</p>
-          )}
-          {canDelete && pageRows.map((row) => (
-            <form key={`rm-${row.slug}`} action={removeItem} className="adm-remove">
-              <input type="hidden" name="section" value={name} />
-              <input type="hidden" name="slug" value={row.slug} />
-              <SubmitButton type="submit" pendingText="Deleting…">
-                Delete {row.slug}
-              </SubmitButton>
-            </form>
-          ))}
-        </div>
-      )}
+            {needsBank && (
+              <li>
+                <b>Choose its picture</b>
+                <div className="adm-con-grid">{mediaFields()}</div>
+              </li>
+            )}
+
+            <li>
+              <b>Put it in place</b>
+              <div className="adm-con-grid">
+                <div className="adm-con-field">
+                  <label>Order</label>
+                  <input name="position" type="number" defaultValue={nextPosition} />
+                  <small>Lowest first. This lands it at the end.</small>
+                </div>
+                <label className="adm-con-tick">
+                  <input name="published" type="checkbox" defaultChecked />
+                  <span>Show on the site</span>
+                </label>
+              </div>
+            </li>
+          </ol>
+
+          {carried()}
+
+          <div className="adm-item-bar">
+            <SubmitButton type="submit" className="adm-btn adm-btn--go" pendingText="Adding…">
+              Add it
+            </SubmitButton>
+          </div>
+        </form>
+      </fieldset>
+
     </div>
   );
 }

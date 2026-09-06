@@ -311,14 +311,14 @@ export default function BankBoard({
                       then it can be deleted.
                     </p>
                   ) : !confirming ? (
-                    <button type="button" className="adm-btn adm-btn--x" onClick={() => setConfirming(true)}>
+                    <button type="button" className="adm-btn adm-btn--bad" onClick={() => setConfirming(true)}>
                       Delete this {one.kind === "video" ? "video" : "photo"}
                     </button>
                   ) : (
                     <form action={removeItem} className="adm-bank-confirm">
                       <input type="hidden" name="key" value={one.key} />
                       <p>Delete {one.name}? This cannot be undone.</p>
-                      <SubmitButton className="adm-btn adm-btn--x" pendingText="Deleting…">
+                      <SubmitButton className="adm-btn adm-btn--bad" pendingText="Deleting…">
                         Yes, delete it
                       </SubmitButton>
                       <button type="button" className="adm-btn" onClick={() => setConfirming(false)}>
