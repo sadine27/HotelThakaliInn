@@ -33,16 +33,6 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "Malformed request." }, { status: 400 });
   }
 
-  /* Honeypot. A real guest never sees this field, so anything in it is a bot —
-     answered with a success it can't distinguish from the real one, because a 400
-     tells the author which check to route around next time. */
-  if (clean(body.note_ref, 200)) {
-    /* Logged for the same reason as the booking trap: a guest caught by this
-       is told their message sent, and nothing else records that it did not. */
-    console.error("[contact] trap fired", clean(body.name, LIMITS.name), clean(body.email, LIMITS.email));
-    return Response.json({ ok: true });
-  }
-
   /* CF-Connecting-IP is set by the edge and cannot be spoofed by the client. */
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
   /* Prefixed so the two forms get one counter each rather than sharing a
@@ -50,6 +40,20 @@ export async function POST(request: Request) {
      the same minute must not be turned away by their own earlier request. */
   const { success } = await env.FORM_IP.limit({ key: `contact:${ip}` });
   if (!success) return Response.json({ ok: false, error: "Too many requests." }, { status: 429 });
+
+  /* Honeypot. A real guest never sees this field, so anything in it is a bot —
+     answered with a success it can't distinguish from the real one, because a 400
+     tells the author which check to route around next time. Checked after the
+     limiter for the same reason as the booking trap: it logs, so it must not be
+     a free path. */
+  if (clean(body.note_ref, 200)) {
+    /* Logged for the same reason as the booking trap: a guest caught by this
+       is told their message sent, and nothing else records that it did not.
+       Newlines stripped — guest-chosen text must not be able to forge a line. */
+    const who = `${clean(body.name, LIMITS.name)} <${clean(body.email, LIMITS.email)}>`;
+    console.error("[contact] trap fired", who.replace(/[\r\n]+/g, " "));
+    return Response.json({ ok: true });
+  }
 
   const name = clean(body.name, LIMITS.name);
   const email = clean(body.email, LIMITS.email);

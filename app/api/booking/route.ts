@@ -42,17 +42,6 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "Malformed request." }, { status: 400 });
   }
 
-  /* Honeypot, same shape as the contact form: a real guest never sees this
-     field, so anything in it is a bot — answered with a success it cannot
-     distinguish from the real one. */
-  if (clean(body.note_ref, 200)) {
-    /* Logged, because a trap that fires on a real guest is otherwise invisible:
-       they are shown a confirmation and the request reaches nobody. `wrangler
-       tail` is then the only way to learn a booking was thrown away. */
-    console.error("[booking] trap fired", clean(body.name, LIMITS.name), clean(body.email, LIMITS.email));
-    return Response.json({ ok: true });
-  }
-
   /* CF-Connecting-IP is set by the edge and cannot be spoofed by the client. */
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
   /* Prefixed so the two forms get one counter each rather than sharing a
@@ -60,6 +49,23 @@ export async function POST(request: Request) {
      the same minute must not be turned away by their own earlier request. */
   const { success } = await env.FORM_IP.limit({ key: `booking:${ip}` });
   if (!success) return Response.json({ ok: false, error: "Too many requests." }, { status: 429 });
+
+  /* Honeypot, same shape as the contact form: a real guest never sees this
+     field, so anything in it is a bot — answered with a success it cannot
+     distinguish from the real one. Checked after the limiter, not before: the
+     trap now writes a log line, and a path that returns before the limiter is
+     one a bot can hammer for free. */
+  if (clean(body.note_ref, 200)) {
+    /* Logged, because a trap that fires on a real guest is otherwise invisible:
+       they are shown a confirmation and the request reaches nobody. `wrangler
+       tail` is then the only way to learn a booking was thrown away. Newlines
+       stripped for the same reason they are stripped from the subject below —
+       this is guest-chosen text, and a log line it can forge is a log line
+       that lies. */
+    const who = `${clean(body.name, LIMITS.name)} <${clean(body.email, LIMITS.email)}>`;
+    console.error("[booking] trap fired", who.replace(/[\r\n]+/g, " "));
+    return Response.json({ ok: true });
+  }
 
   const name = clean(body.name, LIMITS.name);
   const email = clean(body.email, LIMITS.email);
