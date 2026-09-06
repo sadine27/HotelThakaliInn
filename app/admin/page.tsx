@@ -121,7 +121,7 @@ export default async function Admin() {
   const prevFrom = kathmanduDayBefore(13, now);
   const prevTo = kathmanduDayBefore(7, now);
 
-  const [requestsUpcoming, requestsLast7, messagesTotal, messagesLast7, settingsCount, contentPublished, contentHidden, auditLast7, nextArrival, daily, topPages, topRefs, viewSpan, direct] = await Promise.all([
+  const [requestsUpcoming, requestsLast7, messagesTotal, messagesLast7, settingsCount, contentPublished, contentHidden, menuShown, menuHidden, auditLast7, nextArrival, daily, topPages, topRefs, viewSpan, direct] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(*) as count FROM booking_requests WHERE check_in >= ?`).bind(kathmanduToday).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT COUNT(*) as count FROM booking_requests WHERE substr(created_at, 1, 10) >= ?`).bind(kathmanduSevenDaysAgo).first<{ count: number }>()
@@ -132,9 +132,16 @@ export default async function Admin() {
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT COUNT(*) as count FROM settings`).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
-    env.DB.prepare(`SELECT COUNT(*) as count FROM content WHERE published = 1`).first<{ count: number }>()
+    /* The menu is counted separately from here down: it has its own screen now,
+       and folding 250 dishes into the same number as the six hero slides made
+       that tile's figure mean nothing. */
+    env.DB.prepare(`SELECT COUNT(*) as count FROM content WHERE published = 1 AND section NOT LIKE 'menu_%'`).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
-    env.DB.prepare(`SELECT COUNT(*) as count FROM content WHERE published = 0`).first<{ count: number }>()
+    env.DB.prepare(`SELECT COUNT(*) as count FROM content WHERE published = 0 AND section NOT LIKE 'menu_%'`).first<{ count: number }>()
+      .then(r => r?.count ?? 0).catch(() => null),
+    env.DB.prepare(`SELECT COUNT(*) as count FROM content WHERE published = 1 AND section LIKE 'menu_%'`).first<{ count: number }>()
+      .then(r => r?.count ?? 0).catch(() => null),
+    env.DB.prepare(`SELECT COUNT(*) as count FROM content WHERE published = 0 AND section LIKE 'menu_%'`).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
     env.DB.prepare(`SELECT COUNT(*) as count FROM audit_log WHERE substr(created_at, 1, 10) >= ?`).bind(kathmanduSevenDaysAgo).first<{ count: number }>()
       .then(r => r?.count ?? 0).catch(() => null),
@@ -219,6 +226,14 @@ export default async function Admin() {
             primary={contentPublished}
             secondaryLabel="hidden"
             secondary={contentHidden}
+          />
+          <Tile
+            href="/admin/menu"
+            label="Menu"
+            description="Every dish and drink on the Cuisine page, and what it costs"
+            primary={menuShown}
+            secondaryLabel="hidden"
+            secondary={menuHidden}
           />
           <Tile
             href="/admin/check"

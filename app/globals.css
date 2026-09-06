@@ -6042,6 +6042,71 @@ html[data-dial-open] .dial-seg {
   -webkit-box-orient: vertical;
 }
 
+/* ── The menu, grouped by its printed headings ──
+   /admin/menu is 89 rows on its longest tab. Ordered by a number and nothing
+   else, finding "the price of a chicken momo" means reading all of them; under
+   the heading the printed menu already prints them under, it means reading
+   seven. The heading is a real <h2>, so the same shortcut works for a screen
+   reader's heading list. */
+
+.adm-group {
+  margin: 22px 0 0;
+}
+
+.adm-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--con-rule);
+  font-family: var(--con-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--con-dim);
+}
+
+.adm-group-count {
+  font-weight: 400;
+  color: var(--con-edge);
+}
+
+/* ── One line is one price ── */
+
+/* Not a <label>: .adm label { display: block } would break the row, and the
+   number's meaning is the same three letters on every line. */
+.adm-price-cur {
+  flex: 0 0 auto;
+  font-family: var(--con-mono);
+  font-size: 11px;
+  color: var(--con-dim);
+}
+
+/* Fixed rather than flexible, so every price on the tab starts in the same
+   column — a column of prices you cannot scan is the reason this screen was
+   worth building. */
+.adm .adm-price-amt {
+  flex: 0 0 7rem;
+  width: 7rem;
+  font-family: var(--con-mono);
+  text-align: right;
+}
+
+.adm-price-add {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.adm-price-add > small {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
 /* ── Booking request ────────────────────────────────────────────────────────
    A quiet form page. The site's only other form is the contact panel's, so
    this borrows its input and button treatment token for token — two forms,
@@ -7345,6 +7410,31 @@ html[data-dial-open] .dial-seg {
   font-size: 13px;
   color: #6b5a3a;
   white-space: nowrap;
+}
+
+/* A drink sold in several pours prints them side by side under the one name,
+   the way the printed menu does — four rows of Glenfiddich were four titles
+   that differed only in a number at the end. Wraps rather than shrinks: at
+   phone width four pours go over two lines and stay readable. */
+.book-item-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px 14px;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  color: #6b5a3a;
+}
+
+.book-item-size {
+  white-space: nowrap;
+}
+
+.book-item-size-label {
+  margin-right: 5px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #8a7a58;
 }
 
 .book-item-body {

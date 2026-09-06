@@ -4,7 +4,20 @@ import { useMemo, useState } from "react";
 import Img from "@/components/Img";
 import LogoMark from "@/components/LogoMark";
 
-export type MenuItem = { slug: string; title: string; tag: string; body: string; price: number };
+export type Size = { label: string; price: number };
+export type MenuItem = {
+  slug: string;
+  title: string;
+  tag: string;
+  body: string;
+  price: number;
+  /* A drink sold in more than one pour, container or strength. The bar list was
+     seeded as one row per price point — four rows of Glenfiddich, one per
+     volume — and migration 0022 folded each of those back into the one drink
+     they always were. `price` still holds the first (smallest) of them, so a
+     reader that predates `sizes` shows a real price rather than nothing. */
+  sizes?: Size[];
+};
 
 /* Curated grouping of the printed menu's ~27 category headings into a book-
    sized set of tabs — hand-picked to match reference.png's spine (a handful
@@ -119,7 +132,22 @@ export default function MenuBook({
                       <li className="book-item" key={item.slug}>
                         <div className="book-item-row">
                           <h3>{item.title}</h3>
-                          <span className="book-item-price">Rs. {item.price}</span>
+                          {item.sizes?.length ? (
+                            <span className="book-item-sizes">
+                              {item.sizes.map((s) => (
+                                <span className="book-item-size" key={s.label}>
+                                  {/* The space is written, not left to the
+                                      label's margin: a screen reader reads the
+                                      text, and "30mlRs. 820" is what it reads
+                                      without one. */}
+                                  <span className="book-item-size-label">{s.label}</span>{" "}
+                                  Rs. {s.price}
+                                </span>
+                              ))}
+                            </span>
+                          ) : (
+                            <span className="book-item-price">Rs. {item.price}</span>
+                          )}
                         </div>
                         {item.body && <p className="book-item-body">{item.body}</p>}
                       </li>

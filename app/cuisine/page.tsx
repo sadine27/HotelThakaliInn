@@ -1,4 +1,4 @@
-import MenuBook, { type MenuItem } from "@/components/MenuBook";
+import MenuBook, { type MenuItem, type Size } from "@/components/MenuBook";
 import { section, settings } from "@/lib/content";
 import { DESCRIPTION } from "@/lib/site";
 
@@ -12,18 +12,21 @@ export const metadata = {
    does not exist, and only reads this literal in the page file itself. */
 export const dynamic = "force-dynamic";
 
-/* Flattens a content row into what MenuBook needs — just the price pulled out
-   of `extra`, nothing else about the row's storage shape leaks past here. */
-function toMenuItem(r: { slug: string; title: string; tag: string; body: string; extra: { price: number } }): MenuItem {
-  return { slug: r.slug, title: r.title, tag: r.tag, body: r.body, price: r.extra.price };
+type MenuExtra = { price: number; sizes?: Size[] };
+
+/* Flattens a content row into what MenuBook needs — just the price and, for a
+   drink sold in several pours, its sizes; nothing else about the row's storage
+   shape leaks past here. */
+function toMenuItem(r: { slug: string; title: string; tag: string; body: string; extra: MenuExtra }): MenuItem {
+  return { slug: r.slug, title: r.title, tag: r.tag, body: r.body, price: r.extra.price, sizes: r.extra.sizes };
 }
 
 export default async function Cuisine() {
   const [menuBreakfast, menuSnacks, menuMains, menuBar, config] = await Promise.all([
-    section<{ price: number }>("menu_breakfast"),
-    section<{ price: number }>("menu_snacks"),
-    section<{ price: number }>("menu_mains"),
-    section<{ price: number }>("menu_bar"),
+    section<MenuExtra>("menu_breakfast"),
+    section<MenuExtra>("menu_snacks"),
+    section<MenuExtra>("menu_mains"),
+    section<MenuExtra>("menu_bar"),
     settings(),
   ]);
 

@@ -25,10 +25,10 @@ const SECTIONS = [
      no effect on the site. The three dead rows are left in D1 — they point only
      at repo photos under /media/, so they pin nothing in R2 and cost nothing. */
   "amenity",
-  "menu_breakfast",
-  "menu_snacks",
-  "menu_mains",
-  "menu_bar",
+  /* No "menu_*" either: the four menu sections moved to /admin/menu, where a
+     drink is one row holding its pours rather than four rows with four slugs.
+     They cannot come back here — this screen rebuilds `extra` from the boxes it
+     draws, and the one Price box it drew would throw a drink's sizes away. */
 ] as const;
 type Section = (typeof SECTIONS)[number];
 
@@ -67,10 +67,6 @@ const TITLES: Record<Section, string> = {
   room: "Rooms",
   gallery: "Gallery photos",
   amenity: "Amenities",
-  menu_breakfast: "Menu — Breakfast",
-  menu_snacks: "Menu — Snacks & Starters",
-  menu_mains: "Menu — Mains",
-  menu_bar: "Menu — Bar & Drinks",
 };
 
 /* Short enough to sit in a row of tabs — TITLES above is the full sentence
@@ -81,10 +77,6 @@ const TAB_LABEL: Record<Section, string> = {
   room: "Rooms",
   gallery: "Gallery",
   amenity: "Amenities",
-  menu_breakfast: "Breakfast menu",
-  menu_snacks: "Snacks menu",
-  menu_mains: "Mains menu",
-  menu_bar: "Bar menu",
 };
 
 /* What each tab actually is, in the words someone who has never seen this
@@ -116,22 +108,6 @@ const EXPLAIN: Record<Section, { what: string; sketch: Sketch }> = {
   amenity: {
     what: "Everything the hotel offers, on the Amenities page. The label you give a row is the heading it gets grouped under.",
     sketch: { page: "Amenities", blocks: ["Featured experiences", "The full list, by label"], lit: 1 },
-  },
-  menu_breakfast: {
-    what: "The breakfast list on the Cuisine page.",
-    sketch: { page: "Cuisine", blocks: ["Breakfast", "Snacks", "Mains", "Bar"], lit: 0 },
-  },
-  menu_snacks: {
-    what: "The snacks and starters list on the Cuisine page.",
-    sketch: { page: "Cuisine", blocks: ["Breakfast", "Snacks", "Mains", "Bar"], lit: 1 },
-  },
-  menu_mains: {
-    what: "The mains list on the Cuisine page.",
-    sketch: { page: "Cuisine", blocks: ["Breakfast", "Snacks", "Mains", "Bar"], lit: 2 },
-  },
-  menu_bar: {
-    what: "The bar and drinks list on the Cuisine page.",
-    sketch: { page: "Cuisine", blocks: ["Breakfast", "Snacks", "Mains", "Bar"], lit: 3 },
   },
 };
 
@@ -196,7 +172,7 @@ type RoomExtra = {
    blank box on this screen for every single row, so it is left off the form
    entirely rather than shown empty: href only feeds the home page's small
    cards, video only the gallery, icon and paid only amenities, and extra only
-   rooms (count/meta/specs) and the four menus (price). */
+   rooms (count/meta/specs). */
 const FIELDS: Record<
   Section,
   { image?: true; href?: true; video?: true; icon?: true; paid?: true; extra?: true }
@@ -206,10 +182,6 @@ const FIELDS: Record<
   room: { image: true, extra: true },
   gallery: { image: true, video: true },
   amenity: { icon: true, paid: true },
-  menu_breakfast: { extra: true },
-  menu_snacks: { extra: true },
-  menu_mains: { extra: true },
-  menu_bar: { extra: true },
 };
 
 const SORTS = ["position", "title", "updated"] as const;
@@ -217,10 +189,10 @@ type Sort = (typeof SORTS)[number];
 const isSort = (value: string): value is Sort => (SORTS as readonly string[]).includes(value);
 const SORT_LABEL: Record<Sort, string> = { position: "Order", title: "Title", updated: "Recently updated" };
 
-/* menu_bar alone seeds past 120 rows — a <details> per row is a full <form>
-   with a dozen fields, and rendering all of them unconditionally is what
-   makes that tab heavy to load and scroll. Paged the same way search and sort
-   already are: through the URL, no client state. */
+/* The amenity tab is 68 rows, and a <details> per row is a full <form> with a
+   dozen fields — rendering all of them unconditionally is what makes a long tab
+   heavy to load and scroll. Paged the same way search and sort already are:
+   through the URL, no client state. */
 const PAGE_SIZE = 40;
 
 export default async function Content({
@@ -244,15 +216,14 @@ export default async function Content({
   const query = (q ?? "").trim();
   const sort: Sort = sortParam && isSort(sortParam) ? sortParam : "position";
   const fields = FIELDS[name];
-  const needsBank = Boolean(fields.image || fields.video || fields.icon);
 
   /* true = include unpublished. Without it the "Show on the site" checkbox is a
      one-way door: unticking a row drops it out of this list too. */
   const allRows = await section(name, true);
   /* The whole bank, once, for every picker on the page — one query rather than
-     one per row. Skipped entirely on the menu tabs, which have no photo field
-     at all and would otherwise pay for a scan they never read. */
-  const bank = needsBank ? await bankItems() : [];
+     one per row. Every section left on this screen shows a photo, a clip or an
+     icon, so there is no tab that would pay for a scan it never reads. */
+  const bank = await bankItems();
   /* Ten past the last row, not `rows.length`. Positions are sparse on purpose —
      the amenity seed leaves gaps between categories, running to 181 across 68
      rows — so a count would drop every new amenity into the middle of the list
@@ -285,8 +256,8 @@ export default async function Content({
   /* Every write action below ends with a contentRedirect(...) call: it
      redirects back to the tab, search and page the staff member was on,
      tagging the outcome with an ok/err code that the popup below turns into
-     plain words. Keeping the place matters — a Save on page 3 of menu_bar
-     should land back on page 3, not on a collapsed list from the top. Each
+     plain words. Keeping the place matters — a Save on page 2 of the amenity
+     list should land back on page 2, not on a collapsed list from the top. Each
      action closes over name/query/sort/page (plain values, fine to
      serialize) and calls the module-level helper directly rather than
      through a local wrapper — see the comment on contentRedirect itself for
@@ -299,9 +270,6 @@ export default async function Content({
   if (err === "json") {
     noticeTone = "err";
     noticeMessage = "Nothing was saved — that JSON wouldn't parse. Keep the braces and quotes.";
-  } else if (err === "menu") {
-    noticeTone = "err";
-    noticeMessage = "Nothing was saved — a menu row needs a price (a number).";
   } else if (err === "perm") {
     noticeTone = "err";
     noticeMessage =
@@ -326,18 +294,14 @@ export default async function Content({
     const slug = get("slug");
     if (!isSection(sec) || !slug) return;
 
-    /* menu_* and room are the only sections FIELDS marks extra:true for, and
-       both now have their own plain-language inputs below rather than a raw
-       JSON textarea — this builds the same column from them. Every other
-       section carries its existing `extra` forward unedited via a hidden
-       field, still JSON-checked since that hidden value is still attacker-
-       reachable through a hand-crafted POST to this action. */
+    /* room is the only section FIELDS marks extra:true for, and it has its own
+       plain-language inputs below rather than a raw JSON textarea — this builds
+       the same column from them. Every other section carries its existing
+       `extra` forward unedited via a hidden field, still JSON-checked since
+       that hidden value is still attacker-reachable through a hand-crafted POST
+       to this action. */
     let extra: string;
-    if (sec.startsWith("menu_")) {
-      const price = Number(get("price"));
-      if (!Number.isFinite(price)) contentRedirect(name, query, sort, page, "err", "menu");
-      extra = JSON.stringify({ price });
-    } else if (sec === "room") {
+    if (sec === "room") {
       const meta = get("meta")
         .split("\n")
         .map((s) => s.trim())
@@ -394,7 +358,7 @@ export default async function Content({
     /* `paid` is COALESCEd, not written flat: its checkbox only renders for
        amenities, and an unchecked box and an absent one look identical in a
        FormData. Binding the usual `? 1 : 0` would therefore have every save of a
-       hero slide or a menu row quietly stamp 0 over whatever the column held.
+       hero slide or a room quietly stamp 0 over whatever the column held.
        Null means "no opinion" — keep the stored value, and 0 on insert. */
     const write = env.DB.prepare(
       `INSERT INTO content (section, slug, position, title, tag, body, href, image, video, icon, extra, published, paid, updated_at)
@@ -505,20 +469,6 @@ export default async function Content({
           <label>Description</label>
           <textarea name="body" rows={3} defaultValue={row?.body ?? ""} />
         </div>
-
-        {fields.extra && name.startsWith("menu_") && (
-          <div className="adm-con-field">
-            <label>Price (Rs.)</label>
-            <input
-              name="price"
-              type="number"
-              min="0"
-              step="1"
-              required
-              defaultValue={(row?.extra as { price?: number } | undefined)?.price ?? 0}
-            />
-          </div>
-        )}
 
         {fields.extra && name === "room" && (
           <>
@@ -682,19 +632,15 @@ export default async function Content({
         {rows.length} {rows.length === 1 ? "item" : "items"}
         {query && <> matching “{query}”</>}
         {totalPages > 1 && <> — page {page} of {totalPages}</>}
-        {needsBank && (
-          <>
-            {" · "}
-            {/* Where photos come from and go. The "check for unused photos"
-                sweep that used to sit here is gone: it deleted R2 objects that
-                the content table did not reference, which was correct while
-                every upload belonged to one card, and wrong the moment the bank
-                made a photo a thing in its own right — an unused one is a photo
-                waiting to be used, and the bank is where it is seen and, if it
-                really is finished with, deleted. */}
-            <Link href="/admin/photos">Add or remove photos in the bank</Link>
-          </>
-        )}
+        {" · "}
+        {/* Where photos come from and go. The "check for unused photos" sweep
+            that used to sit here is gone: it deleted R2 objects that the
+            content table did not reference, which was correct while every
+            upload belonged to one card, and wrong the moment the bank made a
+            photo a thing in its own right — an unused one is a photo waiting to
+            be used, and the bank is where it is seen and, if it really is
+            finished with, deleted. */}
+        <Link href="/admin/photos">Add or remove photos in the bank</Link>
       </p>
 
       {pageRows.map((row) => (
@@ -848,12 +794,6 @@ export default async function Content({
                   <label>Description</label>
                   <textarea name="body" rows={3} />
                 </div>
-                {fields.extra && name.startsWith("menu_") && (
-                  <div className="adm-con-field">
-                    <label>Price (Rs.)</label>
-                    <input name="price" type="number" min="0" step="1" required defaultValue={0} />
-                  </div>
-                )}
                 {fields.extra && name === "room" && (
                   <>
                     <input type="hidden" name="sizeValue" value="" />
@@ -882,12 +822,10 @@ export default async function Content({
               </div>
             </li>
 
-            {needsBank && (
-              <li>
-                <b>Choose its picture</b>
-                <div className="adm-con-grid">{mediaFields()}</div>
-              </li>
-            )}
+            <li>
+              <b>Choose its picture</b>
+              <div className="adm-con-grid">{mediaFields()}</div>
+            </li>
 
             <li>
               <b>Put it in place</b>
