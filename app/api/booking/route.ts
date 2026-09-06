@@ -45,7 +45,13 @@ export async function POST(request: Request) {
   /* Honeypot, same shape as the contact form: a real guest never sees this
      field, so anything in it is a bot — answered with a success it cannot
      distinguish from the real one. */
-  if (clean(body.website, 200)) return Response.json({ ok: true });
+  if (clean(body.note_ref, 200)) {
+    /* Logged, because a trap that fires on a real guest is otherwise invisible:
+       they are shown a confirmation and the request reaches nobody. `wrangler
+       tail` is then the only way to learn a booking was thrown away. */
+    console.error("[booking] trap fired", clean(body.name, LIMITS.name), clean(body.email, LIMITS.email));
+    return Response.json({ ok: true });
+  }
 
   /* CF-Connecting-IP is set by the edge and cannot be spoofed by the client. */
   const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";

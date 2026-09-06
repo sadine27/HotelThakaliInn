@@ -3884,12 +3884,13 @@ html[data-dial-open] .dial-seg {
 
 /* Off-screen rather than display:none — a bot that skips hidden fields would
    also skip this one, and then the trap catches nothing. */
+/* display:none, not off-screen. A field the browser still lays out is a field
+   the browser's autofill and every password manager will happily fill, and a
+   filled trap is answered with a silent success — which is exactly how one real
+   booking request showed the guest a confirmation and reached nobody. Bots read
+   the DOM, not the stylesheet, so nothing is lost by hiding it properly. */
 .con-trap {
-  position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
+  display: none;
 }
 
 /* .room-more's green glass, unchanged. */

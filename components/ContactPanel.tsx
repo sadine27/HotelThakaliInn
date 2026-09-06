@@ -264,7 +264,7 @@ export default function ContactPanel({ info }: { info: ContactInfo }) {
               <input
                 className="con-trap"
                 type="text"
-                name="website"
+                name="note_ref"
                 tabIndex={-1}
                 autoComplete="off"
                 aria-hidden="true"

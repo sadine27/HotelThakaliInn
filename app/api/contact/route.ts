@@ -36,7 +36,10 @@ export async function POST(request: Request) {
   /* Honeypot. A real guest never sees this field, so anything in it is a bot —
      answered with a success it can't distinguish from the real one, because a 400
      tells the author which check to route around next time. */
-  if (clean(body.website, 200)) {
+  if (clean(body.note_ref, 200)) {
+    /* Logged for the same reason as the booking trap: a guest caught by this
+       is told their message sent, and nothing else records that it did not. */
+    console.error("[contact] trap fired", clean(body.name, LIMITS.name), clean(body.email, LIMITS.email));
     return Response.json({ ok: true });
   }
 
