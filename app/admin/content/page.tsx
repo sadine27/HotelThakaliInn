@@ -180,6 +180,16 @@ const FIELDS: Record<
   gallery: { image: true, video: true },
 };
 
+/* Sections whose list of rows is the page's own shape, not a collection.
+   The home cards and the room types are each drawn by a layout built around
+   the rows that exist — a card strip, a fanned 3D carousel — and a row added
+   or removed here changes that layout rather than adding an entry to a list.
+   Both are edited freely; neither is added to or deleted from. The gallery
+   and the hero slides are collections and stay open. Enforced in saveItem and
+   removeItem too, not just by drawing fewer buttons: a hand-crafted POST
+   reaches the same actions. */
+const FIXED: readonly Section[] = ["service", "room"];
+
 const SORTS = ["position", "title", "updated"] as const;
 type Sort = (typeof SORTS)[number];
 const isSort = (value: string): value is Sort => (SORTS as readonly string[]).includes(value);
@@ -213,6 +223,7 @@ export default async function Content({
   const query = (q ?? "").trim();
   const sort: Sort = sortParam && isSort(sortParam) ? sortParam : "position";
   const fields = FIELDS[name];
+  const fixed = FIXED.includes(name);
 
   /* true = include unpublished. Without it the "Show on the site" checkbox is a
      one-way door: unticking a row drops it out of this list too. */
@@ -271,6 +282,10 @@ export default async function Content({
     noticeTone = "err";
     noticeMessage =
       "Nothing was deleted — deleting is the developer's, and an owner needs access granted for it. Everything else on this page is yours to edit.";
+  } else if (err === "fixed") {
+    noticeTone = "err";
+    noticeMessage =
+      "Nothing changed — home cards and room types can be edited, but not added or removed. That is a change to the shape of the page, so it goes through the developer.";
   } else if (ok === "saved") {
     noticeTone = "ok";
     noticeMessage = "Saved.";
@@ -344,6 +359,11 @@ export default async function Content({
       .bind(sec, slug)
       .first<{ image: string; video: string; icon: string }>();
 
+    /* An edit of a row that exists is always fine; only the create is refused. */
+    if (!existing && FIXED.includes(sec)) {
+      contentRedirect(name, query, sort, page, "err", "fixed");
+    }
+
     const published = formData.get("published") ? 1 : 0;
 
     /* Insert-or-update in one statement: there is no separate "new row" screen,
@@ -407,6 +427,9 @@ export default async function Content({
     const sec = String(formData.get("section") ?? "");
     const slug = String(formData.get("slug") ?? "");
     if (!isSection(sec) || !slug) return;
+    if (FIXED.includes(sec)) {
+      contentRedirect(name, query, sort, page, "err", "fixed");
+    }
 
     /* Resolved before the write, same reason as saveItem: a D1 batch can't
        feed a DELETE ... RETURNING's output into the audit-log INSERT that
@@ -694,7 +717,12 @@ export default async function Content({
               the wrong thing a matter of misreading one of forty near-identical
               short names. The disclosure is the two-step confirm: no JavaScript,
               and it cannot be armed on the way past to Save. */}
-          {canDelete ? (
+          {fixed ? (
+            <p className="adm-item-locked">
+              This one cannot be deleted here — untick &ldquo;Show on the site&rdquo; to take it
+              off the site and keep it.
+            </p>
+          ) : canDelete ? (
             <details className="adm-item-danger">
               <summary>Delete this one…</summary>
               <form action={removeItem}>
@@ -734,6 +762,13 @@ export default async function Content({
           — so nobody has to work out which of a dozen boxes is the required
           one. The <ol> numbers itself, so a section with no photo field simply
           has three steps rather than a gap where step 3 was. */}
+      {fixed ? (
+        <p className="adm-item-locked">
+          {name === "room" ? "Room types are" : "The home cards are"} fixed — edit the ones
+          above as much as you like. Adding one changes how the page is built, so it goes
+          through the developer.
+        </p>
+      ) : (
       <fieldset className="adm-con-panel adm-new">
         <legend>Add a new one</legend>
         <form className="adm-item" action={saveItem}>
@@ -820,6 +855,7 @@ export default async function Content({
           </div>
         </form>
       </fieldset>
+      )}
 
     </div>
   );
