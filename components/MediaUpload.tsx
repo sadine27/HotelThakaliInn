@@ -24,7 +24,12 @@ import { ACCEPT, CAPS, MAX_BYTES, RAW_REFUSAL, formatBytes } from "@/lib/media";
  * unlike JPEG it keeps transparency, so no white is painted underneath), always
  * resized rather than only when over 900 KB, a 400px thumbnail made in the same
  * pass so the contact sheet does not download forty full photos to draw forty
- * squares, and several files at once. */
+ * squares, and several files at once.
+ *
+ * Choosing a file no longer starts the upload. A camera names its files
+ * DSC04417.JPG and a phone names them IMG_20260904_113052.jpg, and a bank full
+ * of those is a bank nobody can search — so the file goes into a queue, is
+ * given a name in plain words, and only then is sent. */
 
 const MAX_EDGE = 1600;
 const THUMB_EDGE = 400;
@@ -32,7 +37,8 @@ const THUMB_EDGE = 400;
    and the extra ~8 KB is invisible against a 200 KB file. */
 const QUALITY = 0.82;
 
-type Status = { name: string; state: "working" | "done" | "failed"; note: string };
+type Queued = { file: File; label: string };
+type Status = { file: string; label: string; state: "working" | "done" | "failed"; note: string };
 
 async function render(bitmap: ImageBitmap, maxEdge: number): Promise<Blob | null> {
   const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
@@ -48,15 +54,16 @@ async function render(bitmap: ImageBitmap, maxEdge: number): Promise<Blob | null
 export default function MediaUpload({ leftToday }: { leftToday: number }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [queue, setQueue] = useState<Queued[]>([]);
   const [rows, setRows] = useState<Status[]>([]);
   const [busy, setBusy] = useState(false);
   const [left, setLeft] = useState(leftToday);
 
-  function mark(name: string, state: Status["state"], note: string) {
-    setRows((prev) => prev.map((r) => (r.name === name ? { ...r, state, note } : r)));
+  function mark(file: string, state: Status["state"], note: string) {
+    setRows((prev) => prev.map((r) => (r.file === file ? { ...r, state, note } : r)));
   }
 
-  async function send(file: File): Promise<boolean> {
+  async function send({ file, label }: Queued): Promise<boolean> {
     /* Checked here as well as on the server so a 68 MB negative is refused
        instantly instead of after a minute of uploading. */
     if (/\.(arw|cr2|cr3|nef|dng|raf|orf|rw2|srw|pef)$/i.test(file.name)) {
@@ -93,7 +100,10 @@ export default function MediaUpload({ leftToday }: { leftToday: number }) {
     const body = new FormData();
     body.set("file", full, "photo.webp");
     if (thumb) body.set("thumb", thumb, "thumb.webp");
-    body.set("name", file.name);
+    body.set("name", label);
+    /* Sent alongside the name so the server's raw-negative check still has a
+       real extension to look at — the name is now a sentence, not a filename. */
+    body.set("filename", file.name);
     body.set("width", String(width));
     body.set("height", String(height));
 
@@ -115,32 +125,43 @@ export default function MediaUpload({ leftToday }: { leftToday: number }) {
     return true;
   }
 
-  async function onChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function onChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = [...(event.currentTarget.files ?? [])];
-    if (!files.length) return;
     /* The same file picked twice in one batch would collide in the status list,
-       which is keyed by name. */
-    const seen = new Set<string>();
-    const batch = files.filter((f) => !seen.has(f.name) && seen.add(f.name));
+       which is keyed by file name. */
+    const seen = new Set(queue.map((q) => q.file.name));
+    const add = files
+      .filter((f) => !seen.has(f.name) && seen.add(f.name))
+      .map((file) => ({ file, label: "" }));
+    setQueue((prev) => [...prev, ...add]);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function upload(event: React.FormEvent) {
+    event.preventDefault();
+    const batch = queue.map((q) => ({ ...q, label: q.label.trim() }));
+    if (!batch.length || batch.some((q) => !q.label)) return;
 
     setBusy(true);
-    setRows(batch.map((f) => ({ name: f.name, state: "working", note: "resizing…" })));
+    setRows(batch.map((q) => ({ file: q.file.name, label: q.label, state: "working", note: "resizing…" })));
     let landed = 0;
     /* One at a time, not Promise.all: the daily counter is read and written per
        request, and ten parallel uploads would all read the same count and all
        decide they were allowed. Sequential is also kinder to a hotel's uplink. */
-    for (const file of batch) if (await send(file)) landed++;
+    for (const q of batch) if (await send(q)) landed++;
     setBusy(false);
-    if (inputRef.current) inputRef.current.value = "";
+    setQueue([]);
     /* Re-renders the server component so the new photos appear in the sheet and
        the gauge moves, without throwing away the status list above. */
     if (landed) router.refresh();
   }
 
+  const unnamed = queue.filter((q) => !q.label.trim()).length;
+
   return (
     <div className="adm-bank-upload">
       <label className="adm-btn adm-btn--go" data-disabled={busy || left <= 0 ? "1" : undefined}>
-        {busy ? "Uploading…" : "Add photos"}
+        {queue.length ? "Add more" : "Choose photos"}
         <input
           ref={inputRef}
           type="file"
@@ -157,11 +178,57 @@ export default function MediaUpload({ leftToday }: { leftToday: number }) {
           : `${left} of ${CAPS.photo} left today`}
       </p>
 
+      {queue.length > 0 && (
+        <form className="adm-bank-queue" onSubmit={upload}>
+          <p className="adm-bank-queue-lead">
+            Name each one before it goes up. This is what everyone searches by later —
+            <b> DSC04417.JPG</b> tells nobody anything.
+          </p>
+          <ul>
+            {queue.map((q, n) => (
+              <li key={q.file.name}>
+                <span className="adm-bank-queue-file">{q.file.name}</span>
+                <input
+                  value={q.label}
+                  required
+                  maxLength={120}
+                  disabled={busy}
+                  placeholder="Deluxe king room, morning light"
+                  aria-label={`Name for ${q.file.name}`}
+                  onChange={(e) =>
+                    setQueue((prev) =>
+                      prev.map((p, i) => (i === n ? { ...p, label: e.target.value } : p)),
+                    )
+                  }
+                />
+                {!busy && (
+                  <button
+                    type="button"
+                    className="adm-bank-queue-drop"
+                    aria-label={`Remove ${q.file.name}`}
+                    onClick={() => setQueue((prev) => prev.filter((_, i) => i !== n))}
+                  >
+                    ×
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          <button type="submit" className="adm-btn adm-btn--go" disabled={busy || unnamed > 0}>
+            {busy
+              ? "Uploading…"
+              : unnamed > 0
+                ? `Name ${unnamed} more to upload`
+                : `Upload ${queue.length} photo${queue.length === 1 ? "" : "s"}`}
+          </button>
+        </form>
+      )}
+
       {rows.length > 0 && (
         <ul className="adm-bank-status" role="status">
           {rows.map((r) => (
-            <li key={r.name} data-state={r.state}>
-              <b>{r.name}</b>
+            <li key={r.file} data-state={r.state}>
+              <b>{r.label}</b>
               <span>{r.note}</span>
             </li>
           ))}

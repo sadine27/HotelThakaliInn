@@ -9273,6 +9273,176 @@ html[data-dial-open] .dial-seg {
   flex-basis: 100%;
 }
 
+/* ── Photos or videos, and which page they are on ── */
+
+.adm-bank-kinds {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--con-rule);
+}
+
+/* `.adm .adm-bank-kind` for the same reason as the cells below: the base admin
+   skin's `.adm button` is (0,1,1) and would paint these tabs solid #333. */
+.adm .adm-bank-kind {
+  padding: 6px 14px;
+  border: 1px solid var(--con-rule);
+  border-bottom: 0;
+  background: var(--con-sunk);
+  color: var(--con-dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.adm .adm-bank-kind:hover:not(:disabled) {
+  background: var(--con-sunk);
+  color: var(--con-ink);
+}
+
+.adm .adm-bank-kind[aria-selected="true"] {
+  background: #fff;
+  color: var(--con-ink);
+  font-weight: 700;
+  box-shadow: inset 0 3px 0 var(--con-lit);
+}
+
+.adm-bank-kind b {
+  margin-left: 6px;
+  font-family: var(--con-mono);
+  font-size: 10px;
+  color: var(--con-dim);
+}
+
+.adm-bank-filter {
+  padding: 7px 8px;
+  max-width: 190px;
+  border: 1px solid var(--con-rule);
+  background: #fff;
+  color: var(--con-ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+/* A clip has no thumbnail of its own until one is extracted, so the cell shows
+   the clip itself, seeked to its first frame. Sized exactly like the img. */
+.adm-bank-cell video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+/* The one mark that says "this moves" without needing a word for it. */
+.adm-bank-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin: -9px 0 0 -5px;
+  border-style: solid;
+  border-width: 9px 0 9px 15px;
+  border-color: transparent transparent transparent #fff;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.75));
+}
+
+.adm-bank-big video {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--con-rule);
+  background: #000;
+}
+
+/* Item 5: never typed, always derived from the content table. */
+.adm-bank-where {
+  margin: 0 0 12px;
+  padding: 7px 9px;
+  border-left: 3px solid var(--con-edge);
+  background: var(--con-sunk);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--con-dim);
+}
+
+.adm-bank-where[data-state="used"] {
+  border-left-color: var(--con-lit);
+  color: var(--con-ink);
+}
+
+/* ── Naming before uploading ── */
+
+.adm-bank-queue {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--con-rule);
+}
+
+.adm-bank-queue-lead {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--con-dim);
+}
+
+.adm-bank-queue-lead b {
+  font-family: var(--con-mono);
+  color: var(--con-ink);
+}
+
+.adm-bank-queue ul {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-bank-queue li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 6px;
+  margin-bottom: 8px;
+}
+
+.adm-bank-queue-file {
+  grid-column: 1 / -1;
+  font-family: var(--con-mono);
+  font-size: 10px;
+  color: var(--con-dim);
+  word-break: break-all;
+}
+
+.adm-bank-queue input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--con-rule);
+  background: #fff;
+  color: var(--con-ink);
+  font: inherit;
+}
+
+/* Empty until it is filled in, and the button says how many are left, so the
+   red edge is a reminder rather than a scolding. */
+.adm-bank-queue input:placeholder-shown {
+  border-color: var(--con-warn);
+}
+
+.adm .adm-bank-queue-drop {
+  padding: 2px 8px;
+  border: 1px solid var(--con-rule);
+  background: var(--con-sunk);
+  color: var(--con-dim);
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.adm .adm-bank-queue-drop:hover:not(:disabled) {
+  background: var(--con-sunk);
+  color: var(--con-bad);
+}
+
 /* One column below the width where a 340px panel stops leaving the sheet room
    for more than two thumbnails per row. */
 @media (max-width: 860px) {

@@ -49,8 +49,14 @@ export async function POST(request: Request) {
   const file = form.get("file");
   if (!(file instanceof File) || !file.size) return no("No file arrived with that upload.");
 
+  /* The name is a sentence now ("Deluxe king room"), so the raw-negative check
+     is given the original filename separately — otherwise a .ARW renamed by the
+     person uploading it would lose its one remaining tell. */
+  const label = (form.get("name")?.toString() ?? "").trim().slice(0, 120);
+  if (!label) return no("Give the photo a name first, so it can be found again later.");
+
   const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
-  const seen = sniff(head, form.get("name")?.toString() || file.name || "");
+  const seen = sniff(head, form.get("filename")?.toString() || file.name || "");
   if ("refusal" in seen) return no(seen.refusal);
   const kind: Kind = seen.kind;
 
@@ -94,7 +100,6 @@ export async function POST(request: Request) {
     const stored = file.size + thumb.size + poster.size;
 
     const num = (name: string) => Math.max(0, Math.round(Number(form.get(name)) || 0));
-    const label = (form.get("name")?.toString() || file.name || "photo").slice(0, 120);
 
     const write = env.DB.prepare(
       `INSERT INTO media_assets

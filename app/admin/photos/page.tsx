@@ -55,22 +55,25 @@ export default async function Photos({
     const key = formData.get("key")?.toString() ?? "";
     if (!key) photosRedirect("save", "err");
 
-    const caption = (formData.get("caption")?.toString() ?? "").trim().slice(0, 200);
+    /* The name is what the bank is searched by, so an empty one is not a tidy
+       row — it is a photo nobody will ever find again. */
+    const name = (formData.get("name")?.toString() ?? "").trim().slice(0, 120);
+    if (!name) photosRedirect("noname", "err");
     const origin = (formData.get("originUrl")?.toString() ?? "").trim().slice(0, 500);
     /* A link that is not a link is worse than an empty box: it looks like an
        answer to "where is the original" and is not one. */
     if (origin && !/^https?:\/\//i.test(origin)) photosRedirect("link", "err");
 
     const before = await env.DB.prepare(
-      "SELECT caption, origin_url FROM media_assets WHERE key = ?1",
+      "SELECT name, origin_url FROM media_assets WHERE key = ?1",
     )
       .bind(key)
-      .first<{ caption: string; origin_url: string }>();
+      .first<{ name: string; origin_url: string }>();
     if (!before) photosRedirect("gone", "err");
 
     const write = env.DB.prepare(
-      "UPDATE media_assets SET caption = ?2, origin_url = ?3 WHERE key = ?1",
-    ).bind(key, caption, origin);
+      "UPDATE media_assets SET name = ?2, origin_url = ?3 WHERE key = ?1",
+    ).bind(key, name, origin);
 
     await auditedWrite(write, {
       actor: actor.username,
@@ -78,7 +81,7 @@ export default async function Photos({
       section: "media",
       slug: key,
       before,
-      after: { caption, origin_url: origin },
+      after: { name, origin_url: origin },
     });
     photosRedirect("saved");
   }
@@ -132,7 +135,7 @@ export default async function Photos({
     <div className="adm-page adm-con">
       <h1>Photo bank</h1>
       <p className="adm-sub">
-        Every photo the site can use, in one place — no file names to type
+        Every photo and clip the site can use, in one place — no file names to type
       </p>
       <AdminNotice
         tone={err ? "err" : ok ? "ok" : undefined}
@@ -162,4 +165,5 @@ const ERR_MESSAGE: Record<string, string> = {
   gone: "That photo is no longer in the bank — someone else may have removed it.",
   link: "The link to the original needs to start with https:// to be openable.",
   save: "Nothing was saved — the photo could not be identified.",
+  noname: "Give it a name before saving — that is what everyone searches by.",
 };
