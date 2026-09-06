@@ -362,7 +362,7 @@ export default async function Menu({
                     <small>Optional. Most items have none.</small>
                   </div>
 
-                  <PriceRows defaultValue={sizeRows(row.extra)} />
+                  <PriceRows defaultValue={sizeRows(row.extra)} sizes={name === "menu_bar"} />
                   {photo(row)}
                 </div>
 
@@ -462,7 +462,7 @@ export default async function Menu({
             <li>
               <b>Say what it costs</b>
               <div className="adm-con-grid">
-                <PriceRows defaultValue={[{ label: "", price: 0 }]} />
+                <PriceRows defaultValue={[{ label: "", price: 0 }]} sizes={name === "menu_bar"} />
               </div>
             </li>
 

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 /* Every page here is force-dynamic and reads D1, so "the database blinked" is
    the failure this actually catches. Before it existed that was a raw 500 with
@@ -27,6 +28,10 @@ export default function Error({
     console.error(error);
   }, [error]);
 
+  /* Staff who hit this were being posted back to the guest home page, one dial
+     away from the screen they were halfway through saving. */
+  const admin = usePathname().startsWith("/admin");
+
   return (
     <div className="stop">
       <p className="stop-code stop-code--bad">Error</p>
@@ -35,15 +40,22 @@ export default function Error({
         <button className="stop-back" type="button" onClick={reset}>
           Try again
         </button>
-        <Link className="stop-back stop-back--quiet" href="/">
-          Back to the front desk
+        <Link className="stop-back stop-back--quiet" href={admin ? "/admin" : "/"}>
+          {admin ? "Back to the admin panel" : "Back to the front desk"}
         </Link>
       </div>
       {/* The digest is the only part of the error a guest may safely see, and
           it is the one part worth quoting if they tell us about it. The message
-          itself can carry query text or a binding name, so it stays server-side
-          in the Worker log. */}
-      {error.digest && <p className="stop-digest">Reference {error.digest}</p>}
+          itself can carry query text or a binding name, so guests never see it.
+          But a digest only exists for a server render — the failures being hit
+          are client-side fetches of an RSC payload, which arrive with no digest
+          at all, so a guest-safe screen was showing nothing to report. Inside
+          /admin the reader is staff, and the message is the whole diagnosis. */}
+      {error.digest ? (
+        <p className="stop-digest">Reference {error.digest}</p>
+      ) : admin ? (
+        <p className="stop-digest">{error.message}</p>
+      ) : null}
     </div>
   );
 }

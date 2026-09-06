@@ -15,13 +15,46 @@ import type { Size } from "@/lib/menu";
  * be forty copies of the same id on the bar tab — the bug this admin already
  * had once, on the photo picker. */
 
-export default function PriceRows({ defaultValue }: { defaultValue: Size[] }) {
+export default function PriceRows({
+  defaultValue,
+  sizes,
+}: {
+  defaultValue: Size[];
+  sizes: boolean;
+}) {
   const [rows, setRows] = useState(
     defaultValue.map((s) => ({ label: s.label, price: String(s.price) })),
   );
 
   const set = (i: number, patch: Partial<{ label: string; price: string }>) =>
     setRows(rows.map((r, n) => (n === i ? { ...r, ...patch } : r)));
+
+  /* The bar is the only place one thing is sold in several pours. A momo has a
+     price, and an "Add a size" button beside it is an invitation to give a
+     pancake a 30ml measure — which is exactly what happened. Posting no
+     size_label at all is what composeMenuExtra already reads as a single
+     price, so the server needs no second rule for this. */
+  if (!sizes) {
+    return (
+      <div className="adm-con-field">
+        <label>Price</label>
+        <div className="adm-con-row">
+          <span className="adm-price-cur">Rs.</span>
+          <input
+            name="size_price"
+            className="adm-price-amt"
+            type="number"
+            min="0"
+            step="1"
+            required
+            aria-label="Price"
+            value={rows[0].price}
+            onChange={(e) => set(0, { price: e.target.value })}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="adm-con-field adm-con-wide">
