@@ -2,7 +2,7 @@
    convention as components/Glyph.tsx and components/AmenityGlyph.tsx, kept in
    its own file because these six items (cup, fruit, wine, buffet, minibar,
    diet) don't belong to any amenity category the rest of the page uses. */
-export type TouchName = "cup" | "fruit" | "wine" | "buffet" | "minibar" | "diet";
+import type { TouchName } from "@/lib/amenities";
 
 export default function TouchGlyph({ name, size = 20 }: { name: TouchName; size?: number }) {
   const props = {

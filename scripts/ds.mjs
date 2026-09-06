@@ -13,7 +13,7 @@
  * Responses come back as edit blocks (see PROTOCOL) and land in .ds/ either way.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { basename, extname } from "node:path";
+import { basename, dirname, extname } from "node:path";
 
 const KEY = (readFileSync(".env.local", "utf8").match(/DEEPSEEK_API_KEY=(.+)/) || [])[1]?.trim();
 if (!KEY) throw new Error("no DEEPSEEK_API_KEY in .env.local");
@@ -174,6 +174,10 @@ if (dirty.length) {
   process.exit(1);
 }
 for (const { path, next } of planned) {
+  /* A new file may name a directory that does not exist yet — a whole new admin
+     screen is one folder and one page.tsx, and failing on the folder throws away
+     the call that just paid to write it. */
+  mkdirSync(dirname(path), { recursive: true });
   const eol = fileEol.get(path) ?? "\n";
   writeFileSync(path, eol === "\r\n" ? next.replace(/\n/g, "\r\n") : next);
   console.log("  ✓ wrote " + path);

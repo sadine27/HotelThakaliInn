@@ -2,7 +2,8 @@ import Link from "next/link";
 import AmenityGlyph from "@/components/AmenityGlyph";
 import Glyph from "@/components/Glyph";
 import Img from "@/components/Img";
-import TouchGlyph, { type TouchName } from "@/components/TouchGlyph";
+import TouchGlyph from "@/components/TouchGlyph";
+import type { AmenityExtra } from "@/lib/amenities";
 import { section, settings } from "@/lib/content";
 import { phoneHref } from "@/lib/site";
 
@@ -81,37 +82,8 @@ const EXPERIENCES: {
   },
 ];
 
-/* Twelve real rows, picked for what a guest actually asks the front desk —
-   not a second copy of the data, a curated view onto it. Slugs, not new
-   content, so a title or body edited in the admin shows up here too. */
-const HIGHLIGHT_SLUGS = [
-  "wifi",
-  "24-hour-front-desk",
-  "airport-shuttle",
-  "main-restaurant",
-  "breakfast-in-room",
-  "daily-housekeeping",
-  "air-conditioning",
-  "baggage-storage",
-  "cctv-common-areas",
-  "private-bathroom",
-  "tea-coffee-maker",
-  "room-service",
-];
-
-/* The extras a guest doesn't expect until they see them — every one of these
-   is a real Food & Drink row, not invented copy. */
-const TOUCH_SLUGS: [string, TouchName][] = [
-  ["coffee-house", "cup"],
-  ["fruit", "fruit"],
-  ["wine-champagne", "wine"],
-  ["kid-friendly-buffet", "buffet"],
-  ["minibar", "minibar"],
-  ["special-diet-meals", "diet"],
-];
-
 export default async function Amenities() {
-  const [rows, config] = await Promise.all([section("amenity"), settings()]);
+  const [rows, config] = await Promise.all([section<AmenityExtra>("amenity"), settings()]);
   if (!rows.length) return null;
 
   /* `tag` is the category heading, and rows sharing one are already adjacent
@@ -126,14 +98,14 @@ export default async function Amenities() {
     else groups.push({ tag: row.tag, items: [{ row, n }] });
   });
 
-  const bySlug = new Map(rows.map((r) => [r.slug, r]));
-  const highlights = HIGHLIGHT_SLUGS.map((s) => bySlug.get(s)).filter(
-    (r): r is (typeof rows)[number] => Boolean(r),
-  );
-  const touches = TOUCH_SLUGS.map(([s, icon]) => {
-    const row = bySlug.get(s);
-    return row && { row, icon };
-  }).filter((t): t is { row: (typeof rows)[number]; icon: TouchName } => Boolean(t));
+  /* Both strips used to be arrays of slugs compiled into this file, so changing
+     which amenities the page shows off was a deploy. They are ticks on the
+     admin row now (migration 0023), read out of the same `extra` the menu
+     already uses. `rows` is ordered by `position`, so the strips order
+     themselves by the one number the editor is already setting — nothing here
+     sorts, and an amenity moved up the list moves up the strip too. */
+  const highlights = rows.filter((r) => r.extra.featured === 1);
+  const touches = rows.flatMap((r) => (r.extra.touch ? [{ row: r, icon: r.extra.touch }] : []));
 
   return (
     <div className="am-page">

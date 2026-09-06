@@ -15,6 +15,7 @@ const LINKS = [
   { href: "/admin/messages", label: "Enquiries" },
   { href: "/admin/content", label: "Pages, rooms & photos" },
   { href: "/admin/menu", label: "Menu" },
+  { href: "/admin/amenities", label: "Amenities" },
   { href: "/admin/photos", label: "Photo bank" },
   { href: "/admin/settings", label: "Contact & facts" },
   { href: "/admin/check", label: "System check" },

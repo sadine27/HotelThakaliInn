@@ -5238,6 +5238,91 @@ html[data-dial-open] .dial-seg {
   white-space: nowrap;
 }
 
+/* ── The same faces, driven by a radio ────────────────────────────────────
+   The platform pool above lives in a client component, so its state is an
+   aria-pressed attribute React sets. The amenities screen has no JavaScript
+   at all — every control there is a plain form — so the same face goes on a
+   <label> wrapping a real radio.
+
+   The radio is left visible rather than hidden behind :has() alone. It is
+   what the keyboard drives and what a screen reader announces, and if the
+   highlight below never paints (an old browser, a blocked stylesheet) the
+   choice is still legible. :has() is decoration here, not the mechanism. */
+.adm .adm-con-choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--con-ink);
+  border: 1px solid var(--con-edge);
+  background: linear-gradient(#fdfdfd, #e4e7e9);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.adm .adm-con-choice-btn + .adm-con-choice-btn {
+  margin-left: -1px;
+}
+
+/* The pressed-button version of this pair lives in a bar of its own; the radio
+   version sits in a field with a sentence under it, and `inline-flex` would put
+   that sentence on the same line as the buttons. */
+.adm-con-field > .adm-con-choice {
+  display: flex;
+  align-self: start;
+}
+
+.adm .adm-con-pick-btn:has(input),
+.adm .adm-con-choice-btn {
+  cursor: pointer;
+}
+
+/* `width: auto` is not decoration: the console gives every `.adm-con input` a
+   width of 100%, and `flex: 0 0 auto` resolves its basis from that — so each
+   radio grew to the full width of its own button and pushed the symbol and the
+   category name straight out of the box. */
+.adm .adm-con-pick-btn input[type="radio"],
+.adm .adm-con-choice-btn input[type="radio"] {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+/* Chosen reads as chosen, the same inverted bevel the pressed buttons use, and
+   bold as well as coloured so the state survives a screen nobody can see
+   colour on. */
+.adm .adm-con-pick-btn:has(input:checked),
+.adm .adm-con-choice-btn:has(input:checked) {
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(#456654, var(--green));
+  box-shadow:
+    inset -1px -1px 0 rgba(255, 255, 255, 0.25),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* The fill above would otherwise swallow the focus ring on the radio inside. */
+.adm .adm-con-pick-btn:has(input:focus-visible),
+.adm .adm-con-choice-btn:has(input:focus-visible) {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* An amenity has no thumbnail — its category symbol stands in the same square,
+   so the rows still line up with the menu screen's. */
+.adm-thumb--glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--con-dim);
+  background: var(--con-face);
+  border: 1px solid var(--con-edge);
+}
+
 .adm-con-pick-on {
   flex: 0 0 auto;
   font-size: 13px;

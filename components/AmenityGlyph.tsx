@@ -1,27 +1,10 @@
+import { CATEGORY_ICONS } from "@/lib/amenities";
+
 /* One hand-drawn glyph per amenity category (see components/Glyph.tsx for the
    same reasoning — an icon package would outweigh the app). Each returns its
    own primitives rather than a single path, because a bell or a paw does not
    reduce to one stroke. Falls back to a plain dot for a category with no
    glyph defined yet, rather than rendering nothing. */
-const CATEGORY_ICONS: Record<string, string> = {
-  Bathroom: "bathroom",
-  "Food & Drink": "food",
-  "Business Facilities": "business",
-  "Safety & security": "safety",
-  Outdoors: "outdoors",
-  Kitchen: "kitchen",
-  "Room amenities": "bed",
-  Pets: "pets",
-  Activities: "activities",
-  "Living Area": "sofa",
-  "Media & Technology": "media",
-  Internet: "wifi",
-  Parking: "parking",
-  "Front Desk Services": "bell",
-  "Cleaning Services": "sparkle",
-  General: "info",
-  "Languages Spoken": "globe",
-};
 
 /* `icon` bypasses the category lookup for callers that already know which
    glyph they want by name (the numbered experience strip reuses "bell",

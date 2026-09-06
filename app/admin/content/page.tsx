@@ -24,8 +24,11 @@ const SECTIONS = [
      section("breakfast") any more, so its tab let staff edit rows at length for
      no effect on the site. The three dead rows are left in D1 — they point only
      at repo photos under /media/, so they pin nothing in R2 and cost nothing. */
-  "amenity",
-  /* No "menu_*" either: the four menu sections moved to /admin/menu, where a
+  /* No "amenity" and no "menu_*": both moved to screens of their own, where an
+     amenity is ticked into the highlights grid and a drink is one row holding
+     its pours. Neither can come back here — this screen rebuilds `extra` from
+     the boxes it draws, and it draws none of theirs. */
+  /* Nor "menu_*": the four menu sections moved to /admin/menu, where a
      drink is one row holding its pours rather than four rows with four slugs.
      They cannot come back here — this screen rebuilds `extra` from the boxes it
      draws, and the one Price box it drew would throw a drink's sizes away. */
@@ -66,7 +69,6 @@ const TITLES: Record<Section, string> = {
   service: "Home — the small cards",
   room: "Rooms",
   gallery: "Gallery photos",
-  amenity: "Amenities",
 };
 
 /* Short enough to sit in a row of tabs — TITLES above is the full sentence
@@ -76,7 +78,6 @@ const TAB_LABEL: Record<Section, string> = {
   service: "Home cards",
   room: "Rooms",
   gallery: "Gallery",
-  amenity: "Amenities",
 };
 
 /* What each tab actually is, in the words someone who has never seen this
@@ -104,10 +105,6 @@ const EXPLAIN: Record<Section, { what: string; sketch: Sketch }> = {
   gallery: {
     what: "The photographs and clips in the grid on the Gallery page. A row can hold a photo, a clip, or a photo with a clip behind it.",
     sketch: { page: "Gallery", blocks: ["Photo & clip grid"], lit: 0 },
-  },
-  amenity: {
-    what: "Everything the hotel offers, on the Amenities page. The label you give a row is the heading it gets grouped under.",
-    sketch: { page: "Amenities", blocks: ["Featured experiences", "The full list, by label"], lit: 1 },
   },
 };
 
@@ -175,13 +172,12 @@ type RoomExtra = {
    rooms (count/meta/specs). */
 const FIELDS: Record<
   Section,
-  { image?: true; href?: true; video?: true; icon?: true; paid?: true; extra?: true }
+  { image?: true; href?: true; video?: true; extra?: true }
 > = {
   hero: { image: true },
   service: { image: true, href: true },
   room: { image: true, extra: true },
   gallery: { image: true, video: true },
-  amenity: { icon: true, paid: true },
 };
 
 const SORTS = ["position", "title", "updated"] as const;
@@ -189,10 +185,11 @@ type Sort = (typeof SORTS)[number];
 const isSort = (value: string): value is Sort => (SORTS as readonly string[]).includes(value);
 const SORT_LABEL: Record<Sort, string> = { position: "Order", title: "Title", updated: "Recently updated" };
 
-/* The amenity tab is 68 rows, and a <details> per row is a full <form> with a
-   dozen fields — rendering all of them unconditionally is what makes a long tab
-   heavy to load and scroll. Paged the same way search and sort already are:
-   through the URL, no client state. */
+/* A <details> per row is a full <form> with a dozen fields, so a tab that grows
+   past a screenful gets heavy to load and scroll. The 68-row amenity tab is what
+   forced this and it has its own screen now, but the gallery is the next one to
+   get there. Paged the same way search and sort already are: through the URL, no
+   client state. */
 const PAGE_SIZE = 40;
 
 export default async function Content({
@@ -225,9 +222,9 @@ export default async function Content({
      icon, so there is no tab that would pay for a scan it never reads. */
   const bank = await bankItems();
   /* Ten past the last row, not `rows.length`. Positions are sparse on purpose —
-     the amenity seed leaves gaps between categories, running to 181 across 68
-     rows — so a count would drop every new amenity into the middle of the list
-     instead of the end. The gap of ten also leaves room to slot a row between
+     the amenity seed, which taught this the hard way, ran to 181 across 68 rows
+     with gaps between categories — so a count would drop every new row into the
+     middle of the list instead of the end. The gap of ten also leaves room to slot a row between
      two others by hand without renumbering anything. */
   const nextPosition = (allRows.at(-1)?.position ?? -10) + 10;
 
@@ -256,8 +253,8 @@ export default async function Content({
   /* Every write action below ends with a contentRedirect(...) call: it
      redirects back to the tab, search and page the staff member was on,
      tagging the outcome with an ok/err code that the popup below turns into
-     plain words. Keeping the place matters — a Save on page 2 of the amenity
-     list should land back on page 2, not on a collapsed list from the top. Each
+     plain words. Keeping the place matters — a Save on page 2 of a long tab
+     should land back on page 2, not on a collapsed list from the top. Each
      action closes over name/query/sort/page (plain values, fine to
      serialize) and calls the module-level helper directly rather than
      through a local wrapper — see the comment on contentRedirect itself for
@@ -347,9 +344,6 @@ export default async function Content({
       .bind(sec, slug)
       .first<{ image: string; video: string; icon: string }>();
 
-    /* Mirrors the render condition on the checkbox below. If a second section
-       ever grows a paid flag, both have to change together. */
-    const paidValue = sec === "amenity" ? (formData.get("paid") ? 1 : 0) : null;
     const published = formData.get("published") ? 1 : 0;
 
     /* Insert-or-update in one statement: there is no separate "new row" screen,
@@ -362,11 +356,10 @@ export default async function Content({
        Null means "no opinion" — keep the stored value, and 0 on insert. */
     const write = env.DB.prepare(
       `INSERT INTO content (section, slug, position, title, tag, body, href, image, video, icon, extra, published, paid, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, COALESCE(?13, 0), datetime('now'))
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 0, datetime('now'))
        ON CONFLICT (section, slug) DO UPDATE SET
          position = ?3, title = ?4, tag = ?5, body = ?6, href = ?7,
          image = ?8, video = ?9, icon = ?10, extra = ?11, published = ?12,
-         paid = COALESCE(?13, paid),
          updated_at = datetime('now')`,
     ).bind(
       sec,
@@ -381,7 +374,6 @@ export default async function Content({
       get("icon"),
       extra,
       published,
-      paidValue,
     );
 
     await auditedWrite(write, {
@@ -401,7 +393,6 @@ export default async function Content({
         icon: get("icon"),
         extra,
         published,
-        paid: paidValue,
       },
     });
 
@@ -459,9 +450,7 @@ export default async function Content({
           <label>Label</label>
           <input name="tag" defaultValue={row?.tag ?? ""} />
           <small>
-            {name === "amenity"
-              ? "The heading this gets grouped under (e.g. Bathroom, Kitchen, Safety & security)."
-              : "The small line above or beside the title."}
+"The small line above or beside the title."
           </small>
         </div>
 
@@ -496,12 +485,6 @@ export default async function Content({
           </>
         )}
 
-        {fields.paid && (
-          <label className="adm-con-tick adm-con-wide">
-            <input name="paid" type="checkbox" defaultChecked={row?.paid === 1} />
-            <span>Paid / additional charge</span>
-          </label>
-        )}
       </>
     );
   };
@@ -531,16 +514,6 @@ export default async function Content({
           hint="Optional. A clip plays behind the photo in the gallery."
         />
       )}
-      {fields.icon && (
-        <PhotoPicker
-          name="icon"
-          label="Icon"
-          kind="photo"
-          items={bank}
-          defaultValue={row?.icon ?? ""}
-          hint="Optional. Leave it empty and the site draws its own symbol for this amenity."
-        />
-      )}
       {fields.href && (
         <div className="adm-con-field adm-con-wide">
           <label>Where the card goes when it is clicked</label>
@@ -559,7 +532,10 @@ export default async function Content({
       {!fields.image && <input type="hidden" name="image" value={row?.image ?? ""} />}
       {!fields.href && <input type="hidden" name="href" value={row?.href ?? ""} />}
       {!fields.video && <input type="hidden" name="video" value={row?.video ?? ""} />}
-      {!fields.icon && <input type="hidden" name="icon" value={row?.icon ?? ""} />}
+      {/* No section here has an icon box any more — the one that did is now
+          /admin/amenities, and it looks its symbol up from the category. Carried
+          so a row that still holds one is not blanked by a save. */}
+      <input type="hidden" name="icon" value={row?.icon ?? ""} />
       {!fields.extra && (
         <input type="hidden" name="extra" value={JSON.stringify(row?.extra ?? {})} />
       )}
@@ -785,9 +761,7 @@ export default async function Content({
                   <label>Label</label>
                   <input name="tag" />
                   <small>
-                    {name === "amenity"
-                      ? "The heading this gets grouped under (e.g. Bathroom, Kitchen, Safety & security)."
-                      : "The small line above or beside the title."}
+"The small line above or beside the title."
                   </small>
                 </div>
                 <div className="adm-con-field adm-con-wide">
@@ -812,12 +786,6 @@ export default async function Content({
                       <small>One per line, as &ldquo;Label: value&rdquo;.</small>
                     </div>
                   </>
-                )}
-                {fields.paid && (
-                  <label className="adm-con-tick adm-con-wide">
-                    <input name="paid" type="checkbox" />
-                    <span>Paid / additional charge</span>
-                  </label>
                 )}
               </div>
             </li>
