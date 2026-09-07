@@ -680,7 +680,7 @@ Cache-Control: no-cache
 
 ## 8. Rate limits
 
-Numeric limits below come from the live Cloudflare resource inventory `cf-live.json`.
+Numeric limits below come from a read-only inventory of the live Cloudflare account, taken with `wrangler` and the Cloudflare API while writing these docs.
 
 | Limiter / quota | Binding or constant | Limit | Period | Applies to | Key | Exceeded behaviour |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -802,7 +802,7 @@ Related chapters: [`docs/cloudflare.md`](cloudflare.md) for bindings and rate li
 | `lib/permissions.ts` | `CAPABILITIES`, `can()`, `decisions()`, `liveGrants()`, `grantStatement()`, `revokeStatement()`, `timeLeft` re-export | Role/capability authorization and 24-hour permission grants. | `/admin/accounts`, `/admin/settings`, `/admin/analytics`, `/admin/content`, `/admin/photos`. |
 | `lib/public-routes.ts` | `PUBLIC_ROUTES`, `PAGE_MUST_CONTAIN` | Dependency-free public route list and expected render phrases. | `/admin/check` browser probe, nightly health Worker, `app/sitemap.ts`. |
 | `lib/repo-media.ts` | `REPO_MEDIA` | Lists git-shipped files under `public/media`. | `lib/media-store.ts`, `scripts/media-check.mjs`. |
-| `lib/settings-schema.ts` | Vocabularies, normalizers, validators, parsers, composers, `FormValues`, `RoomRow`, `toFormValues`, `sanitizeFormValues`, `computeErrors`, `composeAll`, `jsonList` | Full schema/validation/composition for settings and property-fact rows. | `/admin/settings` server action, `components/../SettingsForm.tsx`, `scripts/settings-check.mjs`, public contact/booking helpers. |
+| `lib/settings-schema.ts` | Vocabularies, normalizers, validators, parsers, composers, `FormValues`, `RoomRow`, `toFormValues`, `sanitizeFormValues`, `computeErrors`, `composeAll`, `jsonList` | Full schema/validation/composition for settings and property-fact rows. | `/admin/settings` server action, `app/admin/settings/SettingsForm.tsx`, `scripts/settings-check.mjs`, public contact/booking helpers. |
 | `lib/site.ts` | `SITE_URL`, `DESCRIPTION`, `phoneHref()`, `waHref()`, `normalizeEmail()`, `mapEmbedUrl()`, `directionsUrl()`, `timeLeft()` | Hardcoded deployment constants and derived public URL/phone/email helpers. | Public layout/metadata/sitemap/footer, `/contact`, admin grants, Google OAuth callback. |
 | `lib/sparkline.ts` | `sparklinePoints()`, `weekDelta()` | Pure SVG sparkline points and week-over-week percentage math. | Admin dashboard sparkline, `scripts/sparkline-check.mjs`. |
 

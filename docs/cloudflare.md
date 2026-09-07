@@ -6,9 +6,9 @@ Part of the [Hotel Thakali Inn documentation](../README.md). See also [data mode
 
 | Item | Value |
 |---|---|
-| Cloudflare account ID | `3a6818b85519fb4d497000aa7570bb1d` |
+| Cloudflare account ID | not recorded here — run `wrangler whoami` |
 | Active zone | `hotelthakaliinn.com` |
-| Zone ID | `b60d83395929a702a65e07190232566b` |
+| Zone ID | not recorded here — visible on the zone's dashboard overview |
 | Zone status | `active` |
 | Zone plan | `Free Website` |
 | Main Worker | `hotel-thakali-inn` |
@@ -33,12 +33,12 @@ What could not be read from the API:
 - Zone rulesets/WAF/cache rulesets returned HTTP `403` for the deployment token.
 - Turnstile and Pages configuration are absent from both the repository notes and live inventory.
 
-Custom domain IDs:
+Custom domains (their API record IDs are not recorded here; list them with `wrangler triggers` or the Workers dashboard):
 
-| Domain | Worker | Custom domain ID | Enabled | Previews |
-|---|---|---|---|---|
-| `hotelthakaliinn.com` | `hotel-thakali-inn` production | `542ffd70c0e00f185fcb664f4011cd6bf348a5cd` | true | false |
-| `www.hotelthakaliinn.com` | `hotel-thakali-inn` production | `72b67a5ad65d0baf28fdba1de8ffd370f5e587ec` | true | false |
+| Domain | Worker | Enabled | Previews |
+|---|---|---|---|
+| `hotelthakaliinn.com` | `hotel-thakali-inn` production | true | false |
+| `www.hotelthakaliinn.com` | `hotel-thakali-inn` production | true | false |
 
 ## 2. Main Worker
 
@@ -214,7 +214,6 @@ The `/img` path is deliberately used instead of `/media` because `/media/*` alre
 | Zone | `hotelthakaliinn.com` |
 | Routing status | `ready`, `synced`, not admin-locked |
 | Verified destination | `hotelthakaliinn1@gmail.com`, verified `2026-09-03` |
-| Listed routing rule | `03ac4d852f5341ef909c83311bc79c19` |
 | Rule matcher | `all` |
 | Rule action | `drop` |
 | Rule enabled | false |
@@ -497,7 +496,7 @@ Only the health-check Worker currently has production observability enabled. For
 
 `CHECK_TOKEN` must be installed with the same value on both the main Worker and `thakali-inn-health-check`. Changing it in only one place makes the nightly check report failure or `401`.
 
-Secret values are never printed or committed. The values in `cf-live.json` are secret names only.
+Secret values are never printed or committed. The Cloudflare API returns secret names only, never values.
 
 ### GitHub Actions secrets
 
@@ -586,10 +585,10 @@ CSP justifications:
 
 ## 15. Known issues / gotchas
 
-- D1 API reports `num_tables: 0` although the database file is `299,008` bytes. Table names and schemas are not visible from `cf-live.json`.
+- D1 API reports `num_tables: 0` although the database file is `299,008` bytes. Table names and schemas are not visible from the account-level API.
 - Zone DNS records, WAF rules, and cache rulesets returned HTTP `403` for the deployment token, so those settings could not be documented.
 - No KV namespaces, Pages project, Turnstile widget, or zone Worker routes exist in the live inventory.
-- The only Email Routing rule listed is disabled, matches all, and drops mail. No enabled forwarding rule is visible in `cf-live.json`.
+- The only Email Routing rule listed is disabled, matches all, and drops mail. No enabled forwarding rule is visible from the API.
 - `thakali-inn-health-check` `/run` has no explicit token-presence check before `timingSafeEqual`. If `CHECK_TOKEN` is unset and the header is absent, both values become `''` and the request is authorized. `CHECK_TOKEN` must always be configured.
 - Worker `timingSafeEqual()` returns early on length mismatch, so it is not fully constant-time over length; it only XORs equal-length strings.
 - `audit-archiver` and `r2-backup` fetch handlers do not check HTTP method; any method with a valid token triggers the archive/mirror/restore action.

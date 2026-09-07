@@ -119,7 +119,7 @@ The package also defines aliases: `dev:vinext`, `build:vinext` and `start:vinext
 | `scripts/` | Node/ESM validation scripts, ffmpeg/sharp export scripts, Playwright rig, DeepSeek code-generation notes, and shell helpers |
 | `workers/` | Three standalone workers: `audit-archiver`, `health-check`, `r2-backup`, each with its own `index.mjs` and `wrangler.jsonc` |
 | Root config files | `package.json`, `wrangler.jsonc`, `next.config.mjs`, `vite.config.ts`, `tsconfig.json`, `eslint.config.mjs` |
-| Root data/ops files | `information.txt` for canonical business details, `cf-live.json` for a read-only dump of the live Cloudflare account |
+| Root data/ops files | `information.txt` for canonical business details |
 | Generated/ignored paths | `worker-configuration.d.ts`, `dist/`, `.wrangler/`, `.vinext/`, `.next/`, `.ds/` and similar generated or writer-local paths are not turned into production source |
 
 `assets/adminator/` is a vendored template and is intentionally ignored by ESLint, along with generated `worker-configuration.d.ts`.
@@ -160,5 +160,5 @@ These are repo-level issues found in the extracted notes. They do not replace th
 | Cron-worker deploys depend on repo root | Both worker `wrangler.jsonc` files reference `node_modules/wrangler/config-schema.json` relative to the repo root; deploy from the root. |
 | Vendored and generated files are lint-ignored | `assets/**` vendored bundles and generated `worker-configuration.d.ts` should not be linted/formatted. |
 | Windows `wrangler dev` test issue | The Playwright rig aborts two requests that crash `wrangler dev` on Windows. |
-| `cf-live.json` anomalies | The live Cloudflare dump records D1 `num_tables` as `0` even though the database file is `299,008` bytes; DNS/WAF/cache rulesets were unreadable because the wrangler OAuth token received HTTP 403. |
+| Live-account anomalies | A read-only Cloudflare API inventory taken while writing these docs records D1 `num_tables` as `0` even though the database file is `299,008` bytes; DNS/WAF/cache rulesets were unreadable because the wrangler OAuth token received HTTP 403. |
 | Tracked binary/vendored media | The repo intentionally ships binary/font/media files under `assets/` and `public/media/`; treat `assets/adminator/` as vendored generated output rather than hand-written source. |

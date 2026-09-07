@@ -6,7 +6,7 @@ Part of the Hotel Thakali Inn documentation — see [../README.md](../README.md)
 
 - **Node** — Node 24 is used locally and in CI. The check scripts import `.ts` files directly and rely on Node native type stripping.
 - **npm** — `package.json` is `"type": "module"` and private.
-- **Wrangler** — `wrangler` `^4.127.1` is a project dependency. It must be authenticated to Cloudflare account `3a6818b85519fb4d497000aa7570bb1d`.
+- **Wrangler** — `wrangler` `^4.127.1` is a project dependency. It must be authenticated (`wrangler login`) to the Cloudflare account that owns the `hotelthakaliinn.com` zone; confirm with `wrangler whoami`.
 - **Google OAuth** — Admin sign-in uses Google OAuth. `GOOGLE_CLIENT_ID` is a non-secret `wrangler.jsonc` var; `GOOGLE_CLIENT_SECRET` is a Cloudflare secret.
 - **Cloudflare resources** — The project expects one D1 database, three R2 buckets, Cloudflare Images, Email Routing, Worker assets, and four rate-limit bindings.
 - **FFmpeg** — needed only for media regeneration scripts. Expected on `PATH` unless `FFMPEG` is set.

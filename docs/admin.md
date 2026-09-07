@@ -1009,7 +1009,7 @@ Admin CSS is split into a generic `.adm-*` system and the untokenised console sk
 - **Pre-migration analytics rows.** `page_views` rows before migration `0020` have empty visitor/geography/device strings; analytics queries exclude them where counting would invent facts.
 - **SQLite timestamps.** `datetime('now')` is UTC without a zone marker and often uses a space. Admin display must append `Z`/replace space with `T` to avoid wrong elapsed time.
 - **200-row inbox limits.** Messages, requests and audit pages cap at 200 with no pagination.
-- **Photo upload body ceiling.** Server Actions have roughly a 3 MB body ceiling; uploads must use `/admin/photos/upload/route.ts`.
+- **Photo upload body ceiling.** Server Actions have roughly a 3 MB body ceiling; uploads must use the route handler at `app/admin/photos/upload/route.ts`.
 - **Photo deletion race.** The reference check is not locked. Another tab could attach a photo between check and deletion and leave a broken reference.
 - **Photo deletion best-effort.** D1 row is deleted first; if R2 deletion fails, an orphan object remains invisible to the bank/gauge.
 - **New amenities are public immediately.** The Add form includes a hidden `published=on`.
